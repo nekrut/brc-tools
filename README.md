@@ -80,10 +80,24 @@ per-strain FASTAs (list collection)
 
 ## Installation
 
-### Via Galaxy Tool Shed (preferred, once tools are uploaded)
+### Via Galaxy Tool Shed (preferred)
 
-In Galaxy admin UI, install repositories from `nekrut` owner. Each
-`tools/<tool>/.shed.yml` configures the suite.
+All 15 repos are live on the [Main Tool Shed](https://toolshed.g2.bx.psu.edu/)
+under owner `nekrut`. In a Galaxy admin UI:
+
+1. Admin → Tool Management → Install and Uninstall
+2. Search `nekrut` (or browse each name below)
+3. Install: `pansn_rename`, `fasta_concat`, `gfaffix`, `pggb`,
+   `wfmash`, `seqwish`, `smoothxg`, `suite_odgi`, `suite_vg`
+
+Or programmatically via the ephemeris `shed-tools install` CLI:
+
+```bash
+shed-tools install -g http://localhost:8080 -a $GALAXY_API_KEY \
+  -t toolshed.g2.bx.psu.edu --owner nekrut --name pggb
+```
+
+Suite repos (`suite_odgi`, `suite_vg`) pull in all subcommands at once.
 
 ### Local Galaxy (development)
 
