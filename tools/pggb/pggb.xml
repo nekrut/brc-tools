@@ -51,9 +51,12 @@ pggb
         --poa-padding $poa_padding
     #end if
     $run_abpoa
+    $global_poa
     $skip_normalization
     $skip_viz
     $stats
+    $write_maf
+    $multiqc
     #if str($vcf_spec).strip()
         --vcf-spec '$vcf_spec'
     #end if
@@ -72,6 +75,7 @@ lay_file=\$(find pggb_out -maxdepth 1 -name '*.lay' | head -1) ;
 draw_png=\$(find pggb_out -maxdepth 1 -name '*.draw.png' | head -1) ;
 viz_png=\$(find pggb_out -maxdepth 1 \( -name '*viz_multiqc.png' -o -name '*.viz_O*.png' \) | head -1) ;
 vcf_file=\$(find pggb_out -maxdepth 1 -name '*.vcf' | head -1) ;
+multiqc_html=\$(find pggb_out -maxdepth 1 -name 'multiqc_report.html' | head -1) ;
 
 cp pggb.log '$output_log' ;
 
@@ -89,6 +93,10 @@ if [ -n "\$viz_png" ]; then cp "\$viz_png" '$output_viz_png' ; fi ;
 
 #if str($vcf_spec).strip()
 if [ -n "\$vcf_file" ]; then cp "\$vcf_file" '$output_vcf' ; fi ;
+#end if
+
+#if $multiqc
+if [ -n "\$multiqc_html" ]; then cp "\$multiqc_html" '$output_multiqc' ; fi ;
 #end if
 
 echo "DONE"
@@ -144,6 +152,15 @@ echo "DONE"
         </param>
         <param argument="--run-abpoa" type="boolean" truevalue="--run-abpoa" falsevalue=""
                checked="false" label="Use abPOA (-b)" help="Default SPOA."/>
+        <param argument="--global-poa" type="boolean" truevalue="--global-poa" falsevalue=""
+               checked="false" label="Run POA in global mode (-z)"
+               help="Default is local mode."/>
+        <param argument="--write-maf" type="boolean" truevalue="--write-maf" falsevalue=""
+               checked="false" label="Write MAF output (-M)"
+               help="Multi-Alignment Format representing merged POA blocks."/>
+        <param argument="--multiqc" type="boolean" truevalue="--multiqc" falsevalue=""
+               checked="false" label="Generate MultiQC report (-m)"
+               help="Automatically runs odgi stats and produces a MultiQC report."/>
         <param argument="--skip-normalization" type="boolean"
                truevalue="--skip-normalization" falsevalue="" checked="false"
                label="Skip final graph normalization (-X)"/>
@@ -172,6 +189,9 @@ echo "DONE"
         <data name="output_vcf" format="vcf" label="${tool.name} on ${on_string}: deconstruct VCF">
             <filter>vcf_spec.strip() != ""</filter>
         </data>
+        <data name="output_multiqc" format="html" label="${tool.name} on ${on_string}: MultiQC report">
+            <filter>multiqc</filter>
+        </data>
     </outputs>
     <tests>
         <test expect_num_outputs="3">
@@ -193,6 +213,30 @@ echo "DONE"
                     <has_text text="pggb"/>
                 </assert_contents>
             </output>
+        </test>
+        <test expect_num_outputs="7">
+            <param name="input_fasta" value="toy.fa.gz" ftype="fasta.gz"/>
+            <param name="n_haplotypes" value="3"/>
+            <param name="segment_length" value="500"/>
+            <param name="map_pct_id" value="90"/>
+            <param name="min_match_len" value="11"/>
+            <param name="multiqc" value="true"/>
+            <param name="stats" value="true"/>
+            <output name="output_gfa" decompress="true">
+                <assert_contents>
+                    <has_line_matching expression="^H\tVN:Z:1\.\d+.*"/>
+                </assert_contents>
+            </output>
+            <output name="output_multiqc">
+                <assert_contents>
+                    <has_text text="MultiQC"/>
+                    <has_text text="report"/>
+                </assert_contents>
+            </output>
+            <assert_command>
+                <has_text text="--multiqc"/>
+                <has_text text="--stats"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[
