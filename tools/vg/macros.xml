@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">1.73.0</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">25.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="@TOOL_VERSION@">vg</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1038/nbt.4227</citation>
+        </citations>
+    </xml>
+</macros>

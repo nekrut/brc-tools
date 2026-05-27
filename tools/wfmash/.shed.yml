@@ -1,0 +1,13 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: wfmash - pangenome-scale aligner
+long_description: |
+  wfmash is a whole-genome aligner combining MashMap-style mapping with
+  WFA (wavefront) base-level alignment. Used as the mapping front-end
+  of the pggb pangenome pipeline.
+name: wfmash
+owner: nekrut
+homepage_url: https://github.com/waveygang/wfmash
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/wfmash
+type: unrestricted

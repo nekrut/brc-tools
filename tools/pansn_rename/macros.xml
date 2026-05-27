@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">1.0.0</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">25.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="3.12">python</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="bibtex"><![CDATA[
+@misc{pansn_spec,
+  author = {Garrison, Erik and the pangenome community},
+  title = {PanSN-spec: Pangenome Sequence Naming specification},
+  year = {2022},
+  url = {https://github.com/pangenome/PanSN-spec}
+}
+            ]]></citation>
+        </citations>
+    </xml>
+</macros>

@@ -1,0 +1,89 @@
+<tool id="fasta_concat" name="FASTA collection concat" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>concatenate all FASTAs in a list collection into a single multifasta</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="fasta_concat.py"/>
+    </required_files>
+    <version_command>echo @TOOL_VERSION@</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+python '$__tool_directory__/fasta_concat.py'
+    #if $compressed
+        --gzip --output '$output_gz'
+    #else
+        --output '$output'
+    #end if
+    #for $f in $inputs#
+        '$f'
+    #end for#
+    ]]></command>
+    <inputs>
+        <param name="inputs" type="data" format="fasta,fasta.gz" multiple="true"
+               label="FASTAs to concatenate" help="Order is preserved from collection order."/>
+        <param name="compressed" type="boolean" truevalue="--gzip" falsevalue=""
+               checked="false" label="Gzip-compress output"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="fasta" label="${tool.name} on ${on_string}">
+            <filter>not compressed</filter>
+        </data>
+        <data name="output_gz" format="fasta.gz" label="${tool.name} on ${on_string} (gz)">
+            <filter>compressed</filter>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="inputs" value="a.fa,b.fa"/>
+            <param name="compressed" value="false"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text=">A_chr1"/>
+                    <has_text text=">B_chr1"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="inputs" value="a.fa,b.fa"/>
+            <param name="compressed" value="true"/>
+            <output name="output_gz" decompress="true">
+                <assert_contents>
+                    <has_text text=">A_chr1"/>
+                    <has_text text=">B_chr1"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="inputs" value="a.fa.gz,b.fa"/>
+            <param name="compressed" value="false"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text=">A_chr1"/>
+                    <has_text text=">B_chr1"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**FASTA collection concat** — concatenate every FASTA in the input
+collection into a single multifasta. Order matches collection order.
+
+Handles plain `.fasta` and `.fasta.gz` inputs transparently —
+decompresses .gz inputs when needed.
+
+Useful in pangenome workflows after per-strain PanSN renaming, before
+piping into `pggb`. The IUC `fasta-merge` tool covers most cases; this
+exists because pggb specifically wants a single bgzip-compatible
+multifasta and our pansn_rename outputs are per-strain.
+    ]]></help>
+    <citations>
+        <citation type="bibtex"><![CDATA[
+@misc{fasta_concat,
+    author = {Nekrutenko, Anton},
+    title = {fasta_concat: collection-to-multifasta helper for Galaxy pangenome workflows},
+    url = {https://github.com/nekrut/brc-tools}
+}
+        ]]></citation>
+    </citations>
+</tool>

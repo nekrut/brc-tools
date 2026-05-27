@@ -1,0 +1,14 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: seqwish - alignment-to-variation-graph inducer
+long_description: |
+  seqwish implements a lossless conversion from pairwise alignments
+  between sequences to a variation graph encoding the sequences and
+  their alignments. Standard mapping->graph step in pggb-style pangenome
+  pipelines.
+name: seqwish
+owner: nekrut
+homepage_url: https://github.com/ekg/seqwish
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/seqwish
+type: unrestricted

@@ -1,0 +1,14 @@
+categories:
+- Sequence Analysis
+- Fasta Manipulation
+description: Concatenate a collection of FASTAs into a single multifasta
+long_description: |
+  Custom helper tool: concatenates every FASTA in an input data collection
+  into a single multifasta file, transparently handling plain and gzipped
+  inputs and optionally gzipping the output. Used in pangenome workflows
+  between per-strain PanSN rename and pggb.
+name: fasta_concat
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/fasta_concat
+type: unrestricted

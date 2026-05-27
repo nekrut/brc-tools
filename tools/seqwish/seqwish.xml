@@ -1,0 +1,109 @@
+<tool id="seqwish" name="seqwish" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>induce a variation graph from PAF alignments</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command>seqwish --version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+seqwish
+    --paf-alns='$paf_alns'
+    --seqs=${ ','.join(["'%s'" % s for s in $seqs]) }
+    --gfa='$out_gfa'
+    #if $match_list
+        --match-list='$match_list'
+    #end if
+    #if str($repeat_max).strip()
+        --repeat-max=$repeat_max
+    #end if
+    --min-match-len=$min_match_len
+    #if str($transclose_batch).strip()
+        --transclose-batch=$transclose_batch
+    #end if
+    --threads=\${GALAXY_SLOTS:-1}
+    ]]></command>
+    <inputs>
+        <param argument="--paf-alns" type="data" format="paf" label="PAF alignments"
+               help="All-vs-all PAF mappings (typically from wfmash). The graph is induced from these."/>
+        <param argument="--seqs" type="data"
+               format="fasta,fasta.gz,fastqsanger,fastqsanger.gz" multiple="true"
+               label="Source sequences"
+               help="The FASTA(s)/FASTQ(s) referenced in the PAF query/target names."/>
+        <param argument="--match-list" type="data" format="txt,tabular" optional="true"
+               label="Subset PAF list (-m)" help="Restrict transitive closure to the alignments listed in this file."/>
+        <param argument="--repeat-max" type="text" value=""
+               label="Max copies per input base (-r, blank = unlimited)"
+               help="Cap the transitive closure at N copies of any input base. Tames runaway repeats.">
+            <validator type="regex" message="Integer or blank">[0-9]*</validator>
+        </param>
+        <param argument="--min-match-len" type="integer" min="0" value="23"
+               label="Min match length (-k)"
+               help="Filter exact matches below this length before induction. 23 is the pggb default; lower values give a finer-grained graph at the cost of complexity."/>
+        <param argument="--transclose-batch" type="text" value=""
+               label="Transitive-closure batch size (bp) (-B, blank = default)"
+               help="Number of base pairs per transitive-closure batch. Higher = more memory, faster.">
+            <validator type="regex" message="Integer or blank">[0-9]*</validator>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="out_gfa" format="gfa1" label="${tool.name} on ${on_string}: GFA1"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="seqs" value="A-3105.fa.gz" ftype="fasta.gz"/>
+            <param name="paf_alns" value="A-3105.paf.gz" ftype="paf"/>
+            <output name="out_gfa">
+                <assert_contents>
+                    <has_line_matching expression="^H\tVN:Z:1\.\d+.*"/>
+                    <has_line_matching expression="^S\t.+"/>
+                    <has_line_matching expression="^P\t.+"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="seqs" value="A-3105.fa.gz" ftype="fasta.gz"/>
+            <param name="paf_alns" value="A-3105.paf.gz" ftype="paf"/>
+            <param name="repeat_max" value="3000"/>
+            <param name="min_match_len" value="1"/>
+            <param name="transclose_batch" value="1000000"/>
+            <output name="out_gfa">
+                <assert_contents>
+                    <has_line_matching expression="^H\tVN:Z:1\.\d+.*"/>
+                    <has_line_matching expression="^S\t.+"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**seqwish** — induce a variation graph from pairwise alignments.
+
+Reads a PAF of all-vs-all mappings + the source FASTAs and emits a GFA1
+variation graph. The graph is *induced* by the transitive closure of the
+alignments — every match collapses into a single graph node.
+
+Standard pangenome pipeline step between `wfmash` (mapping) and
+`smoothxg` (POA-aware smoothing).
+
+-----
+
+**Inputs**
+
+- `PAF alignments` — typically from wfmash all-vs-all.
+- `Source sequences` — one or more FASTAs whose names appear in the PAF.
+
+**Key parameters**
+
+- `--min-match-len` (`-k`): default 23 in pggb. Smaller values give a
+  finer-grained graph; larger values collapse more locally-divergent
+  regions.
+- `--repeat-max` (`-r`): caps transitive closure copies; safety
+  against repeat-driven explosions.
+- `--transclose-batch` (`-B`, bp): memory/time tradeoff.
+
+**Output**
+
+- GFA1 graph; pass to `smoothxg` (then `gfaffix`) for the standard
+  pggb pipeline.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

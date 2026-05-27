@@ -1,0 +1,73 @@
+<tool id="odgi_viz" name="odgi viz" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>1D visualization of variation graph paths</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">odgi</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>odgi version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+odgi viz
+    --idx '$idx'
+    --out '$out_png'
+    --threads \${GALAXY_SLOTS:-1}
+    --width $width
+    --height $height
+    --path-height $path_height
+    $color_by_mean_depth
+    $path_per_row
+    ]]></command>
+    <inputs>
+        <param argument="--idx" type="data" format="odgi" label="Input .og graph"/>
+        <param argument="--width" type="integer" min="100" max="20000" value="1500"
+               label="PNG width (px)"/>
+        <param argument="--height" type="integer" min="100" max="20000" value="500"
+               label="PNG height (px)"/>
+        <param argument="--path-height" type="integer" min="1" max="200" value="8"
+               label="Path row height (px)"/>
+        <param argument="--color-by-mean-depth" type="boolean" truevalue="--color-by-mean-depth" falsevalue=""
+               checked="false" label="Color by mean coverage depth"/>
+        <param argument="--path-per-row" type="boolean" truevalue="--path-per-row" falsevalue=""
+               checked="false" label="One path per row" help="Rather than packed."/>
+    </inputs>
+    <outputs>
+        <data name="out_png" format="png" label="${tool.name} on ${on_string}: viz PNG"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="idx" value="toy.og" ftype="odgi"/>
+            <param name="width" value="1500"/>
+            <param name="height" value="500"/>
+            <output name="out_png">
+                <assert_contents>
+                    <has_image_width width="1584" delta="50"/>
+                    <has_image_height height="30" delta="20"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="idx" value="toy.og" ftype="odgi"/>
+            <param name="width" value="800"/>
+            <param name="height" value="300"/>
+            <param name="color_by_mean_depth" value="true"/>
+            <output name="out_png">
+                <assert_contents>
+                    <has_image_width width="884" delta="50"/>
+                    <has_image_height height="30" delta="20"/>
+                </assert_contents>
+            </output>
+            <assert_command>
+                <has_text text="--color-by-mean-depth"/>
+            </assert_command>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**odgi viz** — render a 1D pangenome graph view as PNG.
+
+Path-aware visualization: each haplotype is a horizontal row coloured
+by its traversal of the graph. Standard QC plot for pangenome builds.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

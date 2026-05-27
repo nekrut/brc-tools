@@ -1,0 +1,61 @@
+<tool id="odgi_build" name="odgi build" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>construct a dynamic succinct variation graph from GFA</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">odgi</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>odgi version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $in_ext = 'gfa.gz' if str($gfa.ext) == 'gfa1.gz' else 'gfa'
+ln -sf '$gfa' 'input.${in_ext}' &&
+odgi build
+    -g 'input.${in_ext}'
+    -o '$odgi_output'
+    --threads \${GALAXY_SLOTS:-1}
+    $sort
+    $optimize
+    #if $to_gfa
+        --to-gfa > '$gfa_output'
+    #end if
+    ]]></command>
+    <inputs>
+        <param argument="--gfa" type="data" format="gfa1,gfa1.gz" label="Input GFA1"
+               help="GFA1 (smoothed/fixed graph from pggb)."/>
+        <param argument="--sort" type="boolean" truevalue="--sort" falsevalue=""
+               checked="false" label="Topological sort"
+               help="Apply generalized topological sort and reassign node IDs in order."/>
+        <param argument="--optimize" type="boolean" truevalue="--optimize" falsevalue=""
+               checked="false" label="Optimize node IDs after build"/>
+        <param argument="--to-gfa" type="boolean" truevalue="yes" falsevalue="no"
+               checked="false" label="Also output GFA"
+               help="Also emit a GFA1 export of the graph."/>
+    </inputs>
+    <outputs>
+        <data name="odgi_output" format="odgi" label="${tool.name} on ${on_string}: odgi .og"/>
+        <data name="gfa_output" format="gfa1" label="${tool.name} on ${on_string}: GFA1">
+            <filter>to_gfa</filter>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="gfa" value="toy.gfa" ftype="gfa1"/>
+            <param name="sort" value="true"/>
+            <output name="odgi_output">
+                <assert_contents>
+                    <has_size min="10"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**odgi build** — construct the succinct binary `.og` graph from a GFA1 input.
+
+The `.og` format is much faster to query than GFA, and is the input
+format for the rest of the odgi subcommands (`stats`, `viz`, `paths`,
+`pav`, ...).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

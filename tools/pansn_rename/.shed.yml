@@ -1,0 +1,14 @@
+categories:
+- Sequence Analysis
+- Assembly
+description: PanSN rename - prefix FASTA headers with sample/haplotype tags
+long_description: |
+  Rewrites FASTA headers to follow the PanSN-spec
+  (https://github.com/pangenome/PanSN-spec), prefixing each contig
+  with SAMPLE<DELIM>HAP<DELIM> so that pangenome tools (pggb, wfmash,
+  odgi) can disambiguate identically-named contigs across haplotypes.
+name: pansn_rename
+owner: nekrut
+homepage_url: https://github.com/pangenome/PanSN-spec
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/pansn_rename
+type: unrestricted

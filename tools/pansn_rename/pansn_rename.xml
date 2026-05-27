@@ -1,0 +1,140 @@
+<tool id="pansn_rename" name="PanSN rename FASTA" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Prefix FASTA headers with PanSN spec (SAMPLE#HAP#CONTIG)</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="pansn_rename.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/pansn_rename.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $delim_map = {'hash': '#', 'pipe': '|', 'underscore': '_', 'dot': '.'}
+#set $delim_char = $delim_map[str($delimiter)]
+#import re
+#if str($sample).strip()
+    #set $sample_value = str($sample).strip()
+#else
+    #set $sample_value = re.sub(r'[^A-Za-z0-9_.\-]', '_', str($input.element_identifier))
+#end if
+python '$__tool_directory__/pansn_rename.py'
+    --input '$input'
+    --sample '$sample_value'
+    --haplotype $haplotype
+    --delimiter '$delim_char'
+    $gzip_output
+    #if str($gzip_output) == "--gzip-output"
+        --output '$output_gz'
+    #else
+        --output '$output'
+    #end if
+    ]]></command>
+    <inputs>
+        <param argument="--input" type="data" format="fasta,fasta.gz" label="Input FASTA"
+               help="One assembly, contig-per-record. Plain FASTA or gzipped."/>
+        <param argument="--sample" type="text" value="" optional="true" label="Sample name (blank = use input element identifier)"
+               help="Strain / sample identifier. Letters, digits, underscore, hyphen, dot. Leave blank to auto-derive from the input dataset's element identifier (useful when mapping over a collection in a workflow).">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]*</validator>
+        </param>
+        <param argument="--haplotype" type="integer" value="1" min="1" max="99"
+               label="Haplotype number"
+               help="Per PanSN spec: use 1 for haploid / single-haplotype assemblies; use 1,2 for diploid; etc."/>
+        <param argument="--delimiter" type="select" label="PanSN delimiter"
+               help="Single character separating sample / haplotype / contig in the new header. Match the value passed to pggb's -Y flag.">
+            <option value="hash" selected="true">#  (hash, PanSN default)</option>
+            <option value="pipe">|  (pipe)</option>
+            <option value="underscore">_  (underscore)</option>
+            <option value="dot">.  (dot)</option>
+        </param>
+        <param name="gzip_output" type="boolean" truevalue="--gzip-output" falsevalue=""
+               checked="false" label="Compress output (bgzip-compatible gzip)"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="fasta" label="${tool.name} on ${on_string}">
+            <filter>not gzip_output</filter>
+        </data>
+        <data name="output_gz" format="fasta.gz" label="${tool.name} on ${on_string} (gz)">
+            <filter>gzip_output</filter>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="two_contigs.fasta"/>
+            <param name="sample" value="PvP01"/>
+            <param name="haplotype" value="1"/>
+            <param name="delimiter" value="hash"/>
+            <param name="gzip_output" value="false"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text=">PvP01#1#chr1"/>
+                    <has_text text=">PvP01#1#chr2"/>
+                    <has_text text="ACGTACGT"/>
+                    <not_has_text text=">chr1 "/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input" value="two_contigs.fasta.gz" ftype="fasta.gz"/>
+            <param name="sample" value="Sal-I"/>
+            <param name="haplotype" value="2"/>
+            <param name="delimiter" value="hash"/>
+            <param name="gzip_output" value="true"/>
+            <output name="output_gz" decompress="true">
+                <assert_contents>
+                    <has_text text=">Sal-I#2#chr1"/>
+                    <has_text text=">Sal-I#2#chr2"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input" value="two_contigs.fasta"/>
+            <param name="sample" value="PvW1"/>
+            <param name="haplotype" value="1"/>
+            <param name="delimiter" value="pipe"/>
+            <param name="gzip_output" value="false"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text=">PvW1|1|chr1"/>
+                    <has_text text=">PvW1|1|chr2"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**PanSN rename FASTA**
+
+Rewrites every FASTA header to follow the [PanSN
+spec](https://github.com/pangenome/PanSN-spec):
+
+    >chr1                       ->  >SAMPLE#HAP#chr1
+    >chr2 contig length=14000   ->  >SAMPLE#HAP#chr2 contig length=14000
+
+PanSN-named FASTAs are required by `pggb`, `wfmash`, and `odgi` when
+multiple haplotypes share a contig name (e.g. every strain has a "chr1").
+The `SAMPLE` prefix disambiguates haplotypes; the `HAP` slot supports
+diploid/polyploid panels.
+
+-----
+
+**Inputs**
+
+- `Input FASTA` — uncompressed `.fasta` or gzipped `.fasta.gz`. Description
+  lines after the contig name (e.g. `>chr1 length=...`) are preserved.
+- `Sample name` — strain / sample identifier; letters, digits, underscore,
+  hyphen, dot only.
+- `Haplotype number` — integer (default 1).
+- `PanSN delimiter` — single character (default `#`).
+
+**Outputs**
+
+- Renamed FASTA, optionally bgzip-compatible gzipped.
+
+-----
+
+**Use in a pangenome workflow**
+
+Map this tool over a collection of one-FASTA-per-strain, then merge
+with `fasta-merge` and pass to `pggb` with matching `-Y` delimiter.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

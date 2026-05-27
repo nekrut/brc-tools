@@ -1,0 +1,20 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: odgi - optimized dynamic genome/graph implementation
+long_description: |
+  odgi is a fast, succinct variation graph implementation. This suite
+  wraps the most commonly used subcommands (build, stats, viz) for
+  pangenome analysis.
+name: odgi
+owner: nekrut
+homepage_url: https://github.com/pangenome/odgi
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/odgi
+type: unrestricted
+auto_tool_repositories:
+  name_template: "{{ tool_id }}"
+  description_template: "Wrapper for odgi: {{ tool_name }}."
+suite:
+  name: "suite_odgi"
+  description: "odgi pangenome graph tools suite."
+  type: repository_suite_definition

@@ -1,0 +1,76 @@
+<tool id="vg_convert" name="vg convert" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>convert variation graphs between formats</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">vg</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>vg version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $ext_map = {'gfa1': 'gfa', 'gfa1.gz': 'gfa.gz'}
+#set $in_ext = $ext_map.get(str($infile.ext), str($infile.ext))
+ln -sf '$infile' 'input.${in_ext}' &&
+
+vg convert
+    --threads \${GALAXY_SLOTS:-1}
+    #if str($infile.ext) in ('gfa1', 'gfa1.gz')
+        --gfa-in
+    #end if
+    $output_format
+    'input.${in_ext}'
+    > '$output'
+    ]]></command>
+    <inputs>
+        <param argument="--infile" type="data" format="vg,xg,gfa1,gfa1.gz" label="Input graph"
+               help="Accepts vg, xg, GFA1 (plain or gzipped). GBZ inputs via uploaded vg-format file."/>
+        <param name="output_format" type="select" label="Output format">
+            <option value="--packed-out" selected="true">PackedGraph (--packed-out, default)</option>
+            <option value="--hash-out">HashGraph (--hash-out)</option>
+            <option value="--xg-out">XG (--xg-out)</option>
+            <option value="--gfa-out">GFA1 (--gfa-out)</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format="vg" label="${tool.name} on ${on_string}">
+            <change_format>
+                <when input="output_format" value="--xg-out" format="xg"/>
+                <when input="output_format" value="--gfa-out" format="gfa1"/>
+                <when input="output_format" value="--hash-out" format="vg"/>
+            </change_format>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="infile" value="hla.vg" ftype="vg"/>
+            <param name="output_format" value="--xg-out"/>
+            <output name="output" ftype="xg">
+                <assert_contents>
+                    <has_size min="100"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="infile" value="x.gfa" ftype="gfa1"/>
+            <param name="output_format" value="--gfa-out"/>
+            <output name="output" ftype="gfa1">
+                <assert_contents>
+                    <has_line_matching expression="^H\t.+"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**vg convert** — convert between variation-graph formats.
+
+Common uses:
+
+- **GFA1 → PackedGraph / XG** — Galaxy default storage for graphs.
+- **GFA1 → GBZ (via -p)** — required input for `vg deconstruct`-based
+  pangenome VCF projection.
+
+Threads from `GALAXY_SLOTS`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

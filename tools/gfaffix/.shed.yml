@@ -1,0 +1,13 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: Collapse walk-preserving shared affixes in a variation graph
+long_description: |
+  GFAffix discovers and collapses shared prefixes and suffixes in a GFA1
+  variation graph without changing the spelled sequences of any walk. It
+  is the canonical post-smoothing tidy step in the pggb pipeline.
+name: gfaffix
+owner: nekrut
+homepage_url: https://github.com/marschall-lab/GFAffix
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/gfaffix
+type: unrestricted

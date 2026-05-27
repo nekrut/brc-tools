@@ -1,0 +1,24 @@
+# planemo
+.planemo/
+.venv/
+
+# Python
+*.pyc
+__pycache__/
+
+# Galaxy
+.tool_deps/
+shed_tools/
+
+# Test artifacts (regenerable)
+tool_test_output.html
+tool_test_output.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+.idea/
+.vscode/

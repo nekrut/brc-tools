@@ -1,0 +1,68 @@
+<tool id="odgi_stats" name="odgi stats" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>graph and path statistics</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">odgi</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>odgi version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#if not any([str($summarize), str($weak_connected_components), str($self_loops), str($nondeterministic_edges), str($base_content), str($file_size)])
+    #set $summarize = '--summarize'
+#end if
+odgi stats
+    --idx '$idx'
+    --threads \${GALAXY_SLOTS:-1}
+    $summarize
+    $weak_connected_components
+    $self_loops
+    $nondeterministic_edges
+    $base_content
+    $file_size
+    > '$stats_tsv'
+    ]]></command>
+    <inputs>
+        <param argument="--idx" type="data" format="odgi" label="Input .og graph"/>
+        <param argument="--summarize" type="boolean" truevalue="--summarize" falsevalue=""
+               checked="true" label="Summarize (-S)"
+               help="Print #nucleotides, #nodes, #edges, #paths, #steps as TSV. Default on."/>
+        <param argument="--weak-connected-components" type="boolean"
+               truevalue="--weak-connected-components" falsevalue="" checked="false"
+               label="Weakly-connected components"/>
+        <param argument="--self-loops" type="boolean" truevalue="--self-loops" falsevalue=""
+               checked="false" label="Count self-loop nodes"/>
+        <param argument="--nondeterministic-edges" type="boolean"
+               truevalue="--nondeterministic-edges" falsevalue="" checked="false"
+               label="Show nondeterministic edges"/>
+        <param argument="--base-content" type="boolean" truevalue="--base-content" falsevalue=""
+               checked="false" label="Base content (A/C/G/T)"/>
+        <param argument="--file-size" type="boolean" truevalue="--file-size" falsevalue=""
+               checked="false" label="File size (bytes)"/>
+    </inputs>
+    <outputs>
+        <data name="stats_tsv" format="tabular" label="${tool.name} on ${on_string}: stats"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="idx" value="toy.og" ftype="odgi"/>
+            <param name="summarize" value="true"/>
+            <output name="stats_tsv">
+                <assert_contents>
+                    <has_text text="length"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**odgi stats** — graph metrics.
+
+Default output (`--summarize`) is a tab-delimited line with
+`length` (total bp), `nodes`, `edges`, `paths`, `steps`.
+
+Used to compare pangenome builds across pipelines — node/edge counts
+are the canonical "did this produce the same graph?" check.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

@@ -1,0 +1,91 @@
+<tool id="vg_view" name="vg view" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>inspect and convert variation graph formats</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">vg</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>vg version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+vg view
+    $input_format.input_format_selector
+    '$input_format.infile'
+    $output_format
+    --threads=\${GALAXY_SLOTS:-1}
+    > '$output'
+    ]]></command>
+    <inputs>
+        <conditional name="input_format">
+            <param name="input_format_selector" type="select" label="Input format">
+                <option value="--vg-in" selected="true">vg (variant graph)</option>
+                <option value="--json-in">JSON</option>
+                <option value="--gfa-in">GFA</option>
+                <option value="--bam">BAM</option>
+            </param>
+            <when value="--vg-in">
+                <param name="infile" type="data" format="vg" label="vg file"/>
+            </when>
+            <when value="--gfa-in">
+                <param name="infile" type="data" format="gfa1" label="GFA1 file"/>
+            </when>
+            <when value="--json-in">
+                <param name="infile" type="data" format="json" label="JSON file"/>
+            </when>
+            <when value="--bam">
+                <param name="infile" type="data" format="bam" label="BAM file"/>
+            </when>
+        </conditional>
+        <param name="output_format" type="select" label="Output format">
+            <option value="--vg">vg</option>
+            <option value="--json">JSON</option>
+            <option value="--gfa" selected="true">GFA1</option>
+            <option value="--dot">dot</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format="gfa1" label="${tool.name} on ${on_string}">
+            <change_format>
+                <when input="output_format" value="--vg" format="vg"/>
+                <when input="output_format" value="--dot" format="graph_dot"/>
+                <when input="output_format" value="--json" format="json"/>
+            </change_format>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <conditional name="input_format">
+                <param name="input_format_selector" value="--gfa-in"/>
+                <param name="infile" value="x.gfa" ftype="gfa1"/>
+            </conditional>
+            <param name="output_format" value="--vg"/>
+            <output name="output" ftype="vg">
+                <assert_contents>
+                    <has_size min="100"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <conditional name="input_format">
+                <param name="input_format_selector" value="--vg-in"/>
+                <param name="infile" value="x.vg" ftype="vg"/>
+            </conditional>
+            <param name="output_format" value="--gfa"/>
+            <output name="output" ftype="gfa1">
+                <assert_contents>
+                    <has_line_matching expression="^H\t.+"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**vg view** — inspect and convert variation graphs between formats.
+
+Common pangenome workflow uses:
+- vg → GFA / GFA → vg for round-tripping with pggb outputs.
+- vg → JSON for programmatic inspection.
+- vg → dot for visualization with graphviz.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

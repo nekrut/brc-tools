@@ -1,0 +1,14 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: smoothxg - POA-aware pangenome graph smoother
+long_description: |
+  smoothxg finds collinear blocks in a variation graph and applies
+  partial-order alignment (POA) within each block to smooth out
+  small-scale alignment artifacts. This is the POA step in the pggb
+  pangenome pipeline.
+name: smoothxg
+owner: nekrut
+homepage_url: https://github.com/pangenome/smoothxg
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/smoothxg
+type: unrestricted

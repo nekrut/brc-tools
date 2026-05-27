@@ -1,0 +1,14 @@
+categories:
+- Assembly
+- Sequence Analysis
+description: PGGB - PanGenome Graph Builder
+long_description: |
+  PGGB wraps the wfmash + seqwish + smoothxg + gfaffix + odgi pipeline
+  to build a variation graph from a PanSN-renamed multifasta of
+  haplotypes. Standard pangenome construction tool from the pangenome.io
+  community.
+name: pggb
+owner: nekrut
+homepage_url: https://github.com/pangenome/pggb
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/pggb
+type: unrestricted
