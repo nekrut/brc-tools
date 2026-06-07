@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">0.1</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="@TOOL_VERSION@">sdust</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1089/cmb.2006.13.1028</citation>
+        </citations>
+    </xml>
+</macros>

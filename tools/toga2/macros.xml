@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">2.0.8</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+
+    <!--
+        CONTAINER-ONLY tool (NOT on bioconda). TOGA2 ships as a large
+        container (anaconda3 base + tensorflow + rust + nextflow + CESAR2)
+        that runs Nextflow over real genome alignments.
+
+        The upstream hillerlab/TOGA2 repo ships ONLY an apptainer/Singularity
+        def (supply/containers/apptainer.def), no published Docker image.
+        We translated that def into a Dockerfile (FROM continuumio/anaconda3)
+        and built a LOCAL image tagged `toga2:local`. The Galaxy container
+        resolver picks this up from the local Docker daemon. Replace with a
+        digest-pinned reference (`ghcr.io/.../toga2@sha256:...`) once an
+        upstream Docker image is published.
+    -->
+    <token name="@TOGA_IMAGE@">toga2:local</token>
+
+    <xml name="requirements">
+        <requirements>
+            <container type="docker">@TOGA_IMAGE@</container>
+        </requirements>
+    </xml>
+
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1126/science.abn3107</citation>
+            <citation type="bibtex"><![CDATA[
+@misc{pk_toga2_wfc,
+  author = {Nekrutenko lab and the P. knowlesi pangenome project},
+  title  = {WF-C.4 TOGA2/CESAR2 ortholog rescue wrapper},
+  year   = {2026},
+  note   = {Container-only wrapper of hillerlab/TOGA2; ported from
+            Pv4-pangenome/v3/pipeline/impl/04_annotate_project.sh}
+}
+            ]]></citation>
+        </citations>
+    </xml>
+</macros>

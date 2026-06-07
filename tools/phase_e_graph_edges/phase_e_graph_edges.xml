@@ -1,0 +1,103 @@
+<tool id="phase_e_graph_edges" name="Phase E graph edges" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>extract gene-pair edges from PGGB graph path co-membership</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="phase_e_graph_edges.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/phase_e_graph_edges.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p stage &&
+## The bundled script globs BED files by filename and uses each file's stem as
+## the strain name. Stage every collection element as <element_identifier>.bed
+## so the stem == strain. Mirror the pansn_rename / pair_strains pattern.
+#for $el in $annotations
+ln -s '$el' 'stage/${el.element_identifier}.bed' &&
+#end for
+python '$__tool_directory__/phase_e_graph_edges.py'
+    --paths '$paths'
+    --annotations 'stage/*.bed'
+    --strains '#echo " ".join([str($el.element_identifier) for $el in $annotations])#'
+    --min-overlap $min_overlap
+    --output '$output'
+    ]]></command>
+    <inputs>
+        <param argument="--paths" type="data" format="tabular,tsv" label="odgi paths TSV"
+               help="The odgi paths output for the PGGB graph. The first column holds PanSN path names of the form SAMPLE#1#CONTIG."/>
+        <param argument="--annotations" type="data_collection" collection_type="list"
+               format="bed" label="Per-strain gene BED collection"
+               help="A 'list' collection with one gene BED per strain. The element identifier is used as the strain name and must match the SAMPLE component of the PanSN path names. Each BED needs at least 4 columns (chrom, start, end, gene_id); chrom must match the CONTIG component."/>
+        <param argument="--min-overlap" type="float" value="0.90" min="0" max="1"
+               label="Minimum reciprocal CDS overlap"
+               help="Reciprocal CDS coverage threshold for a co-membership edge. Path-level co-membership is recorded with overlap 1.000; this threshold is consumed by the downstream union-find filter."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name} on ${on_string}: graph_edges.tsv"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="paths" value="graph_paths.tsv" ftype="tabular"/>
+            <param name="annotations">
+                <collection type="list">
+                    <element name="SampleA" value="SampleA.bed" ftype="bed"/>
+                    <element name="SampleB" value="SampleB.bed" ftype="bed"/>
+                </collection>
+            </param>
+            <param name="min_overlap" value="0.90"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text="strain_a&#9;gene_a&#9;strain_b&#9;gene_b&#9;path_id&#9;overlap"/>
+                    <has_n_columns n="6"/>
+                    <!-- SampleA + SampleB share contig chr1 -> real co-membership edges emitted (proves the contig-keying fix; v3 would have been header-only here). Orientation is set-order-dependent, so assert gene ids + path_id, not a fixed column order. -->
+                    <has_text text="geneA1"/>
+                    <has_text text="geneB1"/>
+                    <has_text text="chr1"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Phase E graph edges**
+
+Reads an [odgi](https://github.com/pangenome/odgi) `paths` TSV for a
+[PGGB](https://github.com/pangenome/pggb) graph together with per-strain gene
+BED annotations and emits gene-pair edges for genes whose strains share a graph
+path. This is a third evidence source for the Phase E ortholog clustering and
+is subsequently filtered by the union-find reciprocal-overlap check in
+`phase_e_consensus`.
+
+-----
+
+**Inputs**
+
+- *odgi paths TSV* - column 1 holds PanSN path names `SAMPLE#1#CONTIG`. The
+  `SAMPLE` component is the strain, the `CONTIG` component the chromosome.
+- *Per-strain gene BED collection* - a `list` collection with one BED per
+  strain; the element identifier is the strain name and is staged as
+  `{strain}.bed` so the script's filename glob resolves the strain. Each BED
+  needs >= 4 columns (`chrom`, `start`, `end`, `gene_id`), with `chrom`
+  matching the `CONTIG` component of the path names.
+- *Minimum reciprocal CDS overlap* - threshold (default 0.90) recorded for the
+  downstream filter.
+
+**Output**
+
+- `graph_edges.tsv` - columns `strain_a`, `gene_a`, `strain_b`, `gene_b`,
+  `path_id`, `overlap`. One row per co-membership gene pair (path-level overlap
+  is reported as `1.000`).
+
+-----
+
+**Implementation note**
+
+The strain list passed to the script is built from the collection element
+identifiers, so it always matches the staged BEDs. A graph path is treated as
+shared only when at least two of the listed strains traverse it.
+
+Ported from
+`Pv4-pangenome/v3/pipeline/impl/scripts/phase_e_graph_edges.py`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

@@ -1,0 +1,13 @@
+categories:
+- Sequence Analysis
+description: Join chain fragments that share the same chain id
+long_description: |
+  chainStitchId is a UCSC Genome Browser utility that reads a chain-format
+  pairwise alignment file and re-joins every set of chain records that
+  carry the same chain id into a single stitched chain. It is the one chain
+  utility not yet available through the IUC tool collection.
+name: chainStitchId
+owner: nekrut
+homepage_url: https://genome.ucsc.edu/goldenPath/help/chain.html
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/chainStitchId
+type: unrestricted

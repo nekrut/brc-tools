@@ -1,0 +1,97 @@
+class: GalaxyWorkflow
+label: WF-A inventory (Phase A)
+doc: >-
+  Phase A inventory / QC. Sketch every assembly with sourmash, build an N x N
+  similarity matrix (compare.csv; feeds WF-I fold order, sorted descending),
+  and run BUSCO -m prot over the per-strain proteome collection. Collection
+  element identifier = strain name throughout.
+creator:
+  - class: Person
+    identifier: https://orcid.org/0000-0002-5987-8032
+    name: Anton Nekrutenko
+  - class: Person
+    name: Claude Opus 4.8
+license: MIT
+release: "0.1"
+
+inputs:
+  assemblies:
+    type: collection
+    collection_type: list
+    doc: >-
+      Per-strain assembly FASTAs. Element identifier = strain name (e.g. PvP01).
+      sourmash_sketch maps over this collection (one .sig per assembly).
+  proteomes:
+    type: collection
+    collection_type: list
+    doc: >-
+      Per-strain protein FASTAs (parallel to assemblies, keyed by strain).
+      BUSCO runs -m prot, so it MUST map over proteins, not assemblies.
+  busco_lineage:
+    type: string
+    default: apicomplexa_odb10
+    doc: BUSCO lineage dataset (species-configurable, e.g. <clade>_odb10).
+
+outputs:
+  similarity_matrix:
+    outputSource: sourmash_compare/output
+    doc: N x N sourmash similarity matrix (compare.csv); feeds WF-I fold order.
+  signatures:
+    outputSource: sourmash_sketch/output
+    doc: Per-strain sourmash signatures (.sig), BRC-reusable.
+  busco_summaries:
+    outputSource: busco/busco_sum
+    doc: Per-strain BUSCO short summaries.
+
+steps:
+  sourmash_sketch:
+    tool_id: sourmash_sketch
+    label: sourmash_sketch
+    doc: >-
+      sketch dna -p k=31,scaled=1000 (fixed in wrapper). Maps over the
+      assemblies list collection; one signature per assembly, named after the
+      element identifier (strain). Validated e2e 2026-06-07 against the
+      locally-authored wrapper (tools/sourmash_sketch). The wrapper exposes a
+      single data input `input` and a single output `output`; k/scaled are not
+      exposed.
+    in:
+      input: assemblies
+    # No state: the only input is the mapped-over `input`; k=31/scaled=1000 are
+    # hardcoded in the wrapper command.
+
+  sourmash_compare:
+    tool_id: sourmash_compare
+    label: sourmash_compare
+    doc: >-
+      N x N similarity matrix (1.0 = identical) -> compare.csv. WF-I sorts
+      descending (closest = highest similarity). Locally-authored wrapper
+      (tools/sourmash_compare): takes a `list` collection `signatures` and an
+      integer `ksize`; emits CSV via `--csv`. Validated e2e 2026-06-07.
+    in:
+      signatures: sourmash_sketch/output
+    state:
+      ksize: 31
+
+  busco:
+    tool_id: busco
+    label: busco
+    doc: >-
+      BUSCO -m prot -l <lineage>, mapping over the proteome collection
+      (per strain). IUC tool.
+    in:
+      input: proteomes
+      lineage|lineage_dataset: busco_lineage
+    state:
+      # Real IUC busco schema (5.8.0+galaxy2): mode is the test_param of the
+      # `busco_mode` conditional, NOT a top-level `mode` key. lineage_dataset is
+      # a SELECT populated by the busco lineage data manager; on this server it
+      # has ZERO options (verified 2026-06-07: busco_database.loc empty) and the
+      # data_manager_fetch_busco tool is NOT installed, so select_lineage cannot
+      # run until that DM is installed and fetches <lineage>_odb10. Also: inputs
+      # must be proteomes (-m prot); test_data ships only genomes.
+      busco_mode:
+        mode: prot
+      lineage:
+        lineage_mode: select_lineage
+      adv:
+        evalue: 0.001

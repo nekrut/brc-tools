@@ -1,18 +1,25 @@
-# planemo
+# Galaxy / planemo
 .planemo/
 .venv/
-
-# Python
 *.pyc
 __pycache__/
-
-# Galaxy
 .tool_deps/
 shed_tools/
+galaxy_blueprint/
 
-# Test artifacts (regenerable)
-tool_test_output.html
-tool_test_output.json
+# Local Galaxy checkout (if symlinked here)
+galaxy/
+
+# E2E artifacts (big, ephemeral)
+data/raw/*
+!data/raw/.gitkeep
+execution/outputs/*
+!execution/outputs/.gitkeep
+execution/invocation.json
+
+# Secrets
+.env
+*.api-key
 
 # OS
 .DS_Store
@@ -22,3 +29,10 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+.env-key
+data/v2like/
+tool_test_output.html
+tool_test_output.json
+
+# installed IUC toolshed repos (not ours)
+tools/toolshed.g2.bx.psu.edu/

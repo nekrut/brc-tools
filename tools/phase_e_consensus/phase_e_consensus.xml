@@ -1,0 +1,127 @@
+<tool id="phase_e_consensus" name="Phase E consensus" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Build a consensus ortholog table by union-find over per-anchor classifications and rbest/graph edges</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="phase_e_consensus.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/phase_e_consensus.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p stage &&
+## Rebuild the {anchor}-as-ref/{query}.classification.tsv tree from the
+## nested list:list collection (outer element = anchor, inner = query).
+## The bundled script globs this tree by filename, so each inner element
+## must be symlinked under stage/<anchor>-as-ref/<query>.classification.tsv.
+#for $a in $classifications#
+mkdir -p 'stage/${a.element_identifier}-as-ref' &&
+#for $q in $a#
+ln -s '$q' 'stage/${a.element_identifier}-as-ref/${q.element_identifier}.classification.tsv' &&
+#end for#
+#end for#
+python '$__tool_directory__/phase_e_consensus.py'
+    --liftoff_dir stage
+    --rbest '$rbest'
+    --graph '$graph'
+    --anchors '$anchors'
+    --strains '$strains'
+    --ref '$ref'
+    --output '$ortholog_table'
+    ]]></command>
+    <inputs>
+        <param name="classifications" type="data_collection" collection_type="list:list" format="tabular,tsv"
+               label="Per-anchor classification tables (list:list)"
+               help="A nested 'list:list' collection. The OUTER element identifier is the anchor strain name; each INNER element identifier is a query strain name and its dataset is that query's Phase C.4 classification.tsv (columns reference_gene_id, query_gene_id, source, intactness, query_chrom, query_start, query_end, ...). The tool rebuilds the {anchor}-as-ref/{query}.classification.tsv directory tree the script expects."/>
+        <param argument="--rbest" type="data" format="tabular,tsv" label="Reciprocal-best chain edges"
+               help="rbest_edges.tsv (columns strain_a, gene_a, strain_b, gene_b, ...). Each row unions the two (strain, gene) nodes."/>
+        <param argument="--graph" type="data" format="tabular,tsv" label="Graph co-membership edges"
+               help="graph_edges.tsv (columns strain_a, gene_a, strain_b, gene_b, ...). Each row unions the two (strain, gene) nodes."/>
+        <param argument="--anchors" type="text" value="" label="Anchor strain list"
+               help="Space-separated anchor strain names. Each must match an outer element identifier of the classification collection.">
+            <validator type="regex" message="Space-separated names: letters, digits, underscore, hyphen, dot">[A-Za-z0-9_.\- ]+</validator>
+        </param>
+        <param argument="--strains" type="text" value="" label="All strain list"
+               help="Space-separated full list of strain names (anchors and queries).">
+            <validator type="regex" message="Space-separated names: letters, digits, underscore, hyphen, dot">[A-Za-z0-9_.\- ]+</validator>
+        </param>
+        <param argument="--ref" type="text" value="" label="Reference strain name"
+               help="Reference strain name.">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="ortholog_table" format="tabular" label="${tool.name} on ${on_string}: ortholog_table.tsv"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="classifications">
+                <collection type="list:list">
+                    <element name="A">
+                        <collection type="list">
+                            <element name="B" value="A-as-ref/B.classification.tsv" ftype="tabular"/>
+                            <element name="C" value="A-as-ref/C.classification.tsv" ftype="tabular"/>
+                        </collection>
+                    </element>
+                </collection>
+            </param>
+            <param name="rbest" value="rbest_edges.tsv" ftype="tabular"/>
+            <param name="graph" value="graph_edges.tsv" ftype="tabular"/>
+            <param name="anchors" value="A"/>
+            <param name="strains" value="A B C"/>
+            <param name="ref" value="A"/>
+            <output name="ortholog_table">
+                <assert_contents>
+                    <has_text text="orthogroup_id&#9;label&#9;n_strains&#9;max_copies&#9;A&#9;B&#9;C"/>
+                    <has_text text="OG000001"/>
+                    <has_text text="CORE-1:1"/>
+                    <has_n_columns n="7"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Phase E consensus** — consensus ortholog table across strains.
+
+Aggregates per-anchor Phase C.4 `classification.tsv` files together with
+reciprocal-best chain edges (`rbest_edges.tsv`) and graph co-membership
+edges (`graph_edges.tsv`) into a single consensus ortholog table.
+
+Ported from
+`Pv4-pangenome/v3/pipeline/impl/scripts/phase_e_consensus.py`.
+
+-----
+
+**Method**
+
+- Each `(strain, gene_id)` pair is a graph node (gene ids normalised to
+  strip transcript / extra-copy suffixes).
+- Classification rows (non-zero edge weight), interval-based aliasing
+  (90% reciprocal overlap), rbest edges and graph edges all `union` nodes.
+- Connected components with ≥2 strains become orthogroups.
+- Per strain, overlapping copies are collapsed; the orthogroup is labelled
+  `CORE-1:1`, `CORE-VAR`, `FAMILY`, `PARTIAL`, or `LINEAGE-SPECIFIC`.
+
+-----
+
+**Inputs**
+
+- *Per-anchor classification tables* — a **`list:list`** collection.
+  Outer element identifier = anchor strain; inner element identifier =
+  query strain; inner dataset = that query's `classification.tsv`. The
+  wrapper rebuilds the `{anchor}-as-ref/{query}.classification.tsv` tree
+  the script globs over.
+- *Reciprocal-best chain edges* — `rbest_edges.tsv`.
+- *Graph co-membership edges* — `graph_edges.tsv`.
+- *Anchor / All strain / Reference* — space-separated strain name lists
+  and the single reference strain name.
+
+**Output**
+
+- `ortholog_table.tsv` — 4 fixed columns (`orthogroup_id`, `label`,
+  `n_strains`, `max_copies`) followed by one column per strain holding the
+  member gene ids (comma-separated copies, `|`-joined within a copy
+  cluster; `-` when the strain is absent).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

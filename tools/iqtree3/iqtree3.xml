@@ -1,0 +1,106 @@
+<tool id="iqtree3" name="IQ-TREE 3" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Maximum-likelihood phylogenetic inference with model selection</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command>iqtree3 --version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+ln -sf '$alignment' 'aln.fa' &&
+
+## UFBoot (-B) hangs on alignments with fewer than 4 distinct sequences.
+## Count distinct sequences (record-aware: join each record onto one line,
+## strip the header, then dedup) and drop -B below the threshold.
+n_unique=\$(awk '/^>/{if(seq!="")print seq; seq=""; next}{seq=seq \$0}END{if(seq!="")print seq}' 'aln.fa' | sort -u | wc -l) &&
+
+iqtree3
+    -s 'aln.fa'
+    -m MFP
+    #if $bootstrap
+        \$( [ "\$n_unique" -ge 4 ] && echo "-B 1000" )
+    #end if
+    -T \${GALAXY_SLOTS:-2}
+    --prefix out
+    ]]></command>
+    <inputs>
+        <param name="alignment" type="data" format="fasta" label="Sequence alignment"
+               help="A codon or protein multiple-sequence alignment in aligned FASTA format."/>
+        <param name="bootstrap" type="boolean" truevalue="yes" falsevalue="no" checked="true"
+               label="Ultrafast bootstrap (-B 1000)"
+               help="Run 1000 ultrafast bootstrap replicates. Automatically skipped when the alignment has fewer than 4 distinct sequences (UFBoot hangs below this threshold)."/>
+    </inputs>
+    <outputs>
+        <data name="treefile" format="nhx" from_work_dir="out.treefile"
+              label="${tool.name} on ${on_string}: ML tree (Newick)"/>
+        <data name="iqtree_report" format="txt" from_work_dir="out.iqtree"
+              label="${tool.name} on ${on_string}: report"/>
+    </outputs>
+    <tests>
+        <!-- >=4 distinct sequences: UFBoot runs, treefile is valid Newick -->
+        <test expect_num_outputs="2">
+            <param name="alignment" value="four_seqs.fasta" ftype="fasta"/>
+            <param name="bootstrap" value="true"/>
+            <output name="treefile">
+                <assert_contents>
+                    <has_text text="("/>
+                    <has_text text=";"/>
+                </assert_contents>
+            </output>
+            <output name="iqtree_report">
+                <assert_contents>
+                    <has_text text="IQ-TREE"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- <4 distinct sequences: -B dropped, still completes and emits a treefile -->
+        <test expect_num_outputs="2">
+            <param name="alignment" value="three_seqs.fasta" ftype="fasta"/>
+            <param name="bootstrap" value="true"/>
+            <output name="treefile">
+                <assert_contents>
+                    <has_text text="("/>
+                    <has_text text=";"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**IQ-TREE 3** — maximum-likelihood phylogenetic inference.
+
+IQ-TREE infers a maximum-likelihood phylogenetic tree from a multiple
+sequence alignment. With `-m MFP` (ModelFinder Plus) it first selects the
+best-fit substitution model, then searches for the ML tree under that
+model and, optionally, assesses branch support with the ultrafast
+bootstrap (UFBoot).
+
+This wrapper runs the canonical pangenome per-gene tree command:
+
+```
+iqtree3 -s aln.fa -m MFP -B 1000 -T ${GALAXY_SLOTS:-2} --prefix out
+```
+
+-----
+
+**Input**
+
+- `Sequence alignment` — a codon or protein multiple-sequence alignment
+  in aligned FASTA format.
+
+**Outputs**
+
+- `ML tree (Newick)` — the inferred maximum-likelihood tree
+  (`out.treefile`).
+- `Report` — the IQ-TREE run report with the selected model and
+  log-likelihood (`out.iqtree`).
+
+-----
+
+**Ultrafast bootstrap and small alignments**
+
+UFBoot (`-B 1000`) hangs on alignments with fewer than four distinct
+sequences. The wrapper counts distinct sequences in the alignment and
+automatically drops `-B` below that threshold, so the run still completes
+and emits a tree even for 2- or 3-sequence inputs.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

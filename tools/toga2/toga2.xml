@@ -1,0 +1,152 @@
+<tool id="toga2" name="TOGA2 ortholog rescue" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>project reference gene models onto a query genome via chain alignment + CESAR2 (WF-C.4 pass 2)</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command><![CDATA[toga2.py --version 2>&1 | head -1 || echo "TOGA2 @TOOL_VERSION@"]]></version_command>
+    <command detect_errors="aggressive"><![CDATA[
+## ------------------------------------------------------------------
+## WF-C.4 TOGA2/CESAR2 rescue.
+##
+## TOGA2 (toga2.py, v2.0.x) replaces the TOGA1 `toga REF.bed12 CHAIN
+## REF.fa QUERY.fa --pn ... --cb ... --u12 "" --kt --filter_bed ... --nc`
+## interface with a click subcommand: `toga2.py run`. Differences:
+##   * genomes are passed as .2bit (--ref_2bit/--query_2bit), NOT FASTA;
+##     we convert the staged soft-masked FASTAs with the bundled
+##     faToTwoBit (on PATH inside /opt/TOGA2/bin).
+##   * isoforms -> --isoform_file (was --cb)
+##   * "no U12 table" -> --no_u12_file flag (was --u12 "")
+##   * no SpliceAI predictions staged -> --no_spliceai
+##   * --keep_temporary_files replaces --kt
+##   * --parallel_strategy local runs Nextflow over local CPUs (no SLURM)
+##   * TOGA2 `run` has NO --filter_bed; projection scope is driven by the
+##     chains + reference annotation. The Phase C.2 triage BED is therefore
+##     no longer a TOGA input (the upstream driver gate still decides
+##     whether to invoke this tool at all).
+##
+## Galaxy stores datasets as extensionless .dat; stage real-named
+## symlinks so faToTwoBit / TOGA2 see proper FASTA/BED/chain names.
+## ------------------------------------------------------------------
+ln -s '$ref_bed12'   ref.bed12 &&
+ln -s '$chain'       cleaned.chain &&
+ln -s '$ref_fasta'   ref.fa &&
+ln -s '$query_fasta' query.fa &&
+ln -s '$isoforms'    isoforms.tsv &&
+
+## FASTA -> 2bit (TOGA2 indexes 2bit, not FASTA)
+faToTwoBit ref.fa   ref.2bit &&
+faToTwoBit query.fa query.2bit &&
+
+toga2.py run
+    --ref_2bit ref.2bit
+    --query_2bit query.2bit
+    --chain_file cleaned.chain
+    --ref_annotation ref.bed12
+    --isoform_file isoforms.tsv
+    --no_u12_file
+    --no_spliceai
+    --parallel_strategy local
+    --feature_jobs \${GALAXY_SLOTS:-1}
+    --orthology_jobs \${GALAXY_SLOTS:-1}
+    --tree_cpus \${GALAXY_SLOTS:-1}
+    --keep_temporary_files
+    --output toga_out
+    ]]></command>
+    <inputs>
+        <param name="ref_bed12" argument="--ref_annotation" type="data" format="bed,bed12" label="Reference annotation (BED12)"
+               help="Reference gene models in BED12, one transcript per line (--ref_annotation). Column 4 transcript ids must match the --isoform_file table."/>
+        <param name="chain" argument="--chain_file" type="data" format="chain,tabular,txt" label="Reference-to-query chain"
+               help="Cleaned UCSC chain alignment of reference onto query (--chain_file), e.g. {A}.{Q}.cleaned.chain from Phase C. TOGA2 derives projection loci from these chains."/>
+        <param name="ref_fasta" argument="--ref_2bit" type="data" format="fasta" label="Reference genome (soft-masked)"
+               help="Soft-masked reference assembly FASTA. Converted to 2bit (--ref_2bit) with the bundled faToTwoBit. Seqids must match the BED/chain reference names."/>
+        <param name="query_fasta" argument="--query_2bit" type="data" format="fasta" label="Query genome (soft-masked)"
+               help="Soft-masked query assembly FASTA. Converted to 2bit (--query_2bit). CESAR2 re-aligns flagged exons against this."/>
+        <param name="isoforms" argument="--isoform_file" type="data" format="tabular,tsv" label="Isoforms table"
+               help="Two-column tab-separated gene/transcript table (--isoform_file): gene_id &lt;tab&gt; transcript_id, grouping the BED12 transcripts into genes."/>
+    </inputs>
+    <outputs>
+        <data name="query_annotation" format="bed" from_work_dir="toga_out/query_annotation.bed"
+              label="${tool.name} on ${on_string}: query_annotation.bed"/>
+        <data name="query_genes" format="bed" from_work_dir="toga_out/query_genes.bed"
+              label="${tool.name} on ${on_string}: query_genes.bed"/>
+        <data name="orthology_classification" format="tabular" from_work_dir="toga_out/orthology_classification.tsv"
+              label="${tool.name} on ${on_string}: orthology_classification.tsv"/>
+        <data name="loss_summary" format="tabular" from_work_dir="toga_out/loss_summary.tsv"
+              label="${tool.name} on ${on_string}: loss_summary.tsv"/>
+    </outputs>
+    <tests>
+        <!--
+            No functional test is provided. TOGA2 is a container-only
+            (anaconda3 plus tensorflow, rust, nextflow, CESAR2; multi-GB),
+            Nextflow-driven projection pipeline that re-aligns exons over
+            REAL genome alignments; it cannot run a meaningful projection on
+            tiny synthetic data. All five inputs are required, so an
+            input-less Galaxy test cannot validate on a modern profile;
+            a CLI smoke test (toga2.py run help, exit 0) is instead run
+            directly against the toga2:local image at build time. A real
+            functional test requires a genuine reference/query genome pair
+            plus a cleaned chain. Documented here rather than faked.
+        -->
+    </tests>
+    <help format="markdown"><![CDATA[
+**TOGA2 ortholog rescue (WF-C.4 pass 2)**
+
+Container-only wrapper of `hillerlab/TOGA2`. Projects reference gene models onto
+a query genome through a cleaned chain alignment and re-aligns triage-flagged
+exons with CESAR2, producing the fallback annotation that Phase C.4 merge folds
+in alongside the accepted Liftoff projection.
+
+Faithful port (re-mapped to the TOGA2 CLI) of the `toga ...` invocation in
+`Pv4-pangenome/v3/pipeline/impl/04_annotate_project.sh`.
+
+-----
+
+**Inputs**
+
+- Reference annotation (BED12) -> `--ref_annotation`
+- Reference -> query chain -> `--chain_file`
+- Reference genome (soft-masked FASTA, converted to 2bit) -> `--ref_2bit`
+- Query genome (soft-masked FASTA, converted to 2bit) -> `--query_2bit`
+- Isoforms table -> `--isoform_file`
+
+Fixed flags: `--no_u12_file`, `--no_spliceai`, `--parallel_strategy local`, `--keep_temporary_files`, `--feature_jobs/--orthology_jobs/--tree_cpus ${GALAXY_SLOTS}`, `--output toga_out`.
+
+**Outputs** (all four consumed by Phase C.4 `phase_c4_merge.py --toga-dir`)
+
+- `query_annotation.bed` - projected query transcript models
+- `query_genes.bed` - projected query gene-level models
+- `orthology_classification.tsv` - per-projection orthology call
+- `loss_summary.tsv` - intactness / gene-loss status per projection
+
+-----
+
+**TOGA1 -> TOGA2 CLI migration note**
+
+This wrapper targets **TOGA2** (`toga2.py run`, v2.0.x), which restructured the
+TOGA1 (`toga.py`, v1.1.7) interface (TOGA1 -> TOGA2):
+
+- 4 positional args (bed, chain, ref.fa, query.fa) -> `--ref_annotation --chain_file --ref_2bit --query_2bit` (2bit, not FASTA)
+- `--cb isoforms.tsv` -> `--isoform_file isoforms.tsv`
+- `--u12 ""` -> `--no_u12_file`
+- (new) -> `--no_spliceai`
+- `--kt` -> `--keep_temporary_files`
+- `--nc N` -> `--feature_jobs/--orthology_jobs/--tree_cpus N` plus `--parallel_strategy local`
+- `--pn DIR` -> `--output DIR`
+- `--filter_bed needs_cesar2.bed` -> removed; no per-gene filter in `run`
+
+-----
+
+**Operational notes**
+
+- *Container.* `toga2:local` is built from the upstream apptainer.def,
+  translated to a Dockerfile (`FROM continuumio/anaconda3`). The image has no
+  published Docker tag upstream; rebuild locally or pin to a digest once
+  published.
+- *Gating.* The upstream driver skips this step when the chain is missing or
+  the Phase C.2 rescue set is empty.
+- *Scale.* TOGA2 runs Nextflow over real genome alignments; it is not expected
+  to complete on toy inputs and is IO/CPU heavy.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

@@ -1,0 +1,6 @@
+##gff-version 3
+chr1	GenBank	gene	101	250	.	+	.	ID=gene1;Name=foo
+chr1	GenBank	mRNA	101	250	.	+	.	ID=rna1;Parent=gene1
+chr1	GenBank	exon	101	250	.	+	.	ID=exon1;Parent=rna1
+chr2	GenBank	protein_coding_gene	500	800	.	-	.	ID=gene-gene2;Name=bar
+chr2	GenBank	CDS	500	800	.	-	0	ID=cds2;Parent=gene-gene2

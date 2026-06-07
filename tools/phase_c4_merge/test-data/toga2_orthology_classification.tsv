@@ -1,0 +1,2 @@
+t_gene	t_transcript	q_gene	q_transcript	orthology_class
+geneB	geneB.t1	qgeneB	geneB.t1#5	one2one

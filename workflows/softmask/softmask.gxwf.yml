@@ -1,0 +1,115 @@
+class: GalaxyWorkflow
+label: WF-B softmask (Phase B)
+doc: >-
+  Phase B soft-masking. Per strain: run longdust + sdust over the assembly,
+  union the two 3-column BED interval sets (cat -> bedtools sort -> bedtools
+  merge), soft-mask the assembly (bedtools maskfasta -soft), then index with
+  samtools faidx. Outputs softmasked FASTAs + .fai (feed C, D, I).
+  Collection element identifier = strain name throughout.
+creator:
+  - class: Person
+    identifier: https://orcid.org/0000-0002-5987-8032
+    name: Anton Nekrutenko
+  - class: Person
+    name: Claude Opus 4.8
+license: MIT
+release: "0.1"
+
+inputs:
+  assemblies:
+    type: collection
+    collection_type: list
+    doc: >-
+      Per-strain assembly FASTAs. Element identifier = strain name (e.g. PvP01).
+      Every step maps over this collection (per strain).
+
+outputs:
+  softmasked_fasta:
+    outputSource: maskfasta/output
+    doc: Per-strain soft-masked FASTAs (lower-case low-complexity).
+  fasta_index:
+    outputSource: faidx/output
+    doc: Per-strain .fai indexes for the soft-masked FASTAs.
+
+steps:
+  longdust:
+    tool_id: longdust
+    label: longdust
+    doc: >-
+      longdust low-complexity intervals. OUR wrapper. Output is already
+      trimmed to 3 columns (chrom,start,end) inside the tool (awk in command),
+      so no separate awk-trim step is needed. Maps over assemblies (per strain).
+    in:
+      input: assemblies
+    state:
+      k: 7
+      w: 5000
+      t: 0.6
+      g: 0.5
+      e: 50
+      s: "3"
+      f: false
+      a: false
+
+  sdust:
+    tool_id: sdust
+    label: sdust
+    doc: >-
+      sdust symmetric-DUST low-complexity intervals (already 3-col BED).
+      OUR wrapper. Maps over assemblies (per strain).
+    in:
+      input: assemblies
+    state:
+      window: 64
+      threshold: 20
+
+  union_cat:
+    tool_id: cat1
+    label: union_cat
+    doc: >-
+      Concatenate the longdust + sdust 3-col BEDs per strain (zipped by element
+      identifier) into one interval set before sort/merge. Galaxy distro tool.
+    in:
+      input1: longdust/output
+      queries_0|input2: sdust/out_bed
+
+  sort_bed:
+    tool_id: bedtools_sortbed
+    label: sort_bed
+    doc: Sort the concatenated intervals (required before merge). IUC bedtools.
+    in:
+      input: union_cat/out_file1
+    state:
+      # pin the genome selector to 'hist' so no genome .len loc file is required
+      # (lexical sort uses no genome file). Verified by e2e run 2026-06-06.
+      genome_file_opts:
+        genome_file_opts_selector: hist
+
+  merge_bed:
+    tool_id: bedtools_mergebed
+    label: merge_bed
+    doc: Merge/union overlapping low-complexity intervals. IUC bedtools.
+    in:
+      input: sort_bed/output
+
+  maskfasta:
+    tool_id: bedtools_maskfastabed
+    label: maskfasta
+    doc: >-
+      Soft-mask the assembly at the merged intervals (-soft). IUC bedtools.
+      fasta = assembly (per strain), bed = merged union (per strain), zipped
+      by element identifier.
+    in:
+      fasta: assemblies
+      input: merge_bed/output
+    state:
+      soft: true
+
+  faidx:
+    tool_id: samtools_faidx
+    label: faidx
+    doc: >-
+      Index the soft-masked FASTA (.fai). IUC samtools_faidx. The .sizes file
+      (cut -f1,2 of .fai) is produced downstream where consumed.
+    in:
+      input: maskfasta/output

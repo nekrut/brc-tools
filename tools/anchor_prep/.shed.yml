@@ -1,0 +1,14 @@
+categories:
+- Sequence Analysis
+- Genome annotation
+description: Anchor prep - per-anchor BED12 + isoforms TSV for TOGA2 from a GFF3
+long_description: |
+  From a chrom-reconciled GFF3 annotation, builds the two input files TOGA2
+  needs per anchor species: a protein-coding-restricted BED12 (via gffread
+  --bed) and an isoforms TSV (gene_id<TAB>transcript_id, one row per mRNA).
+  Ported from the Pv4 pangenome pipeline build_anchor_inputs.sh.
+name: anchor_prep
+owner: nekrut
+homepage_url: https://github.com/gpertea/gffread
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/anchor_prep
+type: unrestricted

@@ -1,0 +1,58 @@
+class: GalaxyWorkflow
+label: WF-G trees (Pv4 Phase G)
+license: MIT
+creator:
+  - class: Person
+    identifier: https://orcid.org/0000-0002-5987-8032
+    name: Anton Nekrutenko
+  - class: Person
+    name: Claude Opus 4.8
+doc: |
+  Phase G of the Pv4 pangenome pipeline: per-gene maximum-likelihood trees.
+
+  iqtree3 (OUR wrapper, pinned 3.0.1) runs -m MFP -B 1000 -T 2 over each
+  per-orthogroup codon alignment in the input collection (Galaxy auto-maps the
+  tool over the collection -> one tree per gene). The <4-unique-sequence
+  bootstrap fallback (drop -B) lives INSIDE the wrapper.
+
+  Run TWICE: once over the core_v3 codon-alignment collection and once over
+  core_relaxed (the two sets WF-F produces). Output of each run is a per-gene
+  .treefile list collection; collapse the bulk of these into {set}_trees.tar
+  past the scaling threshold (Decision 8/15) -- the tar/collapse is done outside
+  this workflow.
+
+inputs:
+  codon_alignments:
+    type: data_collection
+    collection_type: list
+    doc: |
+      Per-orthogroup codon (or cleaned codon) alignments from WF-F, one
+      collection per set (core_v3 OR core_relaxed). element_identifier = gene/OG id.
+  bootstrap:
+    type: boolean
+    default: true
+    doc: |
+      Ultrafast bootstrap (-B 1000). Auto-dropped inside the wrapper when an
+      alignment has <4 distinct sequences (UFBoot hangs below that).
+
+outputs:
+  treefiles:
+    outputSource: iqtree/treefile
+    doc: Per-gene ML trees (Newick .treefile). Collapse bulk -> {set}_trees.tar.
+  iqtree_reports:
+    outputSource: iqtree/iqtree_report
+    doc: Per-gene IQ-TREE run reports (model + log-likelihood).
+
+steps:
+  iqtree:
+    tool_id: iqtree3
+    doc: |
+      OUR wrapper (iqtree3 pinned 3.0.1). Maps over the alignment collection;
+      -m MFP, -B 1000 (auto-dropped <4 uniques), -T from GALAXY_SLOTS.
+    in:
+      alignment:
+        source: codon_alignments
+      bootstrap: bootstrap
+    out:
+      - treefile
+      - iqtree_report

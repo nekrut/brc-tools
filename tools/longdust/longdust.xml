@@ -1,0 +1,119 @@
+<tool id="longdust" name="longdust" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Find low-complexity DNA sequences</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command>longdust -v 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $in_ext = 'fa.gz' if str($input.ext) == 'fasta.gz' else 'fa'
+ln -sf '$input' 'input.${in_ext}' &&
+
+longdust
+    -k$k
+    -w$w
+    -t$t
+    -g$g
+    -e$e
+    -s$s
+    $f
+    $a
+    'input.${in_ext}'
+| awk 'BEGIN{OFS="\t"}{print \$1,\$2,\$3}'
+> '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="Input FASTA"
+               help="Nucleotide FASTA, plain or gzipped."/>
+        <param argument="-k" type="integer" value="7" min="1" max="15" label="k-mer length"
+               help="Length of k-mers used to model complexity (default 7)."/>
+        <param argument="-w" type="integer" value="5000" min="1" label="Window size"
+               help="Context window size. Recommend w &lt; 4^k for performance (default 5000)."/>
+        <param argument="-t" type="float" value="0.6" min="0" label="Score threshold"
+               help="Complexity score threshold (default 0.6)."/>
+        <param argument="-g" type="float" value="0.5" min="0" max="1" label="Genome-wide GC content"
+               help="Assumed genome-wide GC fraction (default 0.5)."/>
+        <param argument="-e" type="integer" value="50" min="0" label="Extension X-drop length"
+               help="Extension X-drop length; set 0 to disable (default 50)."/>
+        <param argument="-s" type="select" label="Min start k-mer count"
+               help="Minimum start k-mer count (default 3).">
+            <option value="2">2</option>
+            <option value="3" selected="true">3</option>
+        </param>
+        <param argument="-f" type="boolean" truevalue="-f" falsevalue="" checked="false"
+               label="Forward strand only"
+               help="Scan the forward strand only."/>
+        <param argument="-a" type="boolean" truevalue="-a" falsevalue="" checked="false"
+               label="Guaranteed O(Lw) algorithm"
+               help="Use the guaranteed O(Lw) algorithm with more approximation."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed" label="${tool.name} on ${on_string}: low-complexity intervals"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="lowcomplex.fasta" ftype="fasta"/>
+            <output name="output">
+                <assert_contents>
+                    <has_n_columns n="3"/>
+                    <has_n_lines min="1"/>
+                    <has_line_matching expression="^chr1\t\d+\t\d+$"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input" value="lowcomplex.fasta.gz" ftype="fasta.gz"/>
+            <output name="output">
+                <assert_contents>
+                    <has_n_columns n="3"/>
+                    <has_n_lines min="1"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input" value="lowcomplex.fasta" ftype="fasta"/>
+            <param name="f" value="true"/>
+            <output name="output">
+                <assert_contents>
+                    <has_n_columns n="3"/>
+                    <has_n_lines min="1"/>
+                </assert_contents>
+            </output>
+            <assert_command>
+                <has_text text="-f"/>
+            </assert_command>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**longdust** — find low-complexity DNA sequences.
+
+Low-complexity (LC) DNA sequences are compositionally repetitive regions
+(homopolymers, short tandem repeats, satellite arrays) that frequently
+cause spurious alignments and variant-calling artifacts. `longdust`
+efficiently identifies long LC regions, including centromeric satellite
+and tandem repeats with moderately long motifs, by statistically modeling
+the k-mer count distribution within a context window.
+
+-----
+
+**Input**
+
+- `Input FASTA` — nucleotide FASTA, plain or gzipped.
+
+**Output**
+
+- A 3-column BED file (`chrom`, `start`, `end`) of low-complexity
+  intervals. The native longdust output is trimmed to these three
+  columns inside the tool.
+
+-----
+
+**Key options**
+
+- `-k` k-mer length (default 7).
+- `-w` context window size (default 5000). Recommend `w < 4^k`.
+- `-t` complexity score threshold (default 0.6).
+- For longer motifs the longdust author recommends `-k 8 -w 20000`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

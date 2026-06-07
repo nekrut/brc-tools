@@ -1,0 +1,158 @@
+<tool id="multiz_fold" name="multiz progressive fold" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>fold per-query pairwise MAFs into one multi-way MAF for a hinge</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="multiz_order.py"/>
+    </required_files>
+    <version_command><![CDATA[multiz 2>&1 | head -1]]></version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p pairs &&
+
+## Stage each pairwise-MAF collection element under its query strain name
+## (element_identifier). Galaxy stores datasets as .dat, so symlink to a real
+## .maf path that the fold loop and multiz can consume by name.
+#for $el in $pairwise_mafs
+ln -s '$el' 'pairs/${el.element_identifier}.maf' &&
+printf '%s\n' '$el.element_identifier' >> queries.txt &&
+#end for
+
+## Order query strains closest-first by DESCENDING sourmash similarity to the
+## hinge (Decision 5: similarity, 1.0 = identical). NOT mash ascending distance.
+python '$__tool_directory__/multiz_order.py'
+    --compare-csv '$compare_csv'
+    --hinge '$hinge'
+    --queries \$(cat queries.txt)
+    > order.txt &&
+
+## Progressive multiz fold: start from the closest query's pairwise MAF, then
+## fold each next-closest query's pairwise MAF onto the running MAF
+## (multiz prev.maf next.maf 1 > merged), per impl/10_multiz.sh:100-110.
+PREV='' &&
+while read -r Q; do
+    NEXT="pairs/\${Q}.maf" &&
+    if [ -z "\$PREV" ]; then
+        PREV="\$NEXT" ;
+    else
+        NEW=\$(mktemp ./multiz_tmp_XXXXXX.maf) &&
+        multiz "\$PREV" "\$NEXT" 1 > "\$NEW" &&
+        case "\$PREV" in
+            pairs/*) : ;;
+            *) rm -f "\$PREV" ;;
+        esac &&
+        PREV="\$NEW" ;
+    fi ;
+done < order.txt &&
+
+cp "\$PREV" '$folded_maf'
+    ]]></command>
+    <inputs>
+        <param name="pairwise_mafs" type="data_collection" collection_type="list" format="maf"
+               label="Per-query pairwise MAFs for this hinge"
+               help="A 'list' collection of the hinge's pairwise alignments (hinge vs each query). The element identifier MUST be the query strain name and the hinge must be the reference (top) row in every block."/>
+        <param argument="--compare-csv" type="data" format="csv"
+               label="sourmash compare.csv similarity matrix"
+               help="N+1 row sourmash compare.csv (header of strain labels, then one similarity row per strain). Similarity is 1.0 = identical; fold order sorts DESCENDING (closest first)."/>
+        <param argument="--hinge" type="text"
+               label="Hinge strain name"
+               help="The reference strain of this fold. Must appear as a label in compare.csv.">
+            <validator type="empty_field"/>
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="folded_maf" format="maf" label="${tool.name} on ${on_string}: ${hinge}.multiz.maf"/>
+    </outputs>
+    <tests>
+        <!-- 3-way fold: hinge H vs A and vs B; A closer than B by similarity. -->
+        <test expect_num_outputs="1">
+            <param name="pairwise_mafs">
+                <collection type="list">
+                    <element name="A" value="H_vs_A.maf" ftype="maf"/>
+                    <element name="B" value="H_vs_B.maf" ftype="maf"/>
+                </collection>
+            </param>
+            <param name="compare_csv" value="compare.csv"/>
+            <param name="hinge" value="H"/>
+            <output name="folded_maf">
+                <assert_contents>
+                    <has_text text="##maf"/>
+                    <has_line_matching expression="^s H\..*"/>
+                    <has_line_matching expression="^s A\..*"/>
+                    <has_line_matching expression="^s B\..*"/>
+                    <has_n_lines min="6"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- Single query: fold is a pass-through of the one pairwise MAF. -->
+        <test expect_num_outputs="1">
+            <param name="pairwise_mafs">
+                <collection type="list">
+                    <element name="A" value="H_vs_A.maf" ftype="maf"/>
+                </collection>
+            </param>
+            <param name="compare_csv" value="compare.csv"/>
+            <param name="hinge" value="H"/>
+            <output name="folded_maf">
+                <assert_contents>
+                    <has_line_matching expression="^s H\..*"/>
+                    <has_line_matching expression="^s A\..*"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**multiz progressive fold** — build one multi-way MAF for a hinge strain.
+
+[multiz](https://github.com/multiz/multiz) (part of TBA) merges *pairwise*
+MAF block sets that share a common reference. This tool ports the per-hinge
+progressive fold from the *Pv4* pangenome pipeline
+(`impl/10_multiz.sh`): given all of a hinge's pairwise alignments
+(hinge **H** vs each query **Q**), it grows the multi-way alignment one query
+at a time, threading every new query through what is already aligned onto
+**H**'s coordinate scaffold.
+
+-----
+
+**Fold order matters.** multiz threads each new strain transitively through
+the running alignment, so a distant strain folded early loses blocks that
+fail to thread. The queries are therefore folded **closest-first**, ordered by
+**descending** sourmash similarity to the hinge read from `compare.csv`
+(Decision 5: sourmash reports *similarity*, 1.0 = identical — so the order is
+DESC, the opposite of the mash *distance* convention).
+
+The fold then runs iteratively:
+
+```
+multiz  prev.maf  next.maf  1  >  merged.maf
+```
+
+starting from the closest query's pairwise MAF and folding the next-closest
+each step.
+
+-----
+
+**Inputs**
+
+- *Per-query pairwise MAFs* — a `list` collection of the hinge's pairwise
+  alignments. The **element identifier is the query strain name**, and the
+  hinge must be the reference (top) row of every block.
+- *compare.csv* — the sourmash N×N similarity matrix used to order the fold.
+- *Hinge strain name* — the reference strain; must be a label in
+  `compare.csv`.
+
+**Output**
+
+- `{hinge}.multiz.maf` — a single multi-way MAF whose blocks carry the hinge
+  plus every query that threaded.
+
+-----
+
+Ported from `Pv4-pangenome/v3/pipeline/impl/10_multiz.sh`. The upstream
+pairwise AXT→MAF step (`axtToMaf`, IUC `ucsc_axtomaf`) is **not** part of this
+tool.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

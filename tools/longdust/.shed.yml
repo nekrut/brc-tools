@@ -1,0 +1,13 @@
+categories:
+- Sequence Analysis
+description: longdust - find low-complexity DNA sequences
+long_description: |
+  longdust efficiently identifies long low-complexity DNA sequences,
+  including centromeric satellite and tandem repeats with moderately long
+  motifs, by statistically modeling the k-mer count distribution within a
+  context window. Emits a 3-column BED of low-complexity intervals.
+name: longdust
+owner: nekrut
+homepage_url: https://github.com/lh3/longdust
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/longdust
+type: unrestricted

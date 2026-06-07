@@ -1,0 +1,15 @@
+categories:
+- Phylogenetics
+description: IQ-TREE 3 - maximum-likelihood phylogenetic inference with model selection
+long_description: |
+  IQ-TREE 3 infers maximum-likelihood phylogenetic trees from a multiple
+  sequence alignment. With ModelFinder Plus (-m MFP) it selects the best-fit
+  substitution model and optionally assesses branch support with the
+  ultrafast bootstrap. This wrapper runs the canonical per-gene tree command
+  and automatically drops the ultrafast bootstrap when the alignment has
+  fewer than four distinct sequences.
+name: iqtree3
+owner: nekrut
+homepage_url: https://github.com/iqtree/iqtree3
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/iqtree3
+type: unrestricted

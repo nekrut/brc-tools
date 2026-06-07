@@ -1,0 +1,75 @@
+<tool id="gene_bed" name="Gene BED from GFF3" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>emit a 4-column gene BED (chrom, start-1, end, gene_id) for the orthogroup node set</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="gene_bed.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/gene_bed.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+python '$__tool_directory__/gene_bed.py'
+    --input '$input'
+    --output '$output'
+    ]]></command>
+    <inputs>
+        <param argument="--input" type="data" format="gff3,gff" label="Native GFF3 annotation"
+               help="One strain's native gene annotation. Gene rows are selected by feature type (gene, protein_coding_gene, ncRNA_gene, pseudogene) and the ID attribute is parsed for the gene name."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed" label="${tool.name} on ${on_string}: gene.bed"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="genes.gff3"/>
+            <output name="output">
+                <assert_contents>
+                    <has_n_lines n="2"/>
+                    <has_n_columns n="4"/>
+                    <!-- 0-based start: GFF start 101 -> BED 100 -->
+                    <has_line line="chr1&#9;100&#9;250&#9;gene1"/>
+                    <has_line line="chr2&#9;499&#9;800&#9;gene2"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Gene BED from GFF3**
+
+Reads a native GFF3 annotation and emits a 4-column gene BED:
+
+    chrom    start-1    end    gene_id
+
+Gene rows are selected by feature type — `gene`, `protein_coding_gene`,
+`ncRNA_gene`, `pseudogene` — the `ID=` attribute is parsed for the gene name
+(a leading `gene-` prefix, as added by NCBI, is stripped), and the GFF
+1-based start is converted to a 0-based BED start.
+
+-----
+
+**Inputs**
+
+- *Native GFF3 annotation* — one strain's gene models.
+
+**Outputs**
+
+- A BED4 file (`chrom`, `0-based start`, `end`, `gene_id`).
+
+-----
+
+**Use in a pangenome workflow (WF-E)**
+
+Phase E (consensus orthology) needs a per-strain gene node set. Map this tool
+over the collection of native annotations — one GFF3 per strain, keyed by the
+strain **element identifier** — to produce one gene BED per strain. Those BEDs
+are the node set fed to the reciprocal-best-overlap and graph co-membership
+sources that build the Phase E orthogroups.
+
+-----
+
+Ported from the GFF→BED step of
+`Pv4-pangenome/v3/pipeline/impl/06_consensus.sh`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

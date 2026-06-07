@@ -1,0 +1,129 @@
+class: GalaxyWorkflow
+label: WF-J vcf_projection (Phase J, Path A2)
+doc: |
+  Phase J of the Pv4 pangenome pipeline: project a reference-coordinate cohort
+  VCF onto every non-reference target assembly via CrossMap over the cleaned
+  reference->target chains (production Path A2; the graph-native Path B is cut
+  per Decision 6). NO new wrappers - every step is an IUC tool.
+
+  Flow:
+    1. bcftools annotate --rename-chrs : rename the cohort VCF CHROM column from
+       the internal _v1 names to GenBank accessions (run once, whole cohort).
+    2. CrossMap VCF (map-over target): lift the renamed cohort VCF onto each
+       target assembly using that target's cleaned ref->target chain + the
+       target FASTA. One job per non-ref target.
+    3. bcftools sort -> tabix index (map-over target): CrossMap emits unsorted
+       VCF; sort and bgzip/index each projected VCF.
+    4. bcftools concat -a : merge the per-target sorted VCFs with
+       --allow-overlaps into the final set (one cohort_on_{target} per target is
+       retained; concat -a is the validated combine step in 11_project_vcf.sh).
+
+  Map-over key throughout step 2/3 = target strain (element_identifier of the
+  cleaned-chain and target-FASTA collections). The chains here are the N-1
+  subset where source = REF_STRAIN (distinct from WF-E rbest and WF-K full
+  N(N-1)); element_identifier = target strain.
+
+inputs:
+  cohort_vcf:
+    type: data
+    doc: >
+      External reference-coordinate cohort VCF (the cohort_vcfs WF-J input). CHROM
+      in internal _v1 naming; renamed to GenBank accessions in step 1.
+  chrom_rename:
+    type: data
+    doc: >
+      Small two-column TSV mapping internal _v1 chrom names to GenBank accessions
+      (bcftools annotate --rename-chrs old<TAB>new).
+  cleaned_chains:
+    type: collection
+    collection_type: list
+    doc: >
+      The N-1 subset of Phase C cleaned chains where source = REF_STRAIN, one per
+      non-ref target. element_identifier = target strain. CrossMap maps over this.
+  target_fastas:
+    type: collection
+    collection_type: list
+    doc: >
+      Per-target genome FASTAs from Phase B, element_identifier = target strain,
+      paired with cleaned_chains by identifier. CrossMap needs the target genome
+      to place lifted coordinates.
+
+steps:
+  rename_chroms:
+    tool_id: bcftools_annotate
+    doc: >
+      Rename cohort VCF CHROM from _v1 names to GenBank accessions. Run once over
+      the whole cohort. IUC bcftools_annotate. --rename-chrs lives in the
+      "Change Annotations" section (sec_annotate.rename_chrs).
+    in:
+      input_file: cohort_vcf
+      sec_annotate|rename_chrs: chrom_rename
+    state:
+      output_type: v
+    out:
+      - output_file
+
+  crossmap_project:
+    tool_id: crossmap_vcf
+    doc: >
+      Lift the renamed cohort VCF onto each target assembly. Map-over target:
+      one job per (cleaned_chain, target_fasta) pair. IUC crossmap_vcf - inputs
+      are nested under the seq_source / chain_source conditionals (history mode).
+    in:
+      seq_source|input: rename_chroms/output_file
+      seq_source|input_fasta: target_fastas
+      seq_source|chain_source|input_chain: cleaned_chains
+    state:
+      seq_source:
+        index_source_s: history
+        chain_source:
+          index_source: history
+    out:
+      - output
+
+  sort_vcf:
+    tool_id: bcftools_sort
+    doc: >
+      CrossMap emits unsorted VCF; sort and bgzip/index each projected VCF so
+      concat can merge them. Maps over the CrossMap output collection.
+      VERSION GAP: the installed tool is greg/bcftools_sort/1.4.0 (NOT the IUC
+      repo). That old wrapper exposes ONLY input_file + output_type (no -T temp
+      dir / max-mem options), but output_type accepts z, so the bgzip step is
+      unaffected; verified ok live on synthetic data. If the IUC bcftools_sort
+      is later installed, the tool_id will change to the iuc repo path.
+    in:
+      input_file: crossmap_project/output
+    state:
+      output_type: z
+    out:
+      - output_file
+
+  concat_vcfs:
+    tool_id: bcftools_concat
+    doc: >
+      Merge the per-target sorted VCFs with --allow-overlaps. The sort_vcf output
+      collection reduces into the input_files multi-data param. IUC
+      bcftools_concat. Live schema: --allow-overlaps is NOT a sibling of naive;
+      it lives in a nested conditional sec_default|mode|overlaps|allow_overlaps
+      reachable only when naive=no. output_type accepts ONLY {b,v} in this
+      version (no z/u) - use b (bgzipped BCF). Verified ok live.
+    in:
+      input_files: sort_vcf/output_file
+    state:
+      sec_default:
+        mode:
+          naive: "no"
+          overlaps:
+            allow_overlaps: "yes"
+      output_type: b
+    out:
+      - output_file
+
+outputs:
+  projected_vcfs:
+    outputSource: sort_vcf/output_file
+    doc: >
+      Per-target cohort_on_{target}.vcf.gz (sorted, indexed). Pv4: 7 targets.
+  cohort_concat:
+    outputSource: concat_vcfs/output_file
+    doc: Combined --allow-overlaps cohort VCF across all targets.

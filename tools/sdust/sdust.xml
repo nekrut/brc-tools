@@ -1,0 +1,89 @@
+<tool id="sdust" name="sdust" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>mask low-complexity regions with symmetric DUST</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command>sdust 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $in_ext = 'fasta.gz' if str($input.ext) == 'fasta.gz' else 'fasta'
+ln -sf '$input' 'input.${in_ext}' &&
+
+sdust
+    -w $window
+    -t $threshold
+    'input.${in_ext}'
+    > '$out_bed'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="Input FASTA"
+               help="Nucleotide sequences, plain or gzipped. Low-complexity intervals are reported in BED."/>
+        <param argument="-w" name="window" type="integer" min="1" value="64"
+               label="Window size"
+               help="Width of the sliding window scored for low complexity (sdust default 64)."/>
+        <param argument="-t" name="threshold" type="integer" min="1" value="20"
+               label="Score threshold"
+               help="Minimum DUST score for an interval to be masked (sdust default 20). Higher = stricter; fewer regions masked."/>
+    </inputs>
+    <outputs>
+        <data name="out_bed" format="bed" label="${tool.name} on ${on_string}: low-complexity intervals (BED)"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="lowcomplexity.fasta" ftype="fasta"/>
+            <output name="out_bed">
+                <assert_contents>
+                    <has_n_columns n="3"/>
+                    <has_n_lines min="1"/>
+                    <has_line_matching expression="^lowcomp\t\d+\t\d+$"/>
+                </assert_contents>
+            </output>
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input" value="lowcomplexity.fasta" ftype="fasta"/>
+            <param name="window" value="64"/>
+            <param name="threshold" value="20"/>
+            <output name="out_bed">
+                <assert_contents>
+                    <has_n_columns n="3"/>
+                    <has_n_lines min="1"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**sdust** — symmetric DUST low-complexity masker.
+
+`sdust` scans nucleotide sequences and reports low-complexity intervals
+(homopolymer runs, short tandem repeats, etc.) using the symmetric DUST
+algorithm. Output is a 3-column BED of the masked intervals — one line
+per low-complexity region, in `name`, `start`, `end` (0-based,
+half-open) coordinates.
+
+This is the masking step used in pangenome alignment pipelines to keep
+low-complexity sequence from generating spurious all-vs-all matches.
+
+-----
+
+**Inputs**
+
+- `Input FASTA` — nucleotide sequences, plain or gzipped.
+
+**Outputs**
+
+- `low-complexity intervals (BED)` — 3-column BED (`seq`, `start`,
+  `end`) of every masked region. Empty if no region scores above the
+  threshold.
+
+**Options**
+
+- `-w` window size (default 64).
+- `-t` score threshold (default 20); raise it to mask less.
+
+-----
+
+sdust is distributed with the minimap2 / mappy toolkit and implements the
+symmetric DUST scheme of Morgulis *et al.* (2006).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

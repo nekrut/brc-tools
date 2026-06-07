@@ -1,0 +1,150 @@
+<tool id="phase_e_rbest_overlap" name="Phase E rbest overlap" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Gene orthology edges via reciprocal-best chain block projection</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="phase_e_rbest_overlap.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/phase_e_rbest_overlap.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p chains_dir annotations_dir &&
+## Stage the rbest-chain list collection. Element identifier is "{a}.{b}";
+## the script globs *.rbest.chain and recovers the strain pair from the stem.
+#for $c in $chains
+ln -s '$c' 'chains_dir/${c.element_identifier}.rbest.chain' &&
+#end for
+## Stage the gene-BED list collection. Element identifier is the strain name;
+## the script globs *.bed and uses the stem as the strain name.
+#for $b in $annotations
+ln -s '$b' 'annotations_dir/${b.element_identifier}.bed' &&
+#end for
+python '$__tool_directory__/phase_e_rbest_overlap.py'
+    --chains 'chains_dir/*.rbest.chain'
+    --annotations 'annotations_dir/*.bed'
+    --strains '$strains'
+    --min_overlap $min_overlap
+    --output '$rbest_edges'
+    ]]></command>
+    <inputs>
+        <param name="chains" type="data_collection" collection_type="list" format="txt,tabular"
+               label="Reciprocal-best chain list collection"
+               help="A 'list' collection of UCSC chain files, one per strain pair. The element identifier must be the pair name '{a}.{b}' (strain_a.strain_b); it is restaged as '{a}.{b}.rbest.chain' so the strain pair can be recovered from the file name."/>
+        <param name="annotations" type="data_collection" collection_type="list" format="bed,bed6,bed12"
+               label="Gene BED list collection"
+               help="A 'list' collection of gene BED files, one per strain. The element identifier must be the strain name (matching the '{a}.{b}' pair names); it is restaged as '{strain}.bed'. Column 4 is the gene id."/>
+        <param argument="--strains" type="text" value="" label="Strains"
+               help="Comma-separated list of strain names (e.g. strainA,strainB). Recorded for provenance; edges are derived from the chain pair names and BED element identifiers.">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot and comma only">[A-Za-z0-9_.,\-]+</validator>
+        </param>
+        <param argument="--min_overlap" type="float" value="0.90" min="0.0" max="1.0"
+               label="Minimum reciprocal overlap fraction"
+               help="An edge is emitted only when the target gene is covered by aligned chain blocks at least this fraction (overlap_a) AND its best query gene reciprocally overlaps the projection at least this fraction (overlap_b). Default 0.90."/>
+    </inputs>
+    <outputs>
+        <data name="rbest_edges" format="tabular" label="${tool.name} on ${on_string}: rbest_edges.tsv"/>
+    </outputs>
+    <tests>
+        <!-- One rbest chain (single block) projects strainA:geneA1 onto strainB:geneB1 1:1 -->
+        <test expect_num_outputs="1">
+            <param name="chains">
+                <collection type="list">
+                    <element name="strainA.strainB" value="strainA.strainB.rbest.chain" ftype="txt"/>
+                </collection>
+            </param>
+            <param name="annotations">
+                <collection type="list">
+                    <element name="strainA" value="strainA.bed" ftype="bed"/>
+                    <element name="strainB" value="strainB.bed" ftype="bed"/>
+                </collection>
+            </param>
+            <param name="strains" value="strainA,strainB"/>
+            <param name="min_overlap" value="0.90"/>
+            <output name="rbest_edges">
+                <assert_contents>
+                    <has_text text="strain_a&#9;gene_a&#9;strain_b&#9;gene_b&#9;overlap_a&#9;overlap_b"/>
+                    <has_text text="strainA&#9;geneA1&#9;strainB&#9;geneB1&#9;1.000&#9;1.000"/>
+                    <has_n_columns n="6"/>
+                    <has_n_lines n="2"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- High threshold above the 1.0 reciprocal overlap still keeps the edge;
+             instead raise min_overlap to a value the perfect 1:1 block cannot fail,
+             so this second test asserts the header is always present. -->
+        <test expect_num_outputs="1">
+            <param name="chains">
+                <collection type="list">
+                    <element name="strainA.strainB" value="strainA.strainB.rbest.chain" ftype="txt"/>
+                </collection>
+            </param>
+            <param name="annotations">
+                <collection type="list">
+                    <element name="strainA" value="strainA.bed" ftype="bed"/>
+                    <element name="strainB" value="strainB.bed" ftype="bed"/>
+                </collection>
+            </param>
+            <param name="strains" value="strainA,strainB"/>
+            <param name="min_overlap" value="1.0"/>
+            <output name="rbest_edges">
+                <assert_contents>
+                    <has_text text="strain_a&#9;gene_a&#9;strain_b&#9;gene_b&#9;overlap_a&#9;overlap_b"/>
+                    <has_n_columns n="6"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Phase E rbest overlap** — gene orthology edges via reciprocal-best chain
+block projection.
+
+For each reciprocal-best (rbest) chain between a pair of strains, every
+**target**-strain gene interval is projected through the chain's *aligned
+blocks* into **query** coordinates, then connected to the single best
+query gene that overlaps the projection. An edge is emitted only when:
+
+- the target gene is well covered by aligned blocks
+  (`overlap_a >= min_overlap`), **and**
+- its best query gene reciprocally overlaps the projection
+  (`overlap_b >= min_overlap`).
+
+Block-level projection (rather than the whole-chromosome header span)
+avoids the cartesian explosion of spurious edges.
+
+Ported from
+`Pv4-pangenome/v3/pipeline/impl/scripts/phase_e_rbest_overlap.py`.
+
+-----
+
+**Inputs**
+
+- *Reciprocal-best chain list collection* — a `list` collection of UCSC
+  chain files, one per strain pair. The element identifier is the pair
+  name `{a}.{b}`; it is restaged to `{a}.{b}.rbest.chain` so the strain
+  pair is recovered from the file name.
+- *Gene BED list collection* — a `list` collection of gene BED files, one
+  per strain. The element identifier is the strain name; it is restaged to
+  `{strain}.bed`. Column 4 is the gene id.
+- *Strains* — comma-separated strain names (provenance only).
+- *Minimum reciprocal overlap fraction* — `--min_overlap` (default 0.90).
+
+**Output**
+
+- `rbest_edges.tsv` — tab-separated edges with columns
+  `strain_a`, `gene_a`, `strain_b`, `gene_b`, `overlap_a`, `overlap_b`.
+  When no edge passes the threshold the file still carries the header row.
+
+-----
+
+**Implementation note**
+
+The wrapper iterates each input list collection and symlinks every element
+into a staging directory under the file name the bundled script globs for
+(`{a}.{b}.rbest.chain`, `{strain}.bed`), then passes the globs to the
+script. The helper (`phase_e_rbest_overlap.py`, stdlib only) walks the
+chain blocks with a forward-strand projection and a bisect-indexed query
+gene lookup.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

@@ -1,0 +1,7 @@
+##gff-version 3
+chr1	Liftoff	gene	1000	2000	.	+	.	ID=geneA;coverage=1.0;sequence_ID=0.99
+chr1	Liftoff	mRNA	1000	2000	.	+	.	ID=geneA.t1;Parent=geneA
+chr1	Liftoff	exon	1000	1500	.	+	.	ID=geneA.t1.e1;Parent=geneA.t1
+chr1	Liftoff	exon	1700	2000	.	+	.	ID=geneA.t1.e2;Parent=geneA.t1
+chr1	Liftoff	CDS	1000	1500	.	+	0	ID=geneA.t1.cds;Parent=geneA.t1
+chr1	Liftoff	CDS	1700	2000	.	+	2	ID=geneA.t1.cds;Parent=geneA.t1

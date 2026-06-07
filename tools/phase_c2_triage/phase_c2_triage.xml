@@ -1,0 +1,126 @@
+<tool id="phase_c2_triage" name="Phase C.2 triage" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>flag Liftoff-projected genes that need CESAR2 fallback</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="phase_c2_triage.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/phase_c2_triage.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+## Galaxy stores datasets as .dat; pyfaidx needs a real .fasta to index alongside.
+ln -s '$query_fasta' query.fasta &&
+mkdir -p outdir &&
+python '$__tool_directory__/phase_c2_triage.py'
+    --liftoff-gff '$liftoff_gff'
+    --query-fasta query.fasta
+    --reference-bed '$reference_bed'
+    --query-name '$query_name'
+    --output-dir outdir
+    --core-identity-min $core_identity_min
+    --core-coverage-min $core_coverage_min
+    --family-identity-min $family_identity_min
+    --subtelomere-bp $subtelomere_bp
+    #if str($family_list) != 'None'
+        --family-list '$family_list'
+    #end if
+    --log-level INFO
+    ]]></command>
+    <inputs>
+        <param argument="--liftoff-gff" type="data" format="gff3,gff" label="Liftoff GFF3"
+               help="Projected gene annotation from Liftoff. Genes must carry the attributes the triage rules read (sequence_ID, coverage, extra_copy_number, valid_ORFs, partial_mapping)."/>
+        <param argument="--query-fasta" type="data" format="fasta" label="Query genome FASTA"
+               help="The query assembly the GFF coordinates refer to. Seqids must match the GFF chrom column."/>
+        <param argument="--reference-bed" type="data" format="bed" label="Reference BED12"
+               help="Reference gene models in BED format. Column 4 (name) must match the (normalized) gene IDs so flagged genes can be emitted into needs_cesar2.bed."/>
+        <param argument="--query-name" type="text" value="query" label="Query name"
+               help="Label recorded in summary.json.">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+        <param argument="--family-list" type="data" format="tabular" optional="true" label="Gene family list (optional)"
+               help="Optional TSV (gene_id, family) of known variant-gene families (SICAvar, PIR, ...). When supplied, rule R8 forces those genes to CESAR2 fallback and relaxes the identity threshold."/>
+        <param argument="--core-identity-min" type="float" value="0.95" min="0" max="1"
+               label="Core gene minimum identity" help="Rule R2 threshold for non-family genes."/>
+        <param argument="--core-coverage-min" type="float" value="0.90" min="0" max="1"
+               label="Minimum reference CDS coverage" help="Rule R3 threshold."/>
+        <param argument="--family-identity-min" type="float" value="0.85" min="0" max="1"
+               label="Family gene minimum identity" help="Rule R2 threshold for genes on the family list."/>
+        <param argument="--subtelomere-bp" type="integer" value="100000" min="0"
+               label="Subtelomere flank (bp)" help="Rule R7: genes within this distance of a chromosome end are flagged."/>
+    </inputs>
+    <outputs>
+        <data name="triage_tsv" format="tabular" from_work_dir="outdir/triage.tsv"
+              label="${tool.name} on ${on_string}: triage.tsv"/>
+        <data name="needs_cesar2_bed" format="bed" from_work_dir="outdir/needs_cesar2.bed"
+              label="${tool.name} on ${on_string}: needs_cesar2.bed"/>
+        <data name="liftoff_clean_gff3" format="gff3" from_work_dir="outdir/liftoff_clean.gff3"
+              label="${tool.name} on ${on_string}: liftoff_clean.gff3"/>
+        <data name="summary_json" format="json" from_work_dir="outdir/summary.json"
+              label="${tool.name} on ${on_string}: summary.json"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="4">
+            <param name="liftoff_gff" value="liftoff.gff3"/>
+            <param name="query_fasta" value="query.fasta"/>
+            <param name="reference_bed" value="reference.bed"/>
+            <param name="query_name" value="testq"/>
+            <param name="subtelomere_bp" value="0"/>
+            <output name="triage_tsv">
+                <assert_contents>
+                    <has_text text="gene_id&#9;reference_id"/>
+                    <has_text text="decision"/>
+                    <has_text text="gene1"/>
+                    <has_n_lines n="2"/>
+                </assert_contents>
+            </output>
+            <output name="summary_json">
+                <assert_contents>
+                    <has_text text="fallback_rate"/>
+                    <has_text text="testq"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Phase C.2 triage**
+
+Decides, for each gene projected onto a query assembly by
+[Liftoff](https://github.com/agshumate/Liftoff), whether the projection is
+clean enough to keep or whether it should be re-aligned with CESAR2 / TOGA2 in
+the next phase of the *P. knowlesi* orthology pipeline.
+
+Eight rules are evaluated per gene:
+
+- **R1** frame disruption (`valid_ORFs` flag, CDS length not a multiple of 3, internal stop codon)
+- **R2** sequence identity below threshold (core 0.95, family 0.85)
+- **R3** reference CDS coverage below threshold (default 0.90)
+- **R4** copy-number variation for non-family genes
+- **R5** partial mapping flagged by Liftoff
+- **R6** non-canonical splice sites (only GT-AG / AT-AC accepted)
+- **R7** subtelomeric location (within the flank distance of a chromosome end)
+- **R8** known family membership (when a family list is supplied) - forces fallback
+
+-----
+
+**Inputs**
+
+- *Liftoff GFF3* - projected annotation; genes are read for `sequence_ID`,
+  `coverage`, `extra_copy_number`, `valid_ORFs`, and `partial_mapping`.
+- *Query genome FASTA* - the assembly the GFF coordinates refer to.
+- *Reference BED12* - reference models; column 4 names must match gene IDs.
+- *Gene family list* - optional TSV (`gene_id`, `family`) enabling rule R8.
+
+**Outputs**
+
+- `triage.tsv` - per-gene decision and triggered rules.
+- `needs_cesar2.bed` - reference BED lines for flagged genes.
+- `liftoff_clean.gff3` - the input GFF filtered to non-flagged genes.
+- `summary.json` - counts, per-rule tallies, and the overall `fallback_rate`.
+
+-----
+
+Ported from `Pv4-pangenome/v3/pipeline/impl/scripts/phase_c2_triage.py`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

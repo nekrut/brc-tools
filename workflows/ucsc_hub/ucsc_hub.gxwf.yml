@@ -1,0 +1,370 @@
+class: GalaxyWorkflow
+label: WF-K ucsc_hub (Phase K)
+doc: |
+  Phase K of the Pv4 pangenome pipeline: build a UCSC assembly hub from the
+  multiz MAFs (I), cleaned chains (C), merged GFFs (C.4), BUSTED jsons (H),
+  ortholog_table (E), assemblies (B) and the reference BED12 (C anchor_prep).
+
+  Least-validated stage (no impl artifact to diff against). Validation gate =
+  hubCheck clean + one manual UCSC-browser load (Decision 15).
+
+  NAMESPACE / ACCESSION-SPACE CAVEAT (flagged in README): Phase K operates in
+  GenBank accession space (e.g. GCA_900093555.2), NOT strain space. process_maf
+  and maf_to_bigmaf_bed require accession-named s-lines and accession sizes, so a
+  strain->accession s-line rename must happen BETWEEN WF-I and WF-K. That rename
+  is not yet a wrapped tool; this workflow assumes the multiz MAFs handed in are
+  ALREADY accession-named and the ref_acc / sizes inputs are in accession space.
+  This is the chief reason WF-K is the least-validated stage.
+
+  mafIndex REMOVED: ucsc_mafindex had NO validated reference invocation
+  (v3/tools/mafIndex was a 0-byte placeholder; the reference run hit Permission
+  denied and impl tolerated it via "|| true"). The tool is no longer installed,
+  so the former maf_index step + maf_index_track output have been dropped. A
+  bigMaf track does not require a separate index for hubCheck/hub loading.
+
+  gxformat2 nesting note (flagged in README): the spec's final output is a
+  list:list (outer=accession, inner=track-type). gxformat2 cannot cleanly
+  assemble heterogeneous per-track-type datasets into one nested collection inside
+  a pure map-over, so each track type is emitted as its own per-accession output
+  collection and the directory tree is materialized by a downstream staging step
+  (out of band of this workflow). This is the best-effort encoding.
+
+inputs:
+  multiz_mafs:
+    type: collection
+    collection_type: list
+    doc: >
+      Per-reference multiz MAFs from WF-I, ASSUMED already accession-renamed.
+      element_identifier = reference accession. bigMaf source.
+  cleaned_chains:
+    type: collection
+    collection_type: list
+    doc: >
+      Full N(N-1) directed cleaned chains from Phase C. element_identifier =
+      directed pair (e.g. {ref_acc}_to_{target_acc}). bigChain source.
+  annotation_gffs:
+    type: collection
+    collection_type: list
+    doc: >
+      Annotation GFF3s: native self-annotation per anchor AND cross-strain
+      {anchor}-as-ref/{strain}.annotation.gff3 (C.4 merged). element_identifier
+      encodes accession + source anchor. BigBed12 annotation source.
+  ortholog_table:
+    type: data
+    doc: Phase E ortholog_table.tsv. build_hub_bb selection + orthogroup source.
+  ref_bed12:
+    type: data
+    doc: Reference gene models BED12 (WF-C anchor_prep {A}.bed12).
+  busted_strict:
+    type: data
+    doc: >
+      Strict BUSTED archive (Phase H, core_v3): tar.gz of <gene_id>.json at the
+      tar root (one per element_identifier). selection_strict source.
+  busted_relaxed:
+    type: data
+    doc: Relaxed BUSTED archive (Phase H, core_relaxed). selection_relaxed source.
+  assemblies:
+    type: collection
+    collection_type: list
+    doc: >
+      Per-accession genome FASTAs (Phase B). element_identifier = accession.
+      faToTwoBit source.
+  ref_sizes:
+    type: data
+    doc: >
+      Reference {ACC}.fa.fai / chrom sizes (accession space). Used by bigMaf
+      bedToBigBed, build_hub_bb, and mafIndex.
+  hub_metadata:
+    type: data
+    doc: >
+      Per-assembly metadata TSV for build_genomes_txt (accession, defaultPos,
+      organism, scientificName, description + optional path overrides).
+  bigmaf_as:
+    type: data
+    doc: bigMaf.as autoSql (v3/ucsc_hub/). Required by bedToBigBed -type=bed3+1.
+  bigchain_as:
+    type: data
+    doc: bigChain.as autoSql (v3/tools/). Required by bedToBigBed -type=bed6+6.
+  biglink_as:
+    type: data
+    doc: bigLink.as autoSql (v3/tools/). Required by bedToBigBed -type=bed4+1.
+
+  ref_acc:
+    type: string
+    doc: Reference accession (REF_ACC), keyed off ref_strain via the strain->acc map.
+  ref_column:
+    type: string
+    default: PvP01
+    doc: ortholog_table column holding reference gene IDs.
+  gene_prefix:
+    type: string
+    default: PVP01_
+    doc: Reference gene-ID prefix for build_hub_bb selection.
+
+steps:
+  # ---------------- bigMaf track ----------------
+  process_maf:
+    tool_id: process_maf
+    doc: >
+      Drop blocks missing the ref accession, reorder s-lines ref-first, sort by
+      (ref_chrom, ref_start). OUR wrapper. Map-over multiz_mafs (per reference).
+    in:
+      input_maf: multiz_mafs
+      ref_acc: ref_acc
+    out:
+      - output_maf
+
+  maf_to_bigmaf_bed:
+    tool_id: maf_to_bigmaf_bed
+    doc: >
+      Emit bigMaf BED3+1 from the normalized MAF, bypassing mafToBigMaf overlap
+      rejection (multiz blocks overlap in ref coords). OUR wrapper.
+    in:
+      input_maf: process_maf/output_maf
+      ref_acc: ref_acc
+    out:
+      - output_bed
+
+  sort_bigmaf_bed:
+    tool_id: sort1
+    doc: >
+      sort -k1,1 -k2,2n equivalent (Galaxy sort1) so bedToBigBed gets a sorted
+      BED. Sort on column 1 (chrom, alpha asc) then column 2 (start, numeric asc).
+    in:
+      input: maf_to_bigmaf_bed/output_bed
+    state:
+      column: "1"
+      style: alpha
+      order: ASC
+      column_set:
+        - other_column: "2"
+          other_style: num
+          other_order: ASC
+    out:
+      - out_file1
+
+  bigmaf_bb:
+    tool_id: ucsc_bedtobigbed
+    doc: bigMaf BigBed. IUC ucsc kent (OUR ucsc_kent suite tool). -as=bigMaf.as.
+    in:
+      bed: sort_bigmaf_bed/out_file1
+      chrom_sizes: ref_sizes
+      as_file: bigmaf_as
+    state:
+      type: bed3+1
+    out:
+      - output
+
+  # NOTE: mafIndex was REMOVED from the ucsc_kent suite (tool_id ucsc_mafindex is
+  # no longer installed; v3/tools/mafIndex was a 0-byte placeholder). The former
+  # maf_index step and maf_index_track output are dropped. bigMaf tracks do not
+  # require a separate index for hubCheck/hub loading.
+
+  # ---------------- bigChain track ----------------
+  chain_to_bigchain:
+    tool_id: chain_to_bigChain
+    doc: >
+      Convert each cleaned chain to bigChain.bed (bed6+6) + bigLink.bed (bed4+1).
+      OUR wrapper. Map-over cleaned_chains (per directed pair).
+    in:
+      chain: cleaned_chains
+    out:
+      - bigchain_bed
+      - biglink_bed
+
+  sort_bigchain_bed:
+    tool_id: sort1
+    doc: >
+      sort -k1,1 -k2,2n equivalent (Galaxy sort1) so bigChain bedToBigBed gets a
+      sorted BED. bedToBigBed REQUIRES sorted (chrom asc, start numeric asc) input.
+    in:
+      input: chain_to_bigchain/bigchain_bed
+    state:
+      column: "1"
+      style: alpha
+      order: ASC
+      column_set:
+        - other_column: "2"
+          other_style: num
+          other_order: ASC
+    out:
+      - out_file1
+
+  bigchain_bb:
+    tool_id: ucsc_bedtobigbed
+    doc: bigChain BigBed. -as=bigChain.as. ucsc_kent suite.
+    in:
+      bed: sort_bigchain_bed/out_file1
+      chrom_sizes: ref_sizes
+      as_file: bigchain_as
+    state:
+      type: bed6+6
+    out:
+      - output
+
+  sort_biglink_bed:
+    tool_id: sort1
+    doc: >
+      sort -k1,1 -k2,2n equivalent (Galaxy sort1) so bigLink bedToBigBed gets a
+      sorted BED. bedToBigBed REQUIRES sorted (chrom asc, start numeric asc) input.
+    in:
+      input: chain_to_bigchain/biglink_bed
+    state:
+      column: "1"
+      style: alpha
+      order: ASC
+      column_set:
+        - other_column: "2"
+          other_style: num
+          other_order: ASC
+    out:
+      - out_file1
+
+  biglink_bb:
+    tool_id: ucsc_bedtobigbed
+    doc: bigLink BigBed. -as=bigLink.as. ucsc_kent suite.
+    in:
+      bed: sort_biglink_bed/out_file1
+      chrom_sizes: ref_sizes
+      as_file: biglink_as
+    state:
+      type: bed4+1
+    out:
+      - output
+
+  # ---------------- annotation track ----------------
+  gff3_to_genepred:
+    tool_id: ucsc_gff3togenepred
+    doc: >
+      GFF3 -> genePred. ucsc_kent suite. Map-over annotation_gffs (native +
+      cross-strain, fanned over anchors x strains per accession).
+    in:
+      input: annotation_gffs
+    out:
+      - output
+
+  genepred_to_bed:
+    tool_id: ucsc_genepredtobed
+    doc: genePred -> BED12. ucsc_kent suite.
+    in:
+      input: gff3_to_genepred/output
+    out:
+      - output
+
+  sort_annot_bed:
+    tool_id: sort1
+    doc: >
+      sort -k1,1 -k2,2n equivalent (Galaxy sort1) so annotation bedToBigBed gets a
+      sorted BED. bedToBigBed REQUIRES sorted (chrom asc, start numeric asc) input.
+    in:
+      input: genepred_to_bed/output
+    state:
+      column: "1"
+      style: alpha
+      order: ASC
+      column_set:
+        - other_column: "2"
+          other_style: num
+          other_order: ASC
+    out:
+      - out_file1
+
+  annot_bb:
+    tool_id: ucsc_bedtobigbed
+    doc: annotation BigBed12 (no extra fields, no -as). ucsc_kent suite.
+    in:
+      bed: sort_annot_bed/out_file1
+      chrom_sizes: ref_sizes
+    state:
+      type: bed12
+    out:
+      - output
+
+  # ---------------- selection + orthogroup track ----------------
+  build_hub_bb:
+    tool_id: build_hub_bb
+    doc: >
+      Selection BED12+5 (strict + relaxed) and orthogroup BED12; internal
+      bedToBigBed with bigSelectionPlus5.as. OUR consolidated wrapper. Runs once
+      for the reference set.
+    in:
+      ortholog_table: ortholog_table
+      ref_bed12: ref_bed12
+      sizes: ref_sizes
+      busted_strict: busted_strict
+      relaxed|busted_relaxed: busted_relaxed
+      ref_acc: ref_acc
+      ref_column: ref_column
+      gene_prefix: gene_prefix
+    state:
+      relaxed:
+        do_relaxed: "yes"
+    out:
+      - selection_strict_bb
+      - selection_relaxed_bb
+      - orthogroup_bb
+
+  # ---------------- per-assembly 2bit ----------------
+  fa_to_2bit:
+    tool_id: ucsc_fatotwobit
+    doc: Per-accession 2bit. ucsc_kent suite. Map-over assemblies.
+    in:
+      input: assemblies
+    out:
+      - output
+
+  # ---------------- manifests ----------------
+  build_genomes_txt:
+    tool_id: build_genomes_txt
+    doc: >
+      Global genomes.txt (9-field; real defaultPos, valid twoBitPath) from the
+      per-assembly metadata table. OUR wrapper.
+    in:
+      metadata: hub_metadata
+    out:
+      - output
+
+  hub_check:
+    tool_id: ucsc_hubcheck
+    doc: >
+      Validate the assembled hub.txt. OUR ucsc_kent suite tool. Phase K gate =
+      hubCheck clean + one manual UCSC-browser load. NOTE: hub_url is a text path
+      to the staged hub.txt; the hub directory tree must be materialized (out of
+      band) before this step can resolve track data - see README nesting note.
+    in:
+      hub_url:
+        default: hub.txt
+    out:
+      - report
+
+outputs:
+  bigmaf_track:
+    outputSource: bigmaf_bb/output
+    doc: Per-accession bigMaf BigBed.
+  bigchain_track:
+    outputSource: bigchain_bb/output
+    doc: Per-directed-pair bigChain BigBed.
+  biglink_track:
+    outputSource: biglink_bb/output
+    doc: Per-directed-pair bigLink BigBed.
+  annotation_track:
+    outputSource: annot_bb/output
+    doc: Per-(accession,anchor) annotation BigBed12.
+  selection_strict_track:
+    outputSource: build_hub_bb/selection_strict_bb
+    doc: selection_core_v3.bb (strict).
+  selection_relaxed_track:
+    outputSource: build_hub_bb/selection_relaxed_bb
+    doc: selection_core_relaxed.bb (relaxed).
+  orthogroup_track:
+    outputSource: build_hub_bb/orthogroup_bb
+    doc: orthogroup_membership BigBed12.
+  twobit_track:
+    outputSource: fa_to_2bit/output
+    doc: Per-accession 2bit.
+  genomes_txt:
+    outputSource: build_genomes_txt/output
+    doc: Global genomes.txt.
+  hubcheck_report:
+    outputSource: hub_check/report
+    doc: hubCheck validation report (gate).

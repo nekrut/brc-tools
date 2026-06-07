@@ -1,0 +1,71 @@
+<tool id="chain_to_bigChain" name="chain to bigChain" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>convert UCSC chain alignments to bigChain + bigLink BED for assembly hubs</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="chain_to_bigChain.py"/>
+    </required_files>
+    <version_command>python -c "import sys; sys.stdout.write('@TOOL_VERSION@')"</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+## Galaxy stores datasets as .dat and serves chain data uncompressed; the script
+## switches on the file suffix, so symlink to a real .chain name.
+ln -s '$chain' in.chain &&
+python '$__tool_directory__/chain_to_bigChain.py'
+    in.chain
+    '$bigchain_bed'
+    '$biglink_bed'
+    ]]></command>
+    <inputs>
+        <param argument="chain" type="data" format="chain" label="Chain alignment"
+               help="UCSC pairwise alignment chain file. Chains with a non-'+' target strand are skipped with a warning."/>
+    </inputs>
+    <outputs>
+        <data name="bigchain_bed" format="bed" label="${tool.name} on ${on_string}: bigChain.bed (bed6+6)"/>
+        <data name="biglink_bed" format="bed" label="${tool.name} on ${on_string}: bigLink.bed (bed4+1)"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="2">
+            <param name="chain" value="tiny.chain" ftype="chain"/>
+            <output name="bigchain_bed">
+                <assert_contents>
+                    <has_n_columns n="12"/>
+                    <has_line_matching expression="^chr1\t0\t300\t1\t1000\t\+\t1000\tchrQ\t800\t100\t410\t5000$"/>
+                    <has_n_lines n="1"/>
+                </assert_contents>
+            </output>
+            <output name="biglink_bed">
+                <assert_contents>
+                    <has_n_columns n="5"/>
+                    <has_line_matching expression="^chr1\t0\t100\t1\t100$"/>
+                    <has_n_lines n="3"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**chain to bigChain**
+
+Converts a [UCSC chain](https://genome.ucsc.edu/goldenPath/help/chain.html)
+pairwise alignment file into the two BED tables required to build a
+[bigChain](https://genomearchive.ucsc.edu/goldenPath/help/bigChain.html) track
+for an assembly hub, mirroring the structure produced by `hgLoadChain -noBin`:
+
+- **bigChain.bed** (bed6+6, 12 columns): one row per chain -
+  `chrom, chromStart, chromEnd, name, score(1000), strand, tSize, qName, qSize, qStart, qEnd, chainScore`.
+- **bigLink.bed** (bed4+1, 5 columns): one row per aligned block -
+  `chrom, chromStart, chromEnd, name(chainId), qStart`.
+
+Block link rows are emitted by walking each chain in target coordinates.
+Chains whose target strand is not `+` are skipped and reported on stderr.
+
+-----
+
+Feed the resulting BED files (after sorting and `bedToBigBed` with `bigChain.as`
+/ `bigLink.as`) into the hub-building steps of the pangenome pipeline.
+
+Ported from `Pv4-pangenome/v3/tools/chain_to_bigChain.py`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

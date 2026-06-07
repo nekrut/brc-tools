@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<toolbox tool_path="/home/anton/git/pangenome_tools_wfs/tools" monitor="true">
+  <section id="pangenome_input" name="Pangenome :: Input prep">
+    <tool file="pansn_rename/pansn_rename.xml"/>
+    <tool file="fasta_concat/fasta_concat.xml"/>
+    <tool file="anchor_prep/anchor_prep.xml"/>
+    <tool file="build_genomes_txt/build_genomes_txt.xml"/>
+  </section>
+  <section id="pangenome_qc" name="Pangenome :: QC / sketch">
+    <tool file="sourmash_sketch/sourmash_sketch.xml"/>
+    <tool file="sourmash_compare/sourmash_compare.xml"/>
+  </section>
+  <section id="pangenome_build" name="Pangenome :: Graph build">
+    <tool file="pggb/pggb.xml"/>
+    <tool file="wfmash/wfmash.xml"/>
+    <tool file="seqwish/seqwish.xml"/>
+    <tool file="smoothxg/smoothxg.xml"/>
+    <tool file="gfaffix/gfaffix.xml"/>
+  </section>
+  <section id="pangenome_odgi" name="Pangenome :: odgi">
+    <tool file="odgi/build.xml"/>
+    <tool file="odgi/stats.xml"/>
+    <tool file="odgi/viz.xml"/>
+    <tool file="odgi/paths.xml"/>
+  </section>
+  <section id="pangenome_vg" name="Pangenome :: vg">
+    <tool file="vg/convert.xml"/>
+    <tool file="vg/deconstruct.xml"/>
+    <tool file="vg/view.xml"/>
+  </section>
+  <section id="pangenome_masking" name="Pangenome :: Masking / repeats">
+    <tool file="sdust/sdust.xml"/>
+    <tool file="longdust/longdust.xml"/>
+  </section>
+  <section id="pangenome_maf" name="Pangenome :: MAF / multiz">
+    <tool file="process_maf/process_maf.xml"/>
+    <tool file="multiz_fold/multiz_fold.xml"/>
+    <tool file="maf_to_bigmaf_bed/maf_to_bigmaf_bed.xml"/>
+  </section>
+  <section id="pangenome_chain" name="Pangenome :: Chains / liftover">
+    <tool file="chainStitchId/chainStitchId.xml"/>
+    <tool file="chain_to_bigChain/chain_to_bigChain.xml"/>
+  </section>
+  <section id="pangenome_annotation" name="Pangenome :: Annotation / genes">
+    <tool file="gene_bed/gene_bed.xml"/>
+    <tool file="group_cds_by_og/group_cds_by_og.xml"/>
+    <tool file="toga2/toga2.xml"/>
+  </section>
+  <section id="pangenome_phylo" name="Pangenome :: Phylogenetics">
+    <tool file="__pair_strains__/pair_strains.xml"/>
+    <tool file="iqtree3/iqtree3.xml"/>
+  </section>
+  <section id="pangenome_phases" name="Pangenome :: Phase tools">
+    <tool file="phase_c2_triage/phase_c2_triage.xml"/>
+    <tool file="phase_c4_merge/phase_c4_merge.xml"/>
+    <tool file="phase_e_consensus/phase_e_consensus.xml"/>
+    <tool file="phase_e_graph_edges/phase_e_graph_edges.xml"/>
+    <tool file="phase_e_rbest_overlap/phase_e_rbest_overlap.xml"/>
+  </section>
+  <section id="pangenome_hub" name="Pangenome :: UCSC hub">
+    <tool file="build_hub_bb/build_hub_bb.xml"/>
+    <tool file="build_trackdb/build_trackdb.xml"/>
+    <tool file="ucsc_kent/faToTwoBit.xml"/>
+    <tool file="ucsc_kent/bedToBigBed.xml"/>
+    <tool file="ucsc_kent/genePredToBed.xml"/>
+    <tool file="ucsc_kent/gff3ToGenePred.xml"/>
+    <tool file="ucsc_kent/hubCheck.xml"/>
+  </section>
+</toolbox>

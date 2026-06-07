@@ -1,0 +1,15 @@
+categories:
+- Sequence Analysis
+description: Phase E consensus - union-find ortholog table across strains
+long_description: |
+  Aggregates per-anchor Phase C.4 classification tables together with
+  reciprocal-best chain edges and graph co-membership edges into a single
+  consensus ortholog table. Genes are joined into orthogroups via a
+  union-find over (strain, gene) nodes, with interval-based aliasing and
+  per-strain copy collapsing. Each orthogroup is labelled CORE-1:1,
+  CORE-VAR, FAMILY, PARTIAL, or LINEAGE-SPECIFIC.
+name: phase_e_consensus
+owner: nekrut
+homepage_url: https://github.com/nekrut/Pv4-pangenome
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/phase_e_consensus
+type: unrestricted

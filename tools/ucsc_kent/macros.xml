@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <!-- Each kent utility is its OWN bioconda package / biocontainer.
+         Pin each to a real version that resolves to an existing biocontainer. -->
+    <token name="@BEDTOBIGBED_VERSION@">482</token>
+    <token name="@FATOTWOBIT_VERSION@">482</token>
+    <token name="@GFF3TOGENEPRED_VERSION@">482</token>
+    <token name="@GENEPREDTOBED_VERSION@">482</token>
+    <token name="@HUBCHECK_VERSION@">482</token>
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1093/bib/bbs038</citation>
+        </citations>
+    </xml>
+</macros>

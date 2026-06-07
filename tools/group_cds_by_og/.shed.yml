@@ -1,0 +1,20 @@
+categories:
+- Sequence Analysis
+- Genome annotation
+description: group_cds_by_og - group per-strain CDS by orthogroup into paired CDS/peptide multifastas
+long_description: |
+  WF-F helper that extracts the CDS-grouping core of the Pv4 pangenome
+  build_msa.py. Given an ortholog_table.tsv, a reference name/GFF/softmasked
+  FASTA, and per-query merged GFFs + softmasked FASTAs (as parallel list
+  collections keyed by strain), it emits, for every orthogroup with at least
+  --min-intact intact QUERY members (reference not counted, matching v3
+  build_msa.py), two per-OG multifastas: {og}.cds.fa (nucleotide
+  CDS, internal stops -> NNN, codon-truncated) and {og}.pep.fa (protein,
+  translate + rstrip('*'), dropping genes whose reference CDS has an internal
+  stop). Output as two parallel 'list' collections keyed by orthogroup id. The
+  downstream alignment (mafft / pal2nal / trimal) is left to separate steps.
+name: group_cds_by_og
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/group_cds_by_og
+type: unrestricted

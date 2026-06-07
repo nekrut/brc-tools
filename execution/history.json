@@ -1,0 +1,39 @@
+{
+  "url": "http://localhost:8080",
+  "history_id": "33b43b4e7093c91f",
+  "collection_id": "b472e2eb553fa0d1",
+  "datasets": [
+    [
+      "MHC087",
+      "52ea4fd71e9f7c3f"
+    ],
+    [
+      "PAM",
+      "b3a78854daef4a5a"
+    ],
+    [
+      "PvC01",
+      "b4a9efd5c50010ba"
+    ],
+    [
+      "PvP01",
+      "99ed17d238360087"
+    ],
+    [
+      "PvSY56",
+      "bb7d1d57fc91145a"
+    ],
+    [
+      "PvT01",
+      "2d3bcd1e8acf8008"
+    ],
+    [
+      "PvW1",
+      "b1cd55a75be0e1ad"
+    ],
+    [
+      "Sal-I",
+      "06667aeed86075d0"
+    ]
+  ]
+}

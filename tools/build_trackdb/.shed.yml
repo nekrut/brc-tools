@@ -1,0 +1,17 @@
+categories:
+- Sequence Analysis
+- Visualization
+description: build_trackdb - generate a per-assembly UCSC trackDb.txt for the BRC pangenome hub
+long_description: |
+  Authors a per-assembly UCSC track-hub trackDb.txt for the BRC pangenome
+  assembly hub. Emits, in order, a standalone bigMaf multi-z track, a bigChain
+  composite (one sub-track per other assembly, each with a bigDataUrl and a
+  linkDataUrl), a bigBed12 gene-projection composite (one sub-track per anchor
+  strain) and, for the reference assembly only, a bigBed12 selection /
+  orthogroup-membership composite. bigMaf and bigChain are emitted as separate
+  composites because a UCSC composite requires a single track type.
+name: build_trackdb
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/build_trackdb
+type: unrestricted

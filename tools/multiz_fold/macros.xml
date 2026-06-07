@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">11.2</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="11.2">multiz</requirement>
+            <requirement type="package" version="3.12">python</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1101/gr.1933104</citation>
+        </citations>
+    </xml>
+</macros>

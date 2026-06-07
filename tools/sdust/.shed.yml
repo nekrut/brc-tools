@@ -1,0 +1,13 @@
+categories:
+- Sequence Analysis
+description: Mask low-complexity regions with symmetric DUST
+long_description: |
+  sdust scans nucleotide FASTA sequences and reports low-complexity
+  intervals (homopolymer runs, short tandem repeats) as a 3-column BED
+  using the symmetric DUST algorithm. It is the masking step used in
+  pangenome all-vs-all alignment pipelines to suppress spurious matches.
+name: sdust
+owner: nekrut
+homepage_url: https://github.com/lh3/minimap2
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/sdust
+type: unrestricted

@@ -1,0 +1,112 @@
+<tool id="sourmash_compare" name="sourmash compare" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Build an N×N similarity matrix from a collection of signatures</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <version_command>sourmash --version 2>&amp;1 | tail -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p stage &&
+## Stage every signature in the list collection under a name keyed by its
+## element_identifier so the strain order on the command line is stable and
+## the matrix row/col labels (the signature names) line up with the strains.
+#for $sig in $signatures
+ln -s '$sig' 'stage/${sig.element_identifier}.sig' &&
+#end for
+sourmash compare
+    --ksize $ksize
+    --csv '$output'
+    stage/*.sig
+    ]]></command>
+    <inputs>
+        <param name="signatures" type="data_collection" collection_type="list" format="json,txt"
+               label="Signature list collection"
+               help="A 'list' collection of sourmash signature files (e.g. from sourmash sketch, mapped over strains). The element identifier of each element should be the strain name; it is staged as '{strain}.sig'. The signature names become the matrix row/column labels."/>
+        <param argument="--ksize" type="integer" value="31" min="1"
+               label="k-mer size"
+               help="k-mer size to select from each signature for the comparison (default 31). Must match a k-mer size present in the sketched signatures."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="csv" label="${tool.name} on ${on_string}: similarity matrix (CSV)"/>
+    </outputs>
+    <tests>
+        <!-- Three tiny signatures (k=21) compared into an N×N matrix.
+             Header carries the strain labels; the diagonal is 1.0. -->
+        <test expect_num_outputs="1">
+            <param name="signatures">
+                <collection type="list">
+                    <element name="strainA" value="strainA.sig" ftype="json"/>
+                    <element name="strainB" value="strainB.sig" ftype="json"/>
+                    <element name="strainC" value="strainC.sig" ftype="json"/>
+                </collection>
+            </param>
+            <param name="ksize" value="21"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text="strainA,strainB,strainC"/>
+                    <has_line_matching expression="^1\.0,.*"/>
+                    <has_n_lines n="4"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- Two signatures: 2×2 matrix, self-similarity 1.0 on the diagonal. -->
+        <test expect_num_outputs="1">
+            <param name="signatures">
+                <collection type="list">
+                    <element name="strainA" value="strainA.sig" ftype="json"/>
+                    <element name="strainB" value="strainB.sig" ftype="json"/>
+                </collection>
+            </param>
+            <param name="ksize" value="21"/>
+            <output name="output">
+                <assert_contents>
+                    <has_text text="strainA,strainB"/>
+                    <has_line_matching expression="^1\.0,.*"/>
+                    <has_n_lines n="3"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**sourmash compare** — compute an N×N similarity matrix from a set of
+MinHash signatures.
+
+Given a collection of sourmash signatures (one per strain/genome, typically
+produced by ``sourmash sketch`` mapped over a list of strains), this tool
+runs ``sourmash compare`` to estimate the Jaccard similarity between every
+pair of signatures and writes the resulting symmetric N×N matrix as CSV.
+
+-----
+
+**Input**
+
+- *Signature list collection* — a ``list`` collection of sourmash signature
+  files. Each element's identifier should be the strain name; elements are
+  staged as ``{strain}.sig`` so the command-line order (and therefore the
+  matrix column order) is stable. The matrix row/column **labels** are the
+  signature ``name`` fields, which normally match the strain names.
+
+**Output**
+
+- ``compare.csv`` — an N×N similarity matrix (datatype ``csv``). The first
+  row is the header of strain labels; each subsequent row is one strain's
+  similarities to every strain, with ``1.0`` self-similarity on the
+  diagonal.
+
+-----
+
+**Key options**
+
+- ``--ksize`` k-mer size to select from each signature (default 31). It must
+  match a k-mer size present in the sketched signatures.
+
+-----
+
+**Implementation note**
+
+The wrapper symlinks every element of the list collection into a staging
+directory as ``{element_identifier}.sig`` and invokes
+``sourmash compare --csv '$output' stage/*.sig``.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

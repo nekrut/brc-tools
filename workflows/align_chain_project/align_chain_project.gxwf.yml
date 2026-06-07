@@ -1,0 +1,494 @@
+class: GalaxyWorkflow
+name: WF-C align_chain_project (Liftoff + TOGA2 C.4)
+license: MIT
+creator:
+  - class: Organization
+    name: Pv4 pangenome pipeline
+doc: >
+  Phase C of the Pv4 pangenome pipeline: pairwise alignment -> UCSC chain
+  pipeline (cleaned + reciprocal-best chains) -> annotation projection.
+
+  C.4 model (TOGA2 v2.0.8 modernization): Liftoff projects the anchor
+  annotation and phase_c2_triage splits it into liftoff_clean.gff3 (the clean
+  majority, kept as-is) + an informational triage.tsv. In PARALLEL, TOGA2 runs
+  `toga2.py run` over the FULL anchor annotation (anchor_prep bed12 + isoforms)
+  through the cleaned chain, producing its own orthology + loss classification.
+  phase_c4_merge folds Liftoff-clean genes together with TOGA2's calls, using
+  TOGA2 intactness/orthology for the rescued set. The Phase C.2 needs_cesar2.bed
+  triage subset NO LONGER filters TOGA2 (TOGA2 has no --filter_bed and classifies
+  the whole annotation itself).
+
+  This is the most complex workflow in the port. gxformat2 cannot express
+  every map-over cleanly (see README "Known limitations"): the NxN chain
+  block needs, per pair, the SEPARATE target and query softmasked FASTAs AND
+  their `.sizes` files, but a Galaxy `list:paired` pair element carries only
+  the two FASTAs (not the sizes), and axtChain/chainNet/chainPreNet each take
+  two positional size files. Those steps are encoded as a best-effort linear
+  chain wired off the `pair_strains` paired collection plus the flat sizes
+  collection; the per-pair sizes lookup is the part that needs either a
+  manual relink in the Galaxy editor or a small helper tool. The Liftoff C.4
+  projection (anchor x query) is likewise a cross-product that gxformat2
+  cannot enumerate; it is encoded as a single-anchor / single-query template
+  that must be map-over wired in the editor (or run via a parent
+  cross-product step). Both are flagged in the README.
+
+inputs:
+
+  masked_fastas:
+    type: collection
+    collection_type: list
+    doc: >
+      Softmasked per-strain FASTAs from WF-B, one element per strain, element
+      identifier = strain name. Feeds pair_strains (C.1) and is the source of
+      the per-pair target/query FASTAs for the chain block.
+
+  sizes:
+    type: collection
+    collection_type: list
+    doc: >
+      Per-strain chromosome `.sizes` files (cut -f1,2 of the .fai) from WF-B,
+      one element per strain, element identifier = strain name. Needed by
+      axtChain (-faT -faQ build still needs sizes for chainPreNet/chainNet).
+      NOTE: this flat collection cannot be auto-joined per pair in gxformat2;
+      see README.
+
+  anchor_gff3s:
+    type: collection
+    collection_type: list
+    doc: >
+      Chrom-reconciled anchor annotations ({A}.fixed.gff3), one per anchor
+      strain. Feeds anchor_prep (-> {A}.bed12 + {A}.isoforms.tsv) and Liftoff.
+
+  assemblies:
+    type: collection
+    collection_type: list
+    doc: >
+      Per-strain (unmasked) assemblies, one per strain. Liftoff projects the
+      anchor annotation onto the QUERY assembly using the ANCHOR assembly as
+      the gene source.
+
+  anchor_assembly:
+    type: data
+    doc: >
+      Single anchor assembly FASTA used as the Liftoff gene source for the
+      pass-1 template (-g anchor.fixed.gff3 over this FASTA). In a full run
+      this is map-over wired per anchor (see README).
+
+  anchor_fixed_gff3:
+    type: data
+    doc: Single anchor reconciled GFF3 for the Liftoff template (-g).
+
+  anchor_bed12:
+    type: data
+    doc: >
+      Single anchor BED12 (from anchor_prep) used as the phase_c2_triage
+      --reference-bed and phase_c4_merge --ref-bed for the projection template.
+
+  query_assembly:
+    type: data
+    doc: Single query assembly FASTA (Liftoff target) for the projection template.
+
+  query_masked:
+    type: data
+    doc: >
+      Single query softmasked FASTA. Feeds phase_c2_triage --query-fasta AND
+      TOGA2 --query_2bit (converted to 2bit inside the toga2 wrapper).
+
+  anchor_masked:
+    type: data
+    doc: >
+      Single anchor softmasked FASTA for TOGA2 --ref_2bit (converted to 2bit
+      inside the toga2 wrapper). Seqids must match anchor_bed12 / cleaned_chain.
+
+  anchor_isoforms:
+    type: data
+    doc: >
+      Single anchor isoforms table (gene<TAB>transcript) from anchor_prep, for
+      TOGA2 --isoform_file. Must group the anchor_bed12 transcripts into genes.
+
+  cleaned_chain_in:
+    type: data
+    doc: >
+      Cleaned anchor->query chain ({A}.{Q}.cleaned.chain) for TOGA2 --chain_file.
+      In the full matrix this is the per-pair chainstitchid_clean output (see
+      README limitation 3: C.4 is a single anchor/query template, map-over wired
+      in the editor; the chain is plumbed in as a scalar here).
+
+  query_name:
+    type: string
+    default: query
+    doc: Query strain label recorded by triage / used to name merge outputs.
+
+  liftoff_features:
+    type: data
+    doc: >
+      Liftoff feature-type filter (-f): a text file listing
+      protein_coding_gene / ncRNA_gene / pseudogene (one per line). Without it
+      Liftoff defaults to `gene` only. NOTE (Decision F2): the IUC liftoff
+      wrapper's `-f` is buggy (templates the literal string as a file path ->
+      FileNotFoundError), so this input is intentionally NOT wired to the
+      liftoff step; the workflow uses Liftoff's default `gene` feature mode.
+      Kept here for a future fixed wrapper.
+
+  core_identity_min:
+    type: float
+    default: 0.95
+    doc: phase_c2_triage rule R2 threshold for non-family genes.
+
+  core_coverage_min:
+    type: float
+    default: 0.90
+    doc: phase_c2_triage rule R3 reference CDS coverage threshold.
+
+  family_identity_min:
+    type: float
+    default: 0.85
+    doc: phase_c2_triage rule R2 threshold for family genes.
+
+  subtelomere_bp:
+    type: int
+    default: 100000
+    doc: phase_c2_triage rule R7 subtelomere flank (bp).
+
+steps:
+
+  # ---------------------------------------------------------------------------
+  # C.1  Enumerate unordered strain pairs as a list:paired collection.
+  #      forward slot = target (A), reverse slot = query (B), A<B.
+  # ---------------------------------------------------------------------------
+  pair_strains:
+    tool_id: pair_strains
+    in:
+      input: masked_fastas
+    state:
+      include_self: false
+      both_directions: false
+    out:
+      pairs: { }
+
+  # ---------------------------------------------------------------------------
+  # C.1  Pairwise alignment -> AXT.  KegAlign-GPU is the ONLY viable aligner for
+  #      this chain (Decision F1): the IUC lastz wrapper exposes no axt/psl
+  #      output, so its output cannot feed axtChain (in_aln accepts only
+  #      axt/psl). KegAlign emits axt natively via its two-stage GPU pipeline:
+  #        kegalign (GPU)  -> data_package.tgz of LASTZ segments
+  #        batched_lastz   -> the actual axt alignment (format=auto -> axt)
+  #      with format_selector=axt set on kegalign.
+  #
+  #      *** kegalign / batched_lastz are NOT installed on this CPU Galaxy and
+  #      require a GPU job destination (docker_gpu). This step therefore CANNOT
+  #      be import-validated or run here -- it is the production/GPU path
+  #      (Decision F1). The chain + projection steps downstream DO resolve. ***
+  #
+  #      Flags (impl/03_align_chain.sh KegAlign branch):
+  #        --strand both --hsp_threshold 5000 --gapped_threshold 6000
+  #        --inner 2000 --ydrop 15000 --output_format axt
+  #      mapped onto the richard-burhans/galaxytools wrapper sections.
+  #      lastz maps over the list:paired collection: target=forward, query=reverse.
+  # ---------------------------------------------------------------------------
+  kegalign_gpu:
+    tool_id: kegalign
+    in:
+      target: pair_strains/pairs
+      query: pair_strains/pairs
+    state:
+      sequence_options:
+        strand_selector: both
+      ungapped_extension_options:
+        hspthresh: 5000
+      gapped_extension_options:
+        gappedthresh: 6000
+        ydrop: 15000
+      interpolation_options:
+        inner: 2000
+      output_options:
+        format:
+          format_selector: axt
+          axt_type: axt
+    out:
+      kegalign_output: { }
+
+  # batched_lastz consumes the kegalign tgz data package and runs the LASTZ
+  # commands on the segments, emitting the final axt (format=auto -> axt).
+  # Also GPU-staged (not installed here); part of the F1 production path.
+  batched_lastz:
+    tool_id: batched_lastz
+    in:
+      input: kegalign_gpu/kegalign_output
+    out:
+      output: { }
+
+  # ---------------------------------------------------------------------------
+  # C.2  Cleaned-chain pipeline (target=A, query=B):
+  #      axtChain -linearGap=loose -faT -faQ -> chainSort -> chainPreNet
+  #      -> chainNet -> netChainSubset -> chainStitchId (cleaned chain).
+  #      IUC ucsc_* tools are not yet installed; conventional ids used.
+  #      LIMITATION: axtChain/chainPreNet/chainNet need the per-pair target+query
+  #      .sizes; those are wired from `sizes` but cannot be auto-paired in
+  #      gxformat2 -> relink in editor (README).
+  # ---------------------------------------------------------------------------
+  axtchain:
+    tool_id: ucsc_axtchain
+    in:
+      in_aln: batched_lastz/output
+      in_target: pair_strains/pairs
+      in_query: pair_strains/pairs
+    state:
+      linear_gap_options:
+        linear_gap: loose
+    out:
+      out: { }
+
+  chainsort_clean:
+    tool_id: ucsc_chainsort
+    in:
+      in_chain: axtchain/out
+    out:
+      out: { }
+
+  chainprenet:
+    tool_id: ucsc_chainprenet
+    in:
+      in_chain: chainsort_clean/out
+      target_reference_index_source|in_tar_ref_index: sizes
+      query_reference_index_source|in_que_ref_index: sizes
+    state:
+      target_reference_index_source:
+        target_reference_index_source_selector: history
+      query_reference_index_source:
+        query_reference_index_source_selector: history
+    out:
+      out: { }
+
+  chainnet:
+    tool_id: ucsc_chainnet
+    in:
+      in_chain: chainprenet/out
+      target_reference_index_source|in_tar_ref_index: sizes
+      query_reference_index_source|in_que_ref_index: sizes
+    state:
+      target_reference_index_source:
+        target_reference_index_source_selector: history
+      query_reference_index_source:
+        query_reference_index_source_selector: history
+    out:
+      targetNet: { }
+
+  netchainsubset:
+    tool_id: ucsc_netchainsubset
+    in:
+      in_net: chainnet/targetNet
+      in_chain: chainprenet/out
+    out:
+      out: { }
+
+  chainstitchid_clean:
+    tool_id: chainStitchId
+    in:
+      input: netchainsubset/out
+    out:
+      output: { }
+
+  # ---------------------------------------------------------------------------
+  # C.3  Reciprocal-best chain from the cleaned chain (matches impl order):
+  #      chainSwap -> chainSort -> chainNet -> netChainSubset -> chainStitchId
+  #      -> chainSwap -> chainSort.
+  #      Output element_identifier MUST resolve to {a}.{b} for Phase E
+  #      (phase_e_rbest_overlap keys strains off the filename stem) -- relabel
+  #      in editor if pair_strains identifiers differ (README).
+  # ---------------------------------------------------------------------------
+  chainswap_r1:
+    tool_id: ucsc_chainswap
+    in:
+      in_chain: chainstitchid_clean/output
+    out:
+      out: { }
+
+  chainsort_r1:
+    tool_id: ucsc_chainsort
+    in:
+      in_chain: chainswap_r1/out
+    out:
+      out: { }
+
+  # rbest chainNet: target/query sizes are SWAPPED vs the cleaned pass
+  # (target=B.sizes, query=A.sizes). Per-pair-sizes helper / editor relink
+  # still required to feed the correct orientation (README limitation 2).
+  chainnet_r:
+    tool_id: ucsc_chainnet
+    in:
+      in_chain: chainsort_r1/out
+      target_reference_index_source|in_tar_ref_index: sizes
+      query_reference_index_source|in_que_ref_index: sizes
+    state:
+      target_reference_index_source:
+        target_reference_index_source_selector: history
+      query_reference_index_source:
+        query_reference_index_source_selector: history
+    out:
+      targetNet: { }
+
+  netchainsubset_r:
+    tool_id: ucsc_netchainsubset
+    in:
+      in_net: chainnet_r/targetNet
+      in_chain: chainsort_r1/out
+    out:
+      out: { }
+
+  chainstitchid_r:
+    tool_id: chainStitchId
+    in:
+      input: netchainsubset_r/out
+    out:
+      output: { }
+
+  chainswap_r2:
+    tool_id: ucsc_chainswap
+    in:
+      in_chain: chainstitchid_r/output
+    out:
+      out: { }
+
+  chainsort_rbest:
+    tool_id: ucsc_chainsort
+    in:
+      in_chain: chainswap_r2/out
+    out:
+      out: { }
+
+  # ---------------------------------------------------------------------------
+  # anchor_prep  (one helper; map-over the anchor_gff3s list):
+  #   {A}.fixed.gff3 -> {A}.bed12 (gffread --bed + protein-coding filter)
+  #                  + {A}.isoforms.tsv (mRNA ID/Parent).
+  # ---------------------------------------------------------------------------
+  anchor_prep:
+    tool_id: anchor_prep
+    in:
+      input: anchor_gff3s
+    out:
+      bed12: { }
+      isoforms: { }
+
+  # ---------------------------------------------------------------------------
+  # C.4  Projection -- pass-1 Liftoff-only (anchor x query template).
+  #      Liftoff (-copies -sc 0.95 -f features) -> phase_c2_triage
+  #      -> phase_c4_merge (toga OFF for pass 1).
+  #      IUC `liftoff` not yet installed; conventional id used.
+  #      LIMITATION: the real run is a cross-product over anchors x queries;
+  #      gxformat2 cannot enumerate it, so this is a single anchor/single query
+  #      template -- map-over wire in the editor / via a parent CROSS_PRODUCT.
+  # ---------------------------------------------------------------------------
+  # C.4 Liftoff projection. Param names corrected to the IUC wrapper:
+  #   target_fasta / reference_fasta / annotation, and the copy-detection
+  #   conditional find_copies / copy_min_identity.
+  #   Decision F2: the IUC `-f feature_types` is BROKEN (templates the literal
+  #   string as a file path -> FileNotFoundError), so we DROP it and rely on
+  #   Liftoff's default feature mode ('gene'). Anchors enter as top-level
+  #   `gene` features; triage/merge GENE_TYPES accept `gene`, so downstream is
+  #   unaffected. (The `liftoff_features` input is kept in `inputs:` for a
+  #   future fixed wrapper but is intentionally NOT wired here.)
+  liftoff:
+    tool_id: liftoff
+    in:
+      target_fasta: query_assembly
+      reference_fasta: anchor_assembly
+      annotation: anchor_fixed_gff3
+    state:
+      chromosome_mapping:
+        copy_detection:
+          find_copies: true
+          copy_min_identity: 0.95
+    out:
+      liftoff_gff: { }
+
+  phase_c2_triage:
+    tool_id: phase_c2_triage
+    in:
+      liftoff_gff: liftoff/liftoff_gff
+      query_fasta: query_masked
+      reference_bed: anchor_bed12
+      query_name: query_name
+      core_identity_min: core_identity_min
+      core_coverage_min: core_coverage_min
+      family_identity_min: family_identity_min
+      subtelomere_bp: subtelomere_bp
+    out:
+      triage_tsv: { }
+      needs_cesar2_bed: { }
+      liftoff_clean_gff3: { }
+      summary_json: { }
+
+  # ---------------------------------------------------------------------------
+  # C.4 pass 2: TOGA2 projection over the FULL anchor annotation.
+  #   `toga2.py run` (v2.0.8) projects/classifies EVERY anchor transcript
+  #   through the cleaned chain itself -- it has NO --filter_bed, so the
+  #   Phase C.2 needs_cesar2.bed subset is NOT a TOGA2 input (triage is now
+  #   informational only). Inputs: anchor bed12 + isoforms (anchor_prep), the
+  #   cleaned chain, and anchor/query softmasked FASTAs (converted to 2bit in
+  #   the wrapper). Outputs: query_annotation.bed, query_genes.bed,
+  #   orthology_classification.tsv, loss_summary.tsv.
+  #   SCALE: container-only (toga2:local, ~20GB, Nextflow-driven, GPU-INDEPENDENT
+  #   but CPU/IO heavy); does not run on toy inputs. See README.
+  toga2:
+    tool_id: toga2
+    in:
+      ref_bed12: anchor_bed12
+      chain: cleaned_chain_in
+      ref_fasta: anchor_masked
+      query_fasta: query_masked
+      isoforms: anchor_isoforms
+    out:
+      query_annotation: { }
+      query_genes: { }
+      orthology_classification: { }
+      loss_summary: { }
+
+  # C.4 merge: Liftoff-clean genes + TOGA2's classification (intactness +
+  # orthology) folded into one per-query annotation + classification table.
+  phase_c4_merge:
+    tool_id: phase_c4_merge
+    in:
+      query: query_name
+      liftoff_clean: phase_c2_triage/liftoff_clean_gff3
+      ref_bed: anchor_bed12
+      toga|loss_summary: toga2/loss_summary
+      toga|orthology: toga2/orthology_classification
+      toga|query_annotation: toga2/query_annotation
+      toga|query_genes: toga2/query_genes
+    state:
+      toga:
+        use_toga: "yes"
+    out:
+      annotation_gff3: { }
+      classification_tsv: { }
+
+outputs:
+
+  cleaned_chain:
+    outputSource: chainstitchid_clean/output
+    doc: "{A}.{B}.cleaned.chain (-> WF-J, WF-K). B->A obtained downstream by chainSwap."
+
+  rbest_chain:
+    outputSource: chainsort_rbest/out
+    doc: "{a}.{b}.rbest.chain (-> WF-E phase_e_rbest_overlap)."
+
+  pairwise_axt:
+    outputSource: batched_lastz/output
+    doc: "Pairwise AXT (-> WF-I), element id {A}__vs__{B} with A<B (KegAlign-GPU)."
+
+  anchor_bed12_out:
+    outputSource: anchor_prep/bed12
+    doc: "{A}.bed12 (-> triage, merge, TOGA, WF-K)."
+
+  anchor_isoforms_out:
+    outputSource: anchor_prep/isoforms
+    doc: "{A}.isoforms.tsv (-> TOGA2 --isoform_file in C.4)."
+
+  merged_annotation_gff3:
+    outputSource: phase_c4_merge/annotation_gff3
+    doc: "Per-(anchor,query) merged annotation GFF3 (-> WF-E, WF-F)."
+
+  classification_tsv:
+    outputSource: phase_c4_merge/classification_tsv
+    doc: "Per-(anchor,query) classification.tsv (-> WF-E consensus, list:list)."

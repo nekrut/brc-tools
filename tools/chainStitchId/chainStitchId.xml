@@ -1,0 +1,63 @@
+<tool id="chainStitchId" name="chainStitchId" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>join chain fragments that share the same chain id</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <command detect_errors="aggressive"><![CDATA[
+ln -sf '$input' 'input.chain' &&
+
+chainStitchId 'input.chain' '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="chain" label="Input chain file"
+               help="UCSC chain-format alignment. Fragments carrying the same chain id are joined into single chains."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="chain" label="${tool.name} on ${on_string}: stitched chains"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="tiny.chain" ftype="chain"/>
+            <output name="output">
+                <assert_contents>
+                    <has_line_matching expression="^chain\s+\d+\s+chrT\s+\d+.*"/>
+                    <has_text text="chrQ"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**chainStitchId** — join chain fragments that share the same chain id.
+
+A UCSC *chain* file describes gapped pairwise alignments between a target
+and a query sequence. During chaining workflows a single logical chain can
+end up split across several records that all carry the **same chain id**
+(for example after `chainNet` / `netChainSubset` style processing).
+`chainStitchId` reads the input chain file and re-joins every set of
+records that share an id into a single chain, writing the stitched result
+to a new chain file.
+
+```
+chainStitchId in.chain out.chain
+```
+
+-----
+
+**Inputs**
+
+- `Input chain file` — alignments in UCSC chain format.
+
+**Outputs**
+
+- `Stitched chains` — chain file in which fragments with identical ids
+  have been merged.
+
+-----
+
+chainStitchId is part of Jim Kent's UCSC Genome Browser utilities
+(the chain/net alignment toolkit). It is the one chain utility not yet
+available through the IUC tool collection.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

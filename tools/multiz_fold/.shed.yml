@@ -1,0 +1,15 @@
+categories:
+- Sequence Analysis
+description: multiz progressive fold - build one multi-way MAF for a hinge strain
+long_description: |
+  Ports the per-hinge progressive multiz fold from the Pv4 pangenome pipeline.
+  Given a hinge strain's per-query pairwise MAFs (a Galaxy list collection keyed
+  by query strain) and a sourmash compare.csv similarity matrix, it orders the
+  queries closest-first by descending similarity and iteratively folds each
+  next-closest pairwise MAF onto the running alignment with multiz, emitting a
+  single multi-way {hinge}.multiz.maf.
+name: multiz_fold
+owner: nekrut
+homepage_url: https://github.com/multiz/multiz
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/multiz_fold
+type: unrestricted

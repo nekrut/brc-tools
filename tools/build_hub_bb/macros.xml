@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">469</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="3.12">python</requirement>
+            <requirement type="package" version="469">ucsc-bedtobigbed</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="doi">10.1093/bioinformatics/btq351</citation>
+            <citation type="bibtex"><![CDATA[
+@misc{pv4_build_hub_bb,
+  author = {Nekrutenko lab and the P. vivax pangenome project},
+  title = {Build UCSC hub BigBed inputs (selection BED12+5 and orthogroup membership BED12)},
+  year = {2026},
+  note = {Consolidated from Pv4-pangenome/v3/ucsc_hub/build_selection_bb.py and build_orthogroup_bb.py}
+}
+            ]]></citation>
+        </citations>
+    </xml>
+</macros>

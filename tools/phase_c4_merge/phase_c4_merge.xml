@@ -1,0 +1,172 @@
+<tool id="phase_c4_merge" name="Phase C.4 merge annotation" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Merge Liftoff-clean and TOGA2/CESAR2 projections into a unified per-query annotation</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="phase_c4_merge.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/phase_c4_merge.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+mkdir -p triage_dir toga_dir out_dir &&
+ln -s '$liftoff_clean' triage_dir/liftoff_clean.gff3 &&
+#if $toga.use_toga == "yes"
+    ln -s '$toga.loss_summary' toga_dir/loss_summary.tsv &&
+    ln -s '$toga.orthology' toga_dir/orthology_classification.tsv &&
+    #if $toga.query_annotation
+        ln -s '$toga.query_annotation' toga_dir/query_annotation.bed &&
+    #end if
+    #if $toga.query_genes
+        ln -s '$toga.query_genes' toga_dir/query_genes.bed &&
+    #end if
+#end if
+python '$__tool_directory__/phase_c4_merge.py'
+    --query '$query'
+    --triage-dir triage_dir
+    --toga-dir toga_dir
+    --out-dir out_dir
+    --ref-bed '$ref_bed'
+&&
+cp 'out_dir/${query}.annotation.gff3' '$annotation_gff3'
+&&
+cp 'out_dir/${query}.classification.tsv' '$classification_tsv'
+    ]]></command>
+    <inputs>
+        <param argument="--query" type="text" value="" label="Query strain name"
+               help="Query strain identifier (e.g. Pk_ANKA). Used only to name the output files; not written into them.">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+        <param name="liftoff_clean" argument="--triage-dir" type="data" format="gff3,gff" label="Liftoff-clean GFF3"
+               help="Triage-accepted Liftoff projection (liftoff_clean.gff3 from Phase C.2). Genes here are tagged source=liftoff, intactness=I."/>
+        <param argument="--ref-bed" type="data" format="bed,bed12" label="Reference gene BED"
+               help="Reference annotation in BED (BED12) format; column 4 is the reference gene id. Genes present here but absent from both projections are reported as source=none, intactness=M (missing)."/>
+        <conditional name="toga">
+            <param name="use_toga" type="select" label="Include TOGA2/CESAR2 fallback projections"
+                   help="Decision 12: leave at 'No' for a Liftoff-only pass 1. With 'No' an empty TOGA staging directory is used, so every projected gene is tagged source=liftoff.">
+                <option value="no" selected="true">No - Liftoff-only</option>
+                <option value="yes">Yes - merge TOGA2/CESAR2</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="loss_summary" type="data" format="tabular,tsv" label="TOGA2 loss_summary.tsv"
+                       help="TOGA2 loss_summary.tsv (intactness status per projection)."/>
+                <param name="orthology" type="data" format="tabular,tsv" label="TOGA2 orthology_classification.tsv"
+                       help="TOGA2 orthology_classification.tsv."/>
+                <param name="query_annotation" type="data" format="bed" optional="true" label="TOGA2 query_annotation.bed"
+                       help="Optional TOGA2 query_annotation.bed (transcript-level query coordinates)."/>
+                <param name="query_genes" type="data" format="bed" optional="true" label="TOGA2 query_genes.bed"
+                       help="Optional TOGA2 query_genes.bed (gene-level query coordinates; used to emit CESAR2 GFF lines)."/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="annotation_gff3" format="gff3" label="${tool.name} on ${on_string}: ${query}.annotation.gff3"/>
+        <data name="classification_tsv" format="tabular" label="${tool.name} on ${on_string}: ${query}.classification.tsv"/>
+    </outputs>
+    <tests>
+        <!-- Liftoff-only path (Decision 12): no TOGA inputs -->
+        <test expect_num_outputs="2">
+            <param name="query" value="Pk_ANKA"/>
+            <param name="liftoff_clean" value="liftoff_clean.gff3" ftype="gff3"/>
+            <param name="ref_bed" value="ref.bed12" ftype="bed12"/>
+            <conditional name="toga">
+                <param name="use_toga" value="no"/>
+            </conditional>
+            <output name="classification_tsv">
+                <assert_contents>
+                    <has_text text="reference_gene_id"/>
+                    <has_text text="orthology_class"/>
+                    <has_text text="liftoff"/>
+                    <has_text text="geneA"/>
+                    <has_text text="none"/>
+                    <has_n_columns n="9"/>
+                </assert_contents>
+            </output>
+            <output name="annotation_gff3">
+                <assert_contents>
+                    <has_text text="##gff-version 3"/>
+                    <has_text text="source=liftoff;intactness=I"/>
+                    <has_text text="geneA"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- TOGA2-merge path: real TOGA2 v2.0.x output schema
+             (loss_summary.tsv: level/entry/status; orthology_classification.tsv:
+             t_gene/t_transcript/q_gene/q_transcript/orthology_class;
+             query_annotation.bed col4 = transcript#chain projection id;
+             query_genes.bed col4 = final query gene id). geneA is the
+             Liftoff-clean gene; geneB is rescued by TOGA2 (one2one, intact I). -->
+        <test expect_num_outputs="2">
+            <param name="query" value="Pk_TEST"/>
+            <param name="liftoff_clean" value="liftoff_clean.gff3" ftype="gff3"/>
+            <param name="ref_bed" value="ref.bed12" ftype="bed12"/>
+            <conditional name="toga">
+                <param name="use_toga" value="yes"/>
+                <param name="loss_summary" value="toga2_loss_summary.tsv" ftype="tabular"/>
+                <param name="orthology" value="toga2_orthology_classification.tsv" ftype="tabular"/>
+                <param name="query_annotation" value="toga2_query_annotation.bed" ftype="bed"/>
+                <param name="query_genes" value="toga2_query_genes.bed" ftype="bed"/>
+            </conditional>
+            <output name="classification_tsv">
+                <assert_contents>
+                    <has_text text="reference_gene_id"/>
+                    <!-- Liftoff-clean gene -->
+                    <has_text_matching expression="geneA\tgeneA\tliftoff\tI"/>
+                    <!-- TOGA2-rescued gene: source=cesar2, intactness I, one2one -->
+                    <has_text_matching expression="geneB\tqgeneB\tcesar2\tI"/>
+                    <has_text text="one2one"/>
+                    <has_n_columns n="9"/>
+                </assert_contents>
+            </output>
+            <output name="annotation_gff3">
+                <assert_contents>
+                    <has_text text="source=liftoff;intactness=I"/>
+                    <!-- TOGA2/CESAR2 gene line emitted from query_genes.bed -->
+                    <has_text text="TOGA2"/>
+                    <has_text text="ID=qgeneB;reference_gene_id=geneB;source=cesar2;intactness=I;orthology_class=one2one"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Phase C.4 merge annotation**
+
+Merges a triage-accepted Liftoff projection with optional TOGA2/CESAR2
+fallback projections into a single per-query annotation, and emits a flat
+per-gene classification table.
+
+Ported from
+`Pv4-pangenome/v3/pipeline/impl/scripts/phase_c4_merge.py`.
+
+-----
+
+**Rules**
+
+- Genes in the Liftoff-clean GFF3 -> `source=liftoff`, `intactness=I`.
+- Genes in the TOGA2 query annotation -> `source=cesar2`, intactness from
+  the TOGA2 `loss_summary.tsv`.
+- Reference genes absent from both -> `source=none`, `intactness=M` (missing).
+
+-----
+
+**Liftoff-only pass 1 (Decision 12)**
+
+The TOGA2/CESAR2 inputs are optional. With *Include TOGA2/CESAR2 fallback
+projections* set to **No**, the tool runs against an empty TOGA staging
+directory, so every projected gene is tagged `source=liftoff` and only the
+Liftoff-clean + missing rows appear. The output contract is unchanged.
+
+-----
+
+**Outputs**
+
+- `{query}.annotation.gff3` - unified GFF3 (Liftoff entries decorated with
+  `source`/`intactness`; CESAR2 BED-converted gene lines when TOGA2 supplied).
+- `{query}.classification.tsv` - flat table with columns:
+  `reference_gene_id`, `query_gene_id`, `source`, `intactness`,
+  `query_chrom`, `query_start`, `query_end`, `query_strand`,
+  `orthology_class`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

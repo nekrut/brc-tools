@@ -1,0 +1,14 @@
+categories:
+- Sequence Analysis
+description: Phase C.4 merge - unify Liftoff-clean and TOGA2/CESAR2 projections
+long_description: |
+  Merges a triage-accepted Liftoff projection (liftoff_clean.gff3) with
+  optional TOGA2/CESAR2 fallback projections into a single per-query
+  annotation GFF3 plus a flat per-gene classification table. Reference
+  genes missing from both projections are reported as missing. Supports a
+  Liftoff-only pass 1 (TOGA2 inputs optional).
+name: phase_c4_merge
+owner: nekrut
+homepage_url: https://github.com/nekrut/Pv4-pangenome
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/phase_c4_merge
+type: unrestricted

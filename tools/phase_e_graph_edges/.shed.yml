@@ -1,0 +1,15 @@
+categories:
+- Sequence Analysis
+description: Phase E graph edges - PGGB graph path co-membership gene-pair edges
+long_description: |
+  Reads an odgi paths TSV (PanSN path names SAMPLE#1#CONTIG) plus per-strain
+  gene BED annotations and emits gene-pair edges for genes whose strains share
+  a graph path. The edge table (strain_a, gene_a, strain_b, gene_b, path_id,
+  overlap) is a third evidence source for downstream ortholog clustering,
+  subsequently filtered by the union-find reciprocal-overlap check in
+  phase_e_consensus.
+name: phase_e_graph_edges
+owner: nekrut
+homepage_url: https://github.com/nekrut/Pv4-pangenome
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/phase_e_graph_edges
+type: unrestricted

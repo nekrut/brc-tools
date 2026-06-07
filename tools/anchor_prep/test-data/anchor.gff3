@@ -1,0 +1,14 @@
+##gff-version 3
+##sequence-region chr1 1 10000
+chr1	test	gene	1000	2000	.	+	.	ID=gene1;Name=gene1
+chr1	test	mRNA	1000	2000	.	+	.	ID=mrna1;Parent=gene1
+chr1	test	exon	1000	1300	.	+	.	ID=exon1.1;Parent=mrna1
+chr1	test	exon	1700	2000	.	+	.	ID=exon1.2;Parent=mrna1
+chr1	test	CDS	1000	1300	.	+	0	ID=cds1.1;Parent=mrna1
+chr1	test	CDS	1700	2000	.	+	2	ID=cds1.2;Parent=mrna1
+chr1	test	gene	4000	5000	.	-	.	ID=gene2;Name=gene2
+chr1	test	mRNA	4000	5000	.	-	.	ID=mrna2;Parent=gene2
+chr1	test	exon	4000	4400	.	-	.	ID=exon2.1;Parent=mrna2
+chr1	test	exon	4600	5000	.	-	.	ID=exon2.2;Parent=mrna2
+chr1	test	CDS	4000	4400	.	-	0	ID=cds2.1;Parent=mrna2
+chr1	test	CDS	4600	5000	.	-	1	ID=cds2.2;Parent=mrna2

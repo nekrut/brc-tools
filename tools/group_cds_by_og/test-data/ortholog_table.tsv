@@ -1,0 +1,3 @@
+orthogroup_id	label	n_strains	max_copies	REF	Q1
+OG000001	CORE	2	1	gene1	gene1
+OG000002	PARTIAL	1	1	gene2	-

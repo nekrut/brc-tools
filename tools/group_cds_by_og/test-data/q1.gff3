@@ -1,0 +1,4 @@
+##gff-version 3
+chr1	.	gene	6	50	.	-	.	ID=gene1
+chr1	.	mRNA	6	50	.	-	.	ID=gene1.t1;Parent=gene1
+chr1	.	CDS	6	50	.	-	0	ID=cdsq;Parent=gene1.t1

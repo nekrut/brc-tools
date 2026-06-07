@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">1.0.0</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="3.12">python</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="bibtex"><![CDATA[
+@misc{pv4_pangenome_phase_e,
+  author = {Nekrutenko, Anton and the Pv4 pangenome project},
+  title = {Phase E consensus: union-find ortholog table from per-anchor classifications and rbest/graph edges},
+  year = {2026},
+  url = {https://github.com/nekrut/Pv4-pangenome}
+}
+            ]]></citation>
+        </citations>
+    </xml>
+</macros>

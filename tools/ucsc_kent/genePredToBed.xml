@@ -1,0 +1,72 @@
+<tool id="ucsc_genepredtobed" name="genePredToBed" version="@GENEPREDTOBED_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>convert a genePred gene model to BED12</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="@GENEPREDTOBED_VERSION@">ucsc-genepredtobed</requirement>
+    </requirements>
+    <version_command><![CDATA[genePredToBed 2>&1 | head -1]]></version_command>
+    <command detect_errors="aggressive"><![CDATA[
+ln -sf '$input' 'input.genePred' &&
+genePredToBed
+    -tab
+    $fill_space
+    -score=$score
+    'input.genePred'
+    '$output'
+    ]]></command>
+    <inputs>
+        <param argument="input" type="data" format="tabular" label="Input genePred"
+               help="Tab-separated genePred table, e.g. from gff3ToGenePred."/>
+        <param argument="-fillSpace" name="fill_space" type="boolean" truevalue="-fillSpace" falsevalue="" checked="false"
+               label="Fill spaces in name with underscore"
+               help="Replace space characters in the 'name' field with underscores."/>
+        <param argument="-score" type="integer" value="0" min="0" max="1000"
+               label="BED score"
+               help="Value written to the BED score column (default 0)."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed12" label="${tool.name} on ${on_string}: BED12"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="tiny.genepred" ftype="tabular"/>
+            <output name="output">
+                <assert_contents>
+                    <has_n_columns n="12"/>
+                    <has_text text="mrna1"/>
+                    <has_line_matching expression="^chr1\t\d+\t\d+\tmrna1\t.*"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**genePredToBed** — convert a UCSC **genePred** gene model into 12-column **BED**.
+
+This is the second half of the GFF3 -> browsable track path: after
+`gff3ToGenePred` produces a genePred, `genePredToBed` yields BED12 (with block
+structure) that can be sorted and passed to `bedToBigBed`.
+
+-----
+
+**Input**
+
+- `Input genePred` — tab-separated genePred table.
+
+**Output**
+
+- A 12-column BED (`bed12`): chrom, start, end, name, score, strand,
+  thickStart, thickEnd, itemRgb, blockCount, blockSizes, blockStarts.
+
+-----
+
+**Key options**
+
+- `-fillSpace` — replace spaces in the name with underscores.
+- `-score` — value for the BED score column (default 0).
+
+Input is always parsed as tab-separated (`-tab`).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

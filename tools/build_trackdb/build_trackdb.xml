@@ -1,0 +1,158 @@
+<tool id="build_trackdb" name="Build trackDb" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>generate a per-assembly UCSC trackDb.txt for the BRC pangenome hub</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="build_trackdb.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/build_trackdb.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+python '$__tool_directory__/build_trackdb.py'
+    --assembly '$assembly'
+    --strain '$strain'
+    #if str($strain_label).strip() != ''
+        --strain-label
+        #for $tok in str($strain_label).split()
+            '$tok'
+        #end for
+    #end if
+    #if str($anchor).strip() != ''
+        --anchor
+        #for $tok in str($anchor).split()
+            '$tok'
+        #end for
+    #end if
+    #if str($maf).strip() != ''
+        --maf '$maf'
+    #end if
+    --chains-dir '$chains_dir'
+    --group '$group'
+    #if $is_reference
+        --is-reference
+    #end if
+    --output '$trackdb'
+    ]]></command>
+    <inputs>
+        <param argument="--assembly" type="text" value="" label="Assembly accession (this genome)"
+               help="Accession of the genome this trackDb is for, e.g. GCA_000002415.2.">
+            <validator type="empty_field"/>
+            <validator type="regex" message="Letters, digits, underscore, dot, hyphen only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+        <param argument="--strain" type="text" value="" label="Strain name (this genome)"
+               help="Strain label for this genome, e.g. Sal-I.">
+            <validator type="empty_field"/>
+            <validator type="regex" message="Letters, digits, space, underscore, dot, hyphen only">[A-Za-z0-9 _.\-]+</validator>
+        </param>
+        <param argument="--strain-label" type="text" value="" label="Panel members (ACC=LABEL ...)"
+               help="Space-separated ACC=LABEL pairs for every assembly in the panel. Drives speciesOrder/speciesLabels of the bigMaf and the chain sub-tracks (one per other assembly). A bare ACC uses itself as the label.">
+            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">[A-Za-z0-9 _.=\-]*</validator>
+        </param>
+        <param argument="--anchor" type="text" value="" label="Anchor strains (ACC=LABEL ...)"
+               help="Space-separated ACC=LABEL pairs for the anchor strains that contribute gene projections (annotation sub-tracks).">
+            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">[A-Za-z0-9 _.=\-]*</validator>
+        </param>
+        <param argument="--maf" type="text" value="" label="bigMaf bigDataUrl (optional)"
+               help="bigDataUrl for the standalone bigMaf track. Defaults to {strain}.multiz.maf.bb.">
+            <validator type="regex" message="Path characters only">[A-Za-z0-9 _./\-]*</validator>
+        </param>
+        <param argument="--chains-dir" type="text" value="chains" label="Chains sub-directory"
+               help="Directory (relative to the assembly dir) holding the bigChain .bb pairs.">
+            <validator type="regex" message="Path characters only">[A-Za-z0-9_./\-]+</validator>
+        </param>
+        <param argument="--group" type="text" value="brc_pangenome" label="Track group name">
+            <validator type="regex" message="Letters, digits, underscore only">[A-Za-z0-9_]+</validator>
+        </param>
+        <param argument="--is-reference" type="boolean" checked="false" truevalue="1" falsevalue=""
+               label="This is the reference assembly"
+               help="When set, also emit the reference-only selection/orthogroup composite (3 sub-tracks)."/>
+    </inputs>
+    <outputs>
+        <data name="trackdb" format="txt" label="${tool.name} on ${strain} (${assembly}): trackDb.txt"/>
+    </outputs>
+    <tests>
+        <!-- Reference assembly: all four stanzas, including the select composite. -->
+        <test expect_num_outputs="1">
+            <param name="assembly" value="GCA_000002415.2"/>
+            <param name="strain" value="Sal-I"/>
+            <param name="strain_label" value="GCA_000002415.2=Sal-I GCA_900093555.2=PvP01 GCA_914969965.1=PvW1"/>
+            <param name="anchor" value="GCA_900093555.2=PvP01 GCA_914969965.1=PvW1"/>
+            <param name="is_reference" value="1"/>
+            <output name="trackdb">
+                <assert_contents>
+                    <!-- standalone bigMaf, NOT in a composite -->
+                    <has_text text="track Sal_I_multiz"/>
+                    <has_line line="type bigMaf"/>
+                    <has_text text="bigDataUrl Sal-I.multiz.maf.bb"/>
+                    <has_text text="speciesOrder"/>
+                    <!-- bigChain lives in its OWN composite, separate from bigMaf -->
+                    <has_text text="track brc_pangenome_chains"/>
+                    <has_line line="type bigChain"/>
+                    <has_text text="type bigChain GCA_900093555.2"/>
+                    <has_text text="linkDataUrl chains/GCA_000002415.2_to_GCA_900093555.2.bigChain.link.bb"/>
+                    <!-- annotation + reference-only selection composites -->
+                    <has_text text="track brc_pangenome_annot"/>
+                    <has_text text="track brc_pangenome_select"/>
+                    <has_text text="track selection_strict"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- Minimal inputs, non-reference: bigMaf + bigChain still emitted and separated;
+             no selection composite. -->
+        <test expect_num_outputs="1">
+            <param name="assembly" value="GCA_900093555.2"/>
+            <param name="strain" value="PvP01"/>
+            <param name="strain_label" value="GCA_000002415.2=Sal-I GCA_900093555.2=PvP01"/>
+            <param name="anchor" value="GCA_000002415.2=Sal-I"/>
+            <output name="trackdb">
+                <assert_contents>
+                    <has_line line="type bigMaf"/>
+                    <has_line line="type bigChain"/>
+                    <has_text text="track brc_pangenome_chains"/>
+                    <has_text text="bigDataUrl chains/GCA_900093555.2_to_GCA_000002415.2.bigChain.bb"/>
+                    <not_has_text text="track brc_pangenome_select"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Build trackDb**
+
+Generates a per-assembly UCSC track-hub ``trackDb.txt`` for the BRC pangenome
+hub (pipeline phase K.5). For a given assembly it emits, **in this order**:
+
+1. ``track {strain}_multiz`` - a **standalone** ``type bigMaf`` track (the
+   multi-way MAF alignment, with ``speciesOrder`` / ``speciesLabels``).
+2. ``track brc_pangenome_chains`` - a **composite** of ``type bigChain``
+   sub-tracks, one per *other* assembly in the panel, each with a
+   ``bigDataUrl`` + ``linkDataUrl`` pointing at the ``bigChain.bb`` /
+   ``bigChain.link.bb`` pair.
+3. ``track brc_pangenome_annot`` - a **composite** of ``type bigBed 12``
+   sub-tracks, one per anchor strain's gene projection.
+4. ``track brc_pangenome_select`` - emitted **only for the reference
+   assembly**; a ``type bigBed 12`` composite with the selection (strict /
+   relaxed) and orthogroup-membership BigBed tracks.
+
+> **Why two separate composites?** A UCSC composite requires all members to
+> share a single ``type``. ``bigMaf`` and ``bigChain`` are different types, so
+> they **cannot** live in one composite - the bigMaf is standalone and the
+> chains sit in their own ``bigChain`` composite.
+
+-----
+
+**Key inputs**
+
+- *Assembly accession* / *Strain* - identity of this genome.
+- *Panel members* - ``ACC=LABEL`` for every assembly; sets the bigMaf species
+  ordering/labels and the per-target chain sub-tracks.
+- *Anchor strains* - ``ACC=LABEL`` for the strains contributing gene
+  projections (the annotation sub-tracks).
+- *This is the reference assembly* - adds the selection/orthogroup composite.
+
+**Output**
+
+- ``trackDb.txt`` - the assembled track-hub stanza file.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

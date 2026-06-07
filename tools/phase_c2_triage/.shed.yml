@@ -1,0 +1,16 @@
+categories:
+- Sequence Analysis
+- Genome annotation
+description: Phase C.2 triage - flag Liftoff-projected genes needing CESAR2 fallback
+long_description: |
+  Applies eight rules to each gene projected by Liftoff onto a query assembly
+  (frame disruption, identity, coverage, copy-number, partial mapping,
+  non-canonical splice sites, subtelomeric location, and known variant-gene
+  family membership) and decides whether each projection is clean enough to
+  keep or should be re-aligned with CESAR2/TOGA2 in the next pipeline phase.
+  Emits triage.tsv, needs_cesar2.bed, liftoff_clean.gff3, and summary.json.
+name: phase_c2_triage
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/phase_c2_triage
+type: unrestricted

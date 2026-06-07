@@ -1,0 +1,155 @@
+class: GalaxyWorkflow
+label: WF-F msa (Pv4 Phase F)
+license: MIT
+creator:
+  - class: Person
+    identifier: https://orcid.org/0000-0002-5987-8032
+    name: Anton Nekrutenko
+  - class: Person
+    name: Claude Opus 4.8
+doc: |
+  Phase F of the Pv4 pangenome pipeline: per-orthogroup codon (and protein)
+  multiple-sequence alignments.
+
+  group_cds_by_og folds the CDS-grouping core of build_msa.py: for each
+  orthogroup with >= min_intact intact members it emits TWO parallel
+  list collections keyed by orthogroup id -- {og}.cds.fa (nucleotide CDS,
+  internal stops -> NNN, codon-truncated) and {og}.pep.fa (protein).
+
+  rbc_mafft (LINSI: --localpair --maxiterate 1000) maps over the PROTEIN
+  collection to make per-OG protein alignments. pal2nal back-translates each
+  protein alignment against the matching {og}.cds.fa (the two collections are
+  paired by orthogroup element_identifier -> codon alignment). trimal
+  -automated1 cleans the codon alignment.
+
+  Run TWICE with different min_intact to produce the two analysis sets:
+    - strict  core_v3       (test panel min_intact = 4 ; Pv4 = 7)
+    - relaxed core_relaxed  (test panel min_intact = 3 ; Pv4 = 5)
+
+  group_cds_by_og is OUR wrapper; mafft / pal2nal / trimal are IUC tools that
+  must be installed before this workflow runs.
+
+inputs:
+  ortholog_table:
+    type: data
+    doc: |
+      ortholog_table.tsv from the consensus step (WF-E). Has an orthogroup_id
+      column plus one column per strain (header = strain name) holding gene IDs
+      or '-'.
+  ref_name:
+    type: string
+    default: REF
+    doc: Reference strain name; must match the reference column header in the ortholog table.
+  ref_gff:
+    type: data
+    doc: Reference strain's own fixed GFF3 (CDS features read for the reference gene models).
+  ref_fasta:
+    type: data
+    doc: Reference softmasked genome FASTA (seqids must match the GFF chrom column).
+  query_gff:
+    type: data_collection
+    collection_type: list
+    doc: |
+      Per-query merged annotation GFF3s (the REF-anchor subset of the C.4 merged
+      GFF3s, one {query}.annotation.gff3 per non-ref query). list collection,
+      element_identifier = strain name.
+  query_fasta:
+    type: data_collection
+    collection_type: list
+    doc: |
+      Per-query softmasked FASTAs (from Phase B). list collection parallel to
+      query_gff, element_identifier = strain name.
+  min_intact:
+    type: int
+    default: 4
+    doc: |
+      Minimum intact members per orthogroup. strict core_v3 = 4 (test) / 7 (Pv4);
+      relaxed core_relaxed = 3 (test) / 5 (Pv4). Run the workflow once per value.
+
+outputs:
+  protein_alignments:
+    outputSource: mafft_linsi/outputAlignment
+    doc: Per-orthogroup protein alignments (MAFFT LINSI).
+  codon_alignments:
+    outputSource: pal2nal_codon/output_file
+    doc: Per-orthogroup codon (back-translated) alignments {og}.codon.aln.fa.
+  codon_alignments_clean:
+    outputSource: trimal_clean/trimmed_output
+    doc: Per-orthogroup cleaned codon alignments (trimal -automated1) -> core_v3_clean / core_relaxed_clean.
+
+steps:
+  group_cds_by_og:
+    tool_id: group_cds_by_og
+    doc: |
+      OUR wrapper. Emits paired per-OG cds / pep list collections (build_msa.py
+      CDS-grouping core), applying min_intact.
+    in:
+      ortho: ortholog_table
+      ref_name: ref_name
+      ref_gff: ref_gff
+      ref_fasta: ref_fasta
+      query_gff: query_gff
+      query_fasta: query_fasta
+      min_intact: min_intact
+    out:
+      - cds
+      - pep
+
+  mafft_linsi:
+    tool_id: toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.526+galaxy2
+    doc: |
+      IUC (rnateam) rbc_mafft 7.526+galaxy2. LINSI mode. Verified live: the
+      single sequence input lives at input.batches[0].inputs inside a
+      conditional (input.mapping = implicit) + repeat (batches). LINSI is the
+      'mafft-linsi' flavour preset (= --localpair --maxiterate 1000, no custom
+      block needed). Protein data via datatype_selection.datatype = --amino.
+      Maps over the PROTEIN collection (one job per OG).
+    in:
+      input|batches_0|inputs:
+        source: group_cds_by_og/pep
+    state:
+      input:
+        mapping: implicit
+      datatype_selection:
+        datatype: "--amino"
+      flavour:
+        type: mafft-linsi
+    out:
+      - outputAlignment
+
+  pal2nal_codon:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/pal2nal/pal2nal/14.1+galaxy0
+    doc: |
+      IUC pal2nal 14.1+galaxy0. Two inputs paired by OG element_identifier: the
+      MAFFT protein alignment (protein_alignment) + the matching {og}.cds.fa
+      nucleotide CDS (nucleotide_fastas). Verified live: param names are
+      protein_alignment / nucleotide_fastas / output_format / genetic_code, and
+      the output is named output_file. Map-over is on both paired collections.
+    in:
+      protein_alignment:
+        source: mafft_linsi/outputAlignment
+      nucleotide_fastas:
+        source: group_cds_by_og/cds
+    state:
+      output_format: fasta
+      genetic_code: "1"
+    out:
+      - output_file
+
+  trimal_clean:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/trimal/trimal/1.5.1+galaxy0
+    doc: |
+      IUC trimal 1.5.1+galaxy0. -automated1 on the codon alignment collection.
+      Verified live: the alignment input is named `in`, the mode lives in the
+      trimming_mode conditional under test param mode_selector, and the value
+      keeps its leading dash (-automated1). out_format_selector = -fasta to keep
+      FASTA output.
+    in:
+      in:
+        source: pal2nal_codon/output_file
+    state:
+      trimming_mode:
+        mode_selector: "-automated1"
+      out_format_selector: "-fasta"
+    out:
+      - trimmed_output

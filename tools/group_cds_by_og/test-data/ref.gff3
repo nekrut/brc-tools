@@ -1,0 +1,8 @@
+##gff-version 3
+chr1	.	gene	5	67	.	+	.	ID=gene1
+chr1	.	mRNA	5	67	.	+	.	ID=gene1.t1;Parent=gene1
+chr1	.	CDS	5	25	.	+	0	ID=cds1;Parent=gene1.t1
+chr1	.	CDS	44	67	.	+	0	ID=cds1;Parent=gene1.t1
+chr1	.	gene	72	89	.	+	.	ID=gene2
+chr1	.	mRNA	72	89	.	+	.	ID=gene2.t1;Parent=gene2
+chr1	.	CDS	72	89	.	+	0	ID=cds2;Parent=gene2.t1

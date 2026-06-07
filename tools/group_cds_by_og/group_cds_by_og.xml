@@ -1,0 +1,159 @@
+<tool id="group_cds_by_og" name="Group CDS by orthogroup" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>emit per-orthogroup CDS and peptide multifastas as paired list collections</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="group_cds_by_og.py"/>
+    </required_files>
+    <version_command>python '$__tool_directory__/group_cds_by_og.py' --help | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+## Galaxy stores datasets as .dat; pyfaidx needs real FASTAs to index
+## alongside, and gene IDs must be matched per strain. Stage the reference,
+## then build <strain>\t<path> manifests over the two parallel query list
+## collections (keyed by element_identifier = strain).
+ln -s '$ref_fasta' ref.fasta &&
+ln -s '$ref_gff' ref.gff3 &&
+mkdir -p staged ogs &&
+#for $g in $query_gff
+ln -s '$g' 'staged/${g.element_identifier}.gff3' &&
+printf '%s\t%s\n' '$g.element_identifier' 'staged/${g.element_identifier}.gff3' >> gff_manifest.tsv &&
+#end for
+#for $f in $query_fasta
+ln -s '$f' 'staged/${f.element_identifier}.fasta' &&
+printf '%s\t%s\n' '$f.element_identifier' 'staged/${f.element_identifier}.fasta' >> fasta_manifest.tsv &&
+#end for
+python '$__tool_directory__/group_cds_by_og.py'
+    --ortho '$ortho'
+    --ref '$ref_name'
+    --ref-gff ref.gff3
+    --ref-fasta ref.fasta
+    --query-gff-manifest gff_manifest.tsv
+    --query-fasta-manifest fasta_manifest.tsv
+    --min-intact $min_intact
+    --out-dir ogs
+    --log-level INFO
+    ]]></command>
+    <inputs>
+        <param argument="--ortho" type="data" format="tabular" label="Ortholog table (TSV)"
+               help="ortholog_table.tsv from the consensus step. Must have an orthogroup_id column and one column per strain (header = strain name) holding gene IDs or '-'."/>
+        <param argument="--ref-name" type="text" value="REF" label="Reference strain name"
+               help="Must match the reference column header in the ortholog table.">
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+        </param>
+        <param argument="--ref-gff" type="data" format="gff3,gff" label="Reference GFF3"
+               help="The reference strain's own fixed GFF3. CDS features are read for the reference gene models."/>
+        <param argument="--ref-fasta" type="data" format="fasta" label="Reference softmasked FASTA"
+               help="The reference (softmasked) genome. Seqids must match the GFF chrom column."/>
+        <param name="query_gff" type="data_collection" collection_type="list" format="gff3,gff"
+               label="Per-query merged GFF3 collection"
+               help="A 'list' collection of per-query merged annotation GFF3s; element identifier = strain name (must match the ortholog-table column and the FASTA collection)."/>
+        <param name="query_fasta" type="data_collection" collection_type="list" format="fasta"
+               label="Per-query softmasked FASTA collection"
+               help="A 'list' collection of per-query softmasked FASTAs; element identifier = strain name (parallel to the GFF collection)."/>
+        <param argument="--min-intact" type="integer" value="2" min="1"
+               label="Minimum intact query members per orthogroup"
+               help="Only orthogroups with at least this many intact QUERY members (queries with an extractable CDS; the reference is not counted) are emitted. Matches v3 build_msa.py semantics."/>
+    </inputs>
+    <outputs>
+        <collection name="cds" type="list" label="${tool.name} on ${on_string}: CDS per orthogroup">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.cds\.fa" format="fasta" directory="ogs" recurse="false"/>
+        </collection>
+        <collection name="pep" type="list" label="${tool.name} on ${on_string}: peptides per orthogroup">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.pep\.fa" format="fasta" directory="ogs" recurse="false"/>
+        </collection>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="2">
+            <param name="ortho" value="ortholog_table.tsv"/>
+            <param name="ref_name" value="REF"/>
+            <param name="ref_gff" value="ref.gff3"/>
+            <param name="ref_fasta" value="ref.fasta"/>
+            <param name="query_gff">
+                <collection type="list">
+                    <element name="Q1" value="q1.gff3" ftype="gff3"/>
+                </collection>
+            </param>
+            <param name="query_fasta">
+                <collection type="list">
+                    <element name="Q1" value="q1.fasta" ftype="fasta"/>
+                </collection>
+            </param>
+            <!-- min_intact now counts QUERY members only (ref excluded), matching
+                 v3 build_msa.py. OG000001 has one intact query (Q1), so 1 >= 1. -->
+            <param name="min_intact" value="1"/>
+            <output_collection name="cds" type="list" count="1">
+                <element name="OG000001">
+                    <assert_contents>
+                        <has_text text="&gt;REF"/>
+                        <has_text text="&gt;Q1"/>
+                        <!-- REF CDS is 45 nt (len % 3 == 0); exact joined+stripped CDS line -->
+                        <has_line line="ATGGCTGCAGGTACCAAGCTTGATTACTGGTTTAAACATCATTAA"/>
+                        <!-- minus-strand query CDS, revcomp-reconstructed, also 45 nt -->
+                        <has_line line="ATGGCAGCTGGAACAAAACTAGACTATTGGTTCAAGCACCACTAA"/>
+                    </assert_contents>
+                </element>
+            </output_collection>
+            <output_collection name="pep" type="list" count="1">
+                <element name="OG000001">
+                    <assert_contents>
+                        <has_text text="&gt;REF"/>
+                        <has_text text="&gt;Q1"/>
+                        <!-- 14-aa peptide; 45-nt CDS = 3*14 + trailing stop stripped -->
+                        <has_line line="MAAGTKLDYWFKHH"/>
+                    </assert_contents>
+                </element>
+            </output_collection>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Group CDS by orthogroup** — the CDS-grouping core of the Pv4 pangenome
+codon/protein MSA builder, exposed as a standalone helper.
+
+For every orthogroup in `ortholog_table.tsv` that has at least
+**`--min-intact`** intact **query** members (the reference strain is not
+counted toward this threshold, matching v3 `build_msa.py`), this tool emits
+two per-orthogroup multifastas:
+
+- `{og}.cds.fa` — nucleotide **CDS**, one record per member strain. CDS is
+  reconstructed from the GFF `CDS` segments against the (softmasked) genome
+  FASTA (`pyfaidx`), reverse-complemented on the minus strand, with in-frame
+  internal stop codons replaced by `NNN` and the sequence codon-truncated so
+  its length is a multiple of 3.
+- `{og}.pep.fa` — **protein**, one record per member strain (`translate`,
+  trailing `*` stripped). Orthogroups whose **reference** CDS carries an
+  internal stop codon are dropped entirely.
+
+The reference strain is read from its own fixed GFF3; each query strain from
+its merged annotation GFF3. Gene IDs are matched on the normalized gene id
+(the Liftoff extra-copy suffix is collapsed).
+
+-----
+
+**Inputs**
+
+- *Ortholog table* — `ortholog_table.tsv`; needs an `orthogroup_id` column
+  plus one column per strain (header = strain name) holding gene IDs or `-`.
+- *Reference name / GFF3 / softmasked FASTA* — the reference strain.
+- *Per-query merged GFF3 collection* and *Per-query softmasked FASTA
+  collection* — two parallel `list` collections keyed by strain
+  (`element_identifier`).
+- *Minimum intact members* — orthogroup member threshold.
+
+**Outputs**
+
+- Two parallel `list` collections, `cds` and `pep`, each keyed by the
+  orthogroup id, holding `{og}.cds.fa` / `{og}.pep.fa`. For any orthogroup the
+  two collections are codon-consistent: `len(cds_record) == 3 * len(pep_record)`.
+
+-----
+
+The downstream alignment (MAFFT / pal2nal / trimal) is intentionally **not**
+performed here — those are separate IUC tool steps.
+
+Extracted from `Pv4-pangenome/v3/pipeline/impl/scripts/build_msa.py`
+(CDS-grouping core).
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

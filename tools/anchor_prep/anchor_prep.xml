@@ -1,0 +1,86 @@
+<tool id="anchor_prep" name="Anchor prep" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>Build per-anchor BED12 + isoforms TSV for TOGA2 from a GFF3</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <expand macro="requirements"/>
+    <required_files>
+        <include path="build_anchor_inputs.py"/>
+    </required_files>
+    <version_command>gffread --version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+ln -sf '$input' 'input.gff3' &&
+
+gffread --bed 'input.gff3' -o 'raw.bed12' &&
+
+python '$__tool_directory__/build_anchor_inputs.py'
+    --gff 'input.gff3'
+    --raw-bed 'raw.bed12'
+    --out-bed '$bed12'
+    --out-isoforms '$isoforms'
+    ]]></command>
+    <inputs>
+        <param argument="--gff" name="input" type="data" format="gff3" label="Anchor annotation (GFF3)"
+               help="Chrom-reconciled GFF3 for one anchor species. Protein-coding genes (feature type 'protein_coding_gene' or 'gene') with mRNA + CDS children."/>
+    </inputs>
+    <outputs>
+        <data name="bed12" format="bed12" label="${tool.name} on ${on_string}: protein-coding BED12"/>
+        <data name="isoforms" format="tabular" label="${tool.name} on ${on_string}: isoforms TSV"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="2">
+            <param name="input" value="anchor.gff3" ftype="gff3"/>
+            <output name="bed12">
+                <assert_contents>
+                    <has_n_columns n="12"/>
+                    <has_n_lines min="1"/>
+                    <!-- BED name column (col 4) must carry the GENE id, not the
+                         transcript id, so phase_c4_merge can reconcile it
+                         against the clean-GFF gene IDs (Finding F3). The
+                         tab-delimited line asserts the gene id is specifically
+                         in the name column (col 4). -->
+                    <has_line line="chr1&#9;999&#9;2000&#9;gene1&#9;100&#9;+&#9;999&#9;2000&#9;0,0,0&#9;2&#9;301,301,&#9;0,700,"/>
+                    <has_line line="chr1&#9;3999&#9;5000&#9;gene2&#9;100&#9;-&#9;3999&#9;5000&#9;1,0,0&#9;2&#9;401,401,&#9;0,600,"/>
+                    <not_has_text text="mrna1"/>
+                    <not_has_text text="mrna2"/>
+                </assert_contents>
+            </output>
+            <output name="isoforms">
+                <assert_contents>
+                    <has_n_columns n="2"/>
+                    <has_line line="gene1&#9;mrna1"/>
+                    <has_line line="gene2&#9;mrna2"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**Anchor prep** — build TOGA2 input files for one anchor species.
+
+Given a chrom-reconciled GFF3 annotation, this tool emits the two files
+that TOGA2 needs per anchor:
+
+- **Protein-coding BED12** — `gffread --bed` over the GFF3, restricted to
+  protein-coding genes (feature type `protein_coding_gene` or `gene`).
+- **Isoforms TSV** — two columns, `gene_id` &lt;TAB&gt; `transcript_id`,
+  one row per `mRNA` feature (gene = `Parent=`, transcript = `ID=`).
+
+-----
+
+**Input**
+
+- `Anchor annotation (GFF3)` — one anchor species' reconciled GFF3.
+  Each protein-coding gene should have an `mRNA` and `CDS` child.
+
+**Outputs**
+
+- BED12 of protein-coding transcripts (12 columns).
+- Isoforms TSV (`gene_id`, `transcript_id`).
+
+-----
+
+Ported from `impl/setup/build_anchor_inputs.sh` of the Pv4 pangenome
+pipeline.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

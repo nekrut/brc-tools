@@ -1,0 +1,72 @@
+<tool id="ucsc_fatotwobit" name="faToTwoBit" version="@FATOTWOBIT_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>convert FASTA to the compact binary 2bit format</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="@FATOTWOBIT_VERSION@">ucsc-fatotwobit</requirement>
+    </requirements>
+    <version_command><![CDATA[faToTwoBit 2>&1 | head -1]]></version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#set $in_ext = 'fa.gz' if str($input.ext) == 'fasta.gz' else 'fa'
+ln -sf '$input' 'input.${in_ext}' &&
+faToTwoBit
+    $long
+    $no_mask
+    'input.${in_ext}'
+    '$output'
+    ]]></command>
+    <inputs>
+        <param argument="input" type="data" format="fasta,fasta.gz" label="Input FASTA"
+               help="Nucleotide FASTA, plain or gzipped."/>
+        <param argument="-long" type="boolean" truevalue="-long" falsevalue="" checked="false"
+               label="Use 64-bit offsets"
+               help="Write a long (64-bit offset) 2bit file, required for genomes larger than 4 Gb."/>
+        <param argument="-noMask" name="no_mask" type="boolean" truevalue="-noMask" falsevalue="" checked="false"
+               label="Ignore lowercase masking"
+               help="Do not store soft-masking (lowercase) information."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="twobit" label="${tool.name} on ${on_string}: 2bit"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input" value="test.fa" ftype="fasta"/>
+            <output name="output">
+                <assert_contents>
+                    <!-- 2bit magic 0x1A412743 -->
+                    <has_size min="40"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**faToTwoBit** — pack one or more FASTA sequences into the compact, random-access
+binary **2bit** format.
+
+2bit stores each base in two bits plus side tables for N-runs and soft-masking,
+giving a small file that genome browsers and track hubs can index by sequence
+and position. It is the canonical assembly container referenced from a hub's
+`genomes.txt` (`twoBitPath`).
+
+-----
+
+**Input**
+
+- `Input FASTA` — nucleotide FASTA, plain or gzipped.
+
+**Output**
+
+- A `twobit` dataset (magic `0x1A412743`).
+
+-----
+
+**Key options**
+
+- `-long` — emit 64-bit offsets (assemblies > 4 Gb).
+- `-noMask` — drop lowercase soft-masking.
+
+Pair with `twoBitInfo` to derive the `chrom.sizes` needed by `bedToBigBed`.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

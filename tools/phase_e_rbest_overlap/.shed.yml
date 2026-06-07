@@ -1,0 +1,16 @@
+categories:
+- Sequence Analysis
+description: Phase E rbest overlap - gene orthology edges via reciprocal-best chain block projection
+long_description: |
+  For each reciprocal-best (rbest) chain between a pair of strains, projects
+  every target-strain gene interval through the chain's aligned blocks into
+  query coordinates, then connects it to the single best-overlapping query
+  gene. An edge is emitted only when the target gene is well covered by
+  aligned blocks (overlap_a >= min_overlap) AND its best query gene
+  reciprocally overlaps the projection (overlap_b >= min_overlap). Emits a
+  flat rbest_edges.tsv of orthology edges.
+name: phase_e_rbest_overlap
+owner: nekrut
+homepage_url: https://github.com/nekrut/Pv4-pangenome
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/phase_e_rbest_overlap
+type: unrestricted

@@ -1,0 +1,47 @@
+<tool id="odgi_paths" name="odgi paths" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+    <description>list paths / per-path haplotype matrix</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <xrefs>
+        <xref type="bio.tools">odgi</xref>
+    </xrefs>
+    <expand macro="requirements"/>
+    <version_command>odgi version 2>&amp;1 | head -1</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+odgi paths
+    -i '$idx'
+    --threads \${GALAXY_SLOTS:-1}
+    --haplotypes
+    > '$paths_tsv'
+    ]]></command>
+    <inputs>
+        <param argument="--idx" type="data" format="odgi" label="Input .og graph"/>
+    </inputs>
+    <outputs>
+        <data name="paths_tsv" format="tabular" label="${tool.name} on ${on_string}: haplotypes"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="idx" value="toy.og" ftype="odgi"/>
+            <output name="paths_tsv">
+                <assert_contents>
+                    <has_line_matching expression="path\.name\tpath\.length.*"/>
+                    <has_text text="PvA#1#chr1"/>
+                    <has_n_lines min="2"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help format="markdown"><![CDATA[
+**odgi paths** ``--haplotypes`` — emit a tab-delimited haplotype matrix.
+
+Each row is one path (haplotype) in the graph. Column 0 (``path.name``) is
+the path name, followed by ``path.length``, ``path.step.count``, and one
+binary column per node indicating whether the path traverses that node.
+
+The plain path list (column 0) is the canonical "which haplotypes are in
+this pangenome?" check across pipeline runs.
+    ]]></help>
+    <expand macro="citations"/>
+</tool>

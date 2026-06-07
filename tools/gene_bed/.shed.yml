@@ -1,0 +1,16 @@
+categories:
+- Sequence Analysis
+- Genome annotation
+description: gene_bed - 4-column gene BED from a native GFF3 annotation
+long_description: |
+  Reads a native GFF3 annotation and emits a 4-column gene BED
+  (chrom, 0-based start, end, gene_id). Gene rows are selected by feature
+  type (gene, protein_coding_gene, ncRNA_gene, pseudogene), the ID attribute
+  is parsed, and the 1-based GFF start is converted to a 0-based BED start.
+  Used in Phase E (WF-E) of the P. knowlesi pangenome pipeline to build the
+  per-strain orthogroup node set, mapped over the native annotation collection.
+name: gene_bed
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/gene_bed
+type: unrestricted

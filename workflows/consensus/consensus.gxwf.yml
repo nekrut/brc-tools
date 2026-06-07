@@ -1,0 +1,141 @@
+class: GalaxyWorkflow
+label: WF-E consensus_orthology
+doc: |
+  Phase E: build a consensus ortholog table from three orthology-evidence sources.
+
+  Gene "nodes" come from NATIVE per-strain GFF3 annotations (gene_bed extractor).
+  Two edge sources vote on co-membership:
+    - rbest reciprocal-best pairwise chains (phase_e_rbest_overlap), and
+    - pggb graph path co-membership (odgi paths --haplotypes -> phase_e_graph_edges).
+  A union-find consensus (phase_e_consensus) merges those edges plus the C.4
+  Liftoff/TOGA classifications (list:list, outer=anchor / inner=query) into
+  ortholog_table.tsv (4 fixed cols + 1 column per strain) for WF-F and WF-K.
+
+  Map-over note: gene_bed runs once per native GFF3; Galaxy auto-maps it over the
+  `annotations` list, producing a per-strain BED collection consumed (flat) by both
+  edge tools. The rbest chains and classification trees are passed whole (non-mapped):
+  each phase_e_* wrapper stages collection elements to `element_identifier` filenames
+  in its <command> before globbing (the `.dat` lesson, Decision 10).
+creator:
+  - class: Person
+    name: Pv4 pangenome pipeline port
+license: MIT
+
+inputs:
+
+  native_annotations:
+    type: collection
+    collection_type: list
+    doc: >
+      Native per-strain GFF3 annotations, element_identifier = strain. These are the
+      orthogroup NODES. Distinct from the C.4 merged GFFs (which only feed consensus).
+
+  rbest_chains:
+    type: collection
+    collection_type: list
+    doc: >
+      Reciprocal-best pairwise chains from WF-C (flat list). element_identifier MUST be
+      `{a}.{b}` -- phase_e_rbest_overlap keys source/target strains off the filename stem.
+
+  graph:
+    type: data
+    doc: >
+      pggb odgi `.og` binary graph from WF-D (the odgi paths step lives in this WF so the
+      graph datatype is the dependency, not a pre-extracted TSV).
+
+  c4_classifications:
+    type: collection
+    collection_type: list:list
+    doc: >
+      C.4 per-(anchor,query) classification tables, nested list:list
+      (outer=anchor `{anchor}-as-ref`, inner=query `{query}.classification.tsv`).
+      Consumed only by phase_e_consensus (projection evidence).
+
+  strains:
+    type: string
+    doc: All strain names (the wrappers derive identity from element_identifier; this
+      text list pins ordering/membership). Space- or comma-separated per the wrapper.
+
+  anchors:
+    type: string
+    doc: Anchor strain names (subset of strains) used as projection references in C.4.
+
+  ref_strain:
+    type: string
+    doc: Reference strain name (must be one of anchors).
+
+  rbest_min_overlap:
+    type: float
+    default: 0.90
+    doc: phase_e_rbest_overlap --min_overlap (Decision 9 default 0.90).
+
+  graph_min_overlap:
+    type: float
+    default: 0.90
+    doc: phase_e_graph_edges --min_overlap (Decision 9 default 0.90).
+
+steps:
+
+  gene_bed:
+    tool_id: gene_bed
+    doc: native GFF3 -> per-strain 4-col gene BED (auto-maps over the list).
+    in:
+      input: native_annotations
+    doc: >
+      Auto-maps over the native_annotations list -> a per-strain gene BED collection
+      (4-col). Output element_identifier = strain, consumed by both edge tools.
+
+  odgi_paths:
+    tool_id: odgi_paths
+    doc: emit haplotype-paths TSV (path name in col 0 feeds graph_edges).
+    in:
+      idx: graph
+    doc: >
+      Emits the haplotype-paths TSV; path/haplotype name in column 0 is what
+      phase_e_graph_edges reads (parts[0]).
+
+  rbest_overlap:
+    tool_id: phase_e_rbest_overlap
+    doc: rbest reciprocal-best chains + gene BEDs -> rbest_edges.tsv.
+    in:
+      chains: rbest_chains
+      annotations: gene_bed/output
+      strains: strains
+      min_overlap: rbest_min_overlap
+    out:
+      rbest_edges: {}
+
+  graph_edges:
+    tool_id: phase_e_graph_edges
+    doc: odgi haplotype-paths TSV + gene BEDs -> graph co-membership edges.
+    in:
+      paths: odgi_paths/paths_tsv
+      annotations: gene_bed/output
+      min_overlap: graph_min_overlap
+    out:
+      output: {}
+
+  consensus:
+    tool_id: phase_e_consensus
+    doc: union-find over both edge sets + C.4 classifications -> ortholog_table.tsv.
+    in:
+      classifications: c4_classifications
+      rbest: rbest_overlap/rbest_edges
+      graph: graph_edges/output
+      anchors: anchors
+      strains: strains
+      ref: ref_strain
+    out:
+      ortholog_table: {}
+
+outputs:
+  ortholog_table:
+    outputSource: consensus/ortholog_table
+    doc: ortholog_table.tsv (4 fixed cols + 1 per strain) -> WF-F, WF-K.
+  gene_beds:
+    outputSource: gene_bed/output
+    doc: per-strain native gene BED collection (orthogroup nodes).
+  rbest_edges:
+    outputSource: rbest_overlap/rbest_edges
+  graph_edges:
+    outputSource: graph_edges/output
