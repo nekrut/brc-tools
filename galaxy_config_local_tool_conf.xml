@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<toolbox tool_path="/home/anton/git/pangenome_tools_wfs/tools" monitor="true">
+<toolbox tool_path="/home/anton/git/brc-tools/tools" monitor="true">
   <section id="pangenome_input" name="Pangenome :: Input prep">
     <tool file="pansn_rename/pansn_rename.xml"/>
     <tool file="fasta_concat/fasta_concat.xml"/>
