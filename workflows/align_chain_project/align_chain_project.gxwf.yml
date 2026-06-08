@@ -18,19 +18,22 @@ doc: >
   triage subset NO LONGER filters TOGA2 (TOGA2 has no --filter_bed and classifies
   the whole annotation itself).
 
-  This is the most complex workflow in the port. gxformat2 cannot express
-  every map-over cleanly (see README "Known limitations"): the NxN chain
-  block needs, per pair, the SEPARATE target and query softmasked FASTAs AND
-  their `.sizes` files, but a Galaxy `list:paired` pair element carries only
-  the two FASTAs (not the sizes), and axtChain/chainNet/chainPreNet each take
-  two positional size files. Those steps are encoded as a best-effort linear
-  chain wired off the `pair_strains` paired collection plus the flat sizes
-  collection; the per-pair sizes lookup is the part that needs either a
-  manual relink in the Galaxy editor or a small helper tool. The Liftoff C.4
-  projection (anchor x query) is likewise a cross-product that gxformat2
-  cannot enumerate; it is encoded as a single-anchor / single-query template
-  that must be map-over wired in the editor (or run via a parent
-  cross-product step). Both are flagged in the README.
+  This is the most complex workflow in the port. The per-pair `.sizes` join
+  -- previously the biggest gap -- is now CLOSED by the `pair_sizes` helper
+  (C.1b): it enumerates the same A<B pairs as `pair_strains` and emits a
+  list:paired of `.sizes` keyed identically `{A}__vs__{B}` (forward=A,
+  reverse=B), identifier-aligned to the FASTA pairs, so axtChain /
+  chainPreNet / chainNet read each pair's target (forward) + query (reverse)
+  sizes from a real collection rather than an un-joinable flat list. The
+  remaining gxformat2 limits (see README "Known limitations" and
+  ONE-CLICK-READINESS.md): (a) addressing the forward/reverse SLOTS of the
+  paired FASTA + paired sizes collections into the two-data-input chain tools
+  still needs the editor on packaging (a paired element is not auto-split into
+  two scalar inputs by the `in:` syntax); (b) the rbest output
+  element_identifier carries `{A}__vs__{B}` whereas Phase E keys on the
+  filename stem `{a}.{b}`, a relabel not expressible inline; (c) the Liftoff
+  C.4 anchor x query projection is now expressible via the `__cross_product__`
+  helper (list:list outer=anchor / inner=query), wired below.
 
 inputs:
 
@@ -47,10 +50,10 @@ inputs:
     collection_type: list
     doc: >
       Per-strain chromosome `.sizes` files (cut -f1,2 of the .fai) from WF-B,
-      one element per strain, element identifier = strain name. Needed by
-      axtChain (-faT -faQ build still needs sizes for chainPreNet/chainNet).
-      NOTE: this flat collection cannot be auto-joined per pair in gxformat2;
-      see README.
+      one element per strain, element identifier = strain name. The
+      `pair_sizes` helper (step C.1b) joins this flat list into a per-pair
+      list:paired (keyed {A}__vs__{B}, forward=A reverse=B) aligned to
+      pair_strains, which feeds chainPreNet/chainNet. See README.
 
   anchor_gff3s:
     type: collection
@@ -167,6 +170,27 @@ steps:
       pairs: { }
 
   # ---------------------------------------------------------------------------
+  # C.1b  Per-pair .sizes join (closes README limitation 1, the biggest gap).
+  #       pair_sizes enumerates the SAME unordered pairs A<B as pair_strains and
+  #       emits a list:paired keyed {A}__vs__{B} with forward=A.sizes,
+  #       reverse=B.sizes -- identifier-aligned to pair_strains/pairs. This
+  #       replaces the un-joinable flat `sizes` list as the source for the
+  #       per-pair target/query chrom-sizes that axtChain/chainPreNet/chainNet
+  #       need. forward = target (A) sizes, reverse = query (B) sizes.
+  #       (include_self / both_directions MUST match pair_strains above so the
+  #       two paired collections stay element-for-element aligned.)
+  # ---------------------------------------------------------------------------
+  pair_sizes:
+    tool_id: pair_sizes
+    in:
+      input: sizes
+    state:
+      include_self: false
+      both_directions: false
+    out:
+      pair_sizes: { }
+
+  # ---------------------------------------------------------------------------
   # C.1  Pairwise alignment -> AXT.  KegAlign-GPU is the ONLY viable aligner for
   #      this chain (Decision F1): the IUC lastz wrapper exposes no axt/psl
   #      output, so its output cannot feed axtChain (in_aln accepts only
@@ -246,12 +270,15 @@ steps:
     out:
       out: { }
 
+  # sizes now come from the per-pair list:paired (pair_sizes): forward=target(A),
+  # reverse=query(B). Wire the forward slot to in_tar_ref_index and the reverse
+  # slot to in_que_ref_index (the editor resolves the paired slots on map-over).
   chainprenet:
     tool_id: ucsc_chainprenet
     in:
       in_chain: chainsort_clean/out
-      target_reference_index_source|in_tar_ref_index: sizes
-      query_reference_index_source|in_que_ref_index: sizes
+      target_reference_index_source|in_tar_ref_index: pair_sizes/pair_sizes
+      query_reference_index_source|in_que_ref_index: pair_sizes/pair_sizes
     state:
       target_reference_index_source:
         target_reference_index_source_selector: history
@@ -264,8 +291,8 @@ steps:
     tool_id: ucsc_chainnet
     in:
       in_chain: chainprenet/out
-      target_reference_index_source|in_tar_ref_index: sizes
-      query_reference_index_source|in_que_ref_index: sizes
+      target_reference_index_source|in_tar_ref_index: pair_sizes/pair_sizes
+      query_reference_index_source|in_que_ref_index: pair_sizes/pair_sizes
     state:
       target_reference_index_source:
         target_reference_index_source_selector: history
@@ -312,14 +339,15 @@ steps:
       out: { }
 
   # rbest chainNet: target/query sizes are SWAPPED vs the cleaned pass
-  # (target=B.sizes, query=A.sizes). Per-pair-sizes helper / editor relink
-  # still required to feed the correct orientation (README limitation 2).
+  # (target=B.sizes, query=A.sizes). With the pair_sizes list:paired this is
+  # just the opposite slot assignment: target = reverse slot (B), query =
+  # forward slot (A). Same per-pair collection, swapped wiring (README lim. 2).
   chainnet_r:
     tool_id: ucsc_chainnet
     in:
       in_chain: chainsort_r1/out
-      target_reference_index_source|in_tar_ref_index: sizes
-      query_reference_index_source|in_que_ref_index: sizes
+      target_reference_index_source|in_tar_ref_index: pair_sizes/pair_sizes
+      query_reference_index_source|in_que_ref_index: pair_sizes/pair_sizes
     state:
       target_reference_index_source:
         target_reference_index_source_selector: history
@@ -369,6 +397,30 @@ steps:
     out:
       bed12: { }
       isoforms: { }
+
+  # ---------------------------------------------------------------------------
+  # C.4 enumeration  (__cross_product__): build the anchor x query grid as a
+  #   list:list (outer = anchor strain, inner = query strain, excluding
+  #   anchor==query), carrying the QUERY assembly in each [anchor][query] cell.
+  #   This makes the C.4 projection map-over-able: map over the INNER dimension
+  #   to run one Liftoff per (anchor, query). What gxformat2 STILL cannot do is
+  #   co-fan the anchor-keyed inputs (anchor_assembly / anchor_fixed_gff3 /
+  #   anchor_bed12, indexed by the OUTER id) with the per-cell query in one
+  #   declarative map-over -- that slot binding is done in the editor / API
+  #   staging at packaging time (ONE-CLICK-READINESS.md). The grid itself is no
+  #   longer a manual enumeration step.
+  #   `anchors` and `queries` are both the `assemblies` list; self-pairs are
+  #   excluded by default so no strain is projected onto itself.
+  # ---------------------------------------------------------------------------
+  cross_anchor_query:
+    tool_id: cross_product
+    in:
+      anchors: assemblies
+      queries: assemblies
+    state:
+      include_self: false
+    out:
+      crossed: { }
 
   # ---------------------------------------------------------------------------
   # C.4  Projection -- pass-1 Liftoff-only (anchor x query template).

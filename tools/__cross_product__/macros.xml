@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<macros>
+    <token name="@TOOL_VERSION@">1.0.0</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE@">26.0</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="3.12">python</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citations>
+            <citation type="bibtex"><![CDATA[
+@misc{cross_product,
+  author = {Nekrutenko lab},
+  title = {cross_product: cross two Galaxy list collections into a list:list collection},
+  year = {2026},
+  url = {https://github.com/nekrut/brc-tools/tree/main/tools/cross_product}
+}
+            ]]></citation>
+        </citations>
+    </xml>
+</macros>

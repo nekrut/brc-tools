@@ -1,0 +1,17 @@
+categories:
+- Sequence Analysis
+- Assembly
+description: cross_product - cross two list collections into a nested list:list collection
+long_description: |
+  Given an ANCHOR 'list' collection and a QUERY 'list' collection (element
+  identifier = strain/assembly name in each), enumerate every (anchor, query)
+  combination and emit a 'list:list' collection where the outer element
+  identifier is {anchor} and the inner element identifier is {query}, holding
+  the query's file. Self-pairs (anchor==query) are excluded by default. This
+  makes anchor x query cross-products (WF-C C.4 annotation projection, WF-K
+  per-assembly fanout) expressible as a single map-over-able collection.
+name: cross_product
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools/tree/main/tools/cross_product
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/cross_product
+type: unrestricted

@@ -1,0 +1,18 @@
+categories:
+- Sequence Analysis
+- Assembly
+description: pair_sizes - emit per-pair chromosome .sizes as a list:paired collection
+long_description: |
+  From a 'list' collection of one-.sizes-per-strain (element identifier =
+  strain name), enumerate all distinct unordered pairs A<B -- IDENTICAL to
+  pair_strains -- and emit a 'list:paired' collection keyed {A}__vs__{B} with
+  forward = A's .sizes and reverse = B's .sizes. Because the pairing matches
+  pair_strains exactly, this sizes collection is identifier-aligned to the
+  pair_strains FASTA collection and supplies axtChain / chainPreNet / chainNet
+  with the per-pair target (forward) and query (reverse) chrom-sizes that a
+  flat sizes list cannot be auto-joined to in gxformat2.
+name: pair_sizes
+owner: nekrut
+homepage_url: https://github.com/nekrut/brc-tools/tree/main/tools/pair_sizes
+remote_repository_url: https://github.com/nekrut/brc-tools/tree/main/tools/pair_sizes
+type: unrestricted

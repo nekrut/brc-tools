@@ -157,16 +157,21 @@ mode is used. `liftoff_features` is kept as an input but intentionally NOT wired
 
 ## Known limitations (gxformat2 could not express these cleanly — relink in the editor)
 
-1. **Per-pair `.sizes` lookup (chain block).** axtChain / chainPreNet / chainNet
-   each need the **target** and **query** `.sizes` for *that specific pair*. The
-   `pair_strains` `list:paired` element carries only the two FASTAs, not the
-   sizes, and gxformat2 has no construct to join the flat `sizes` collection to
-   the per-pair identity. The steps are wired to the whole `sizes` collection as
-   a placeholder; this is the single biggest map-over gap and needs either a
-   manual relink in the Galaxy editor or a tiny "pair sizes" helper tool that,
-   like `pair_strains`, emits a `list:paired` of `.sizes` keyed `{A}__vs__{B}`.
-   Same concern for axtChain's separate target/query FASTAs (wired to the paired
-   collection; the editor must point target=forward, query=reverse).
+1. **Per-pair `.sizes` lookup (chain block) — NOW CLOSED by `pair_sizes`.**
+   axtChain / chainPreNet / chainNet each need the **target** and **query**
+   `.sizes` for *that specific pair*. The new `pair_sizes` helper (step C.1b)
+   enumerates the **same** A<B pairs as `pair_strains` and emits a
+   `list:paired` of `.sizes` keyed identically `{A}__vs__{B}` (forward=A,
+   reverse=B), identifier-aligned to the FASTA pairs. chainPreNet/chainNet now
+   read each pair's sizes from `pair_sizes/pair_sizes` instead of the
+   un-joinable flat `sizes` list; the rbest chainNet uses the same collection
+   with the slots swapped (target=reverse=B, query=forward=A). **Residual
+   editor step:** binding the forward/reverse SLOT of a `list:paired` into the
+   two separate `in_tar_ref_index` / `in_que_ref_index` data inputs (and
+   likewise axtChain's two FASTA inputs from the `pair_strains` paired
+   collection) is a slot-addressing the `in:` syntax cannot spell out — it is
+   resolved in the editor / API staging at packaging time. The per-pair JOIN
+   itself is no longer a gap.
 
 2. **lastz over a `list:paired`.** Encoded as `target: pairs / query: pairs`
    (both the paired collection) on the assumption the IUC lastz wrapper exposes
@@ -175,14 +180,20 @@ mode is used. `liftoff_features` is kept as an input but intentionally NOT wired
    here are best-effort and the param keys (`masking`, `hspthresh`, …) follow
    lastz CLI naming but may differ from the wrapper's `name=` attributes.
 
-3. **C.4 anchor x query cross-product.** The real projection is a cross-product
-   (each anchor projected onto every non-anchor query) producing a `list:list`
-   (outer=anchor, inner=query). gxformat2 cannot enumerate a cross-product, so
-   C.4 is encoded as a **single-anchor / single-query template** (scalar
-   `data`/`string` inputs). To run the full matrix, drive it map-over from a
-   parent workflow (e.g. a `__CROSS_PRODUCT_NESTED__` over anchors x queries) or
-   wire the map-over in the editor. `anchor_prep` *is* mapped over the
-   `anchor_gff3s` list correctly.
+3. **C.4 anchor x query cross-product — enumeration NOW provided by
+   `__cross_product__`.** The real projection is a cross-product (each anchor
+   projected onto every non-anchor query) producing a `list:list`
+   (outer=anchor, inner=query). The new `cross_product` helper (step
+   `cross_anchor_query`) builds exactly that grid from the `assemblies` list
+   (anchors x queries, self-pairs excluded), carrying the query assembly in
+   each `[anchor][query]` cell. Mapping over the inner dimension runs one
+   Liftoff per pair. **Residual editor step:** the anchor-keyed inputs
+   (`anchor_assembly` / `anchor_fixed_gff3` / `anchor_bed12`, indexed by the
+   OUTER id) cannot be co-fanned with the per-cell query in a single
+   declarative map-over — that slot binding is done in the editor / API staging.
+   The C.4 single-anchor/single-query scalar template steps are kept for the
+   importable/CI proof; the grid is no longer a manual enumeration.
+   `anchor_prep` *is* mapped over the `anchor_gff3s` list correctly.
 
 4. **rbest element_identifier.** Phase E (`phase_e_rbest_overlap`) keys strains
    off the chain filename stem, so the rbest output element id MUST resolve to
