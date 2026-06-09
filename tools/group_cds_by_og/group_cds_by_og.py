@@ -171,11 +171,20 @@ def read_manifest(path: Path) -> list[tuple[str, str]]:
     return entries
 
 
-def load_ortho_table(ortho_path, all_strains, min_intact, ref_strain):
+def load_ortho_table(ortho_path, all_strains, min_intact, ref_strain,
+                     ref_genes=None):
     """Return list of (og_id, gene_id) for OGs with >= min_intact present strains.
 
     og_id is the orthogroup_id column (used as collection element identifier).
     gene_id is the normalized reference gene id used to look up CDS segments.
+
+    The reference column value can be a composite like
+    ``PVPAM_140051100|PVW1_140049400,PVP01_1443100`` where the actual
+    reference-strain gene is NOT the first token but an alias (the merged
+    annotations and ref GFF are keyed by the reference gene id). When
+    ``ref_genes`` (the set of gene ids present in the reference GFF) is given,
+    we pick the candidate that is an actual reference gene; otherwise we fall
+    back to the first candidate.
     """
     ogs: list[tuple[str, str]] = []
     with open(ortho_path) as fh:
@@ -192,13 +201,17 @@ def load_ortho_table(ortho_path, all_strains, min_intact, ref_strain):
                      or row.get('og')
                      or row.get('OG')
                      or f'OG{i + 1:06d}')
-            # ref_val may be 'gene_id' or 'gene_id|alias', comma-separated.
+            # ref_val may list several gene ids separated by ',' and '|'
+            # (primary|alias,alias). Gather all candidates, then prefer the one
+            # that is an actual reference-GFF gene.
+            cands = [normalize_gene_id(t.strip())
+                     for t in re.split(r'[,|]', ref_val) if t.strip()]
+            cands = [c for c in cands if c]
             gene_id = ''
-            for gid in ref_val.split(','):
-                cand = normalize_gene_id(gid.split('|')[0].strip())
-                if cand:
-                    gene_id = cand
-                    break
+            if ref_genes is not None:
+                gene_id = next((c for c in cands if c in ref_genes), '')
+            if not gene_id and cands:
+                gene_id = cands[0]
             if gene_id:
                 ogs.append((og_id, gene_id))
     return ogs
@@ -245,8 +258,13 @@ def main() -> int:
     outdir = Path(args.out_dir)
     outdir.mkdir(parents=True, exist_ok=True)
 
+    # 0) Reference GFF gene ids (used to disambiguate composite ref-column
+    #    values where the reference gene is an alias, not the first token).
+    ref_all_genes = set(parse_gff_cds(args.ref_gff).keys())
+
     # 1) Orthogroups passing the min-intact filter -> (og_id, ref_gene_id)
-    ogs = load_ortho_table(args.ortho, all_strains, args.min_intact, args.ref)
+    ogs = load_ortho_table(args.ortho, all_strains, args.min_intact, args.ref,
+                           ref_genes=ref_all_genes)
     target_genes = {g for _, g in ogs}
     logging.info('%d orthogroups intact in >= %d strains (%d distinct ref genes)',
                  len(ogs), args.min_intact, len(target_genes))
