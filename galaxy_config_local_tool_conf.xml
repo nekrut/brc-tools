@@ -47,9 +47,6 @@
     <tool file="toga2/toga2.xml"/>
   </section>
   <section id="pangenome_collections" name="Pangenome :: Collection helpers">
-    <tool file="__pair_strains__/pair_strains.xml"/>
-    <tool file="__pair_sizes__/pair_sizes.xml"/>
-    <tool file="__cross_product__/cross_product.xml"/>
   </section>
   <section id="pangenome_phylo" name="Pangenome :: Phylogenetics">
     <tool file="iqtree3/iqtree3.xml"/>

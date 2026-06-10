@@ -44,7 +44,7 @@ via biocontainers; all 11 workflows compose end-to-end in Galaxy 26.1.**
 | --- | --- |
 | **A** inventory | `sourmash_sketch`, `sourmash_compare` *(no IUC wrapper exists)* |
 | **B** softmask | `longdust`, `sdust` |
-| **C** align/chain/project | `__pair_strains__`, `chainStitchId`, `anchor_prep`, `phase_c2_triage`, `phase_c4_merge`, `toga2` (TOGA2 v2.0.8) |
+| **C** align/chain/project | `chainStitchId`, `anchor_prep`, `phase_c2_triage`, `phase_c4_merge`, `toga2` (TOGA2 v2.0.8) |
 | **E** consensus | `gene_bed`, `phase_e_rbest_overlap`, `phase_e_graph_edges`, `phase_e_consensus` |
 | **F** MSA | `group_cds_by_og` |
 | **G** trees | `iqtree3` |
@@ -69,7 +69,7 @@ chains are proven to compose end-to-end in Galaxy:
 | --- | --- | --- |
 | [`inventory`](workflows/inventory) | A | sourmash path e2e-green |
 | [`softmask`](workflows/softmask) | B | **full e2e-green** (real data) |
-| [`align_chain_project`](workflows/align_chain_project) | C | composes; full run is GPU-gated (KegAlign) |
+| [`align_chain_project`](workflows/align_chain_project) | C | **one-click** via native collection-op built-ins (cross-product/filter/relabel); bit-identical to per-pair driving |
 | [`pggb-pangenome-build`](workflows/pggb-pangenome-build) | D | the original PGGB build workflow |
 | [`consensus`](workflows/consensus) | E | e2e-green |
 | [`msa`](workflows/msa) | F | e2e-green |
