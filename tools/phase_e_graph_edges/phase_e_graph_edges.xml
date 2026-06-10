@@ -12,7 +12,7 @@
 mkdir -p stage &&
 ## The bundled script globs BED files by filename and uses each file's stem as
 ## the strain name. Stage every collection element as <element_identifier>.bed
-## so the stem == strain. Mirror the pansn_rename / pair_strains pattern.
+## so the stem == strain (the standard per-element identifier staging pattern).
 #for $el in $annotations
 ln -s '$el' 'stage/${el.element_identifier}.bed' &&
 #end for

@@ -258,9 +258,11 @@ def main() -> int:
     outdir = Path(args.out_dir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    # 0) Reference GFF gene ids (used to disambiguate composite ref-column
-    #    values where the reference gene is an alias, not the first token).
-    ref_all_genes = set(parse_gff_cds(args.ref_gff).keys())
+    # 0) Reference GFF CDS map (parsed once, unfiltered): its keys are used to
+    #    disambiguate composite ref-column values where the reference gene is an
+    #    alias, not the first token, and the map itself serves as ref_cds_map.
+    ref_cds_map = parse_gff_cds(args.ref_gff)
+    ref_all_genes = set(ref_cds_map)
 
     # 1) Orthogroups passing the min-intact filter -> (og_id, ref_gene_id)
     ogs = load_ortho_table(args.ortho, all_strains, args.min_intact, args.ref,
@@ -269,8 +271,7 @@ def main() -> int:
     logging.info('%d orthogroups intact in >= %d strains (%d distinct ref genes)',
                  len(ogs), args.min_intact, len(target_genes))
 
-    # 2) Reference GFF + FASTA
-    ref_cds_map = parse_gff_cds(args.ref_gff, target_genes)
+    # 2) Reference FASTA
     ref_fa = Fasta(args.ref_fasta)
 
     # 3) Per-query GFF + FASTA

@@ -36,6 +36,14 @@ chainSwap-for-B→A step). The reciprocal-best branch (swap → sort → chainNe
 swapped sizes → subset → stitch → swap → sort) yields the rbest chains.
 `relabel_from_file` rewrites both to `A.B`.
 
+> **Note — `rbest_chains` emits 20 directed, not 10 unordered.** Because the
+> cross product yields both `A.B` and `B.A`, the (symmetric) reciprocal-best
+> chain is computed for each direction, so the output has 20 elements vs the
+> ground truth's 10 unordered pairs. This is harmless downstream — Phase E
+> `rbest_overlap` keys on the `{a}.{b}` stem and the union-find dedupes the
+> redundant direction — but if exact GT parity is wanted, add a
+> `__FILTER_FROM_FILE__` reducing the rbest branch to an `A<B` id set.
+
 ### Projection block (C.4, Liftoff-only)
 
 `cross_product_flat(anchor_assemblies[3], assemblies[5])` builds the 15-cell
