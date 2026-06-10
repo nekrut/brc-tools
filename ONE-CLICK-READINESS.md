@@ -1,5 +1,18 @@
 # One-click readiness — per-workflow map-over status
 
+> **UPDATE 2026-06-09 — WF-C is now genuinely one-click.** The three residual
+> WF-C gaps below ("paired-slot → two-input binding", "rbest relabel",
+> "anchor-vs-cell") are **resolved using Galaxy's native collection-operation
+> built-ins**, not the custom helpers:
+> `__CROSS_PRODUCT_FLAT__` emits two aligned target/query lists (the slot binding,
+> so `__UNZIP_COLLECTION__` is unnecessary), `__FILTER_FROM_FILE__` drops
+> self/diagonal pairs, `__RELABEL_FROM_FILE__` rewrites `A_B`→`A.B`. The whole of
+> Phase C (20 cleaned + rbest chains + 12 projections) now runs in a **single
+> `planemo run`**, proven **bit-identical** to the per-pair driving. The custom
+> helpers (`__pair_strains__`, `__pair_sizes__`, `__cross_product__`) have been
+> **removed**. The pre-existing analysis below is kept for the rationale of the
+> *other* workflows; treat the WF-C verdict as superseded.
+
 **Date:** 2026-06-07
 **Galaxy:** 26.1.rc1 @ http://localhost:8080
 **Scope:** Which of the 11 gxformat2 workflows now run **one-click** (a single
