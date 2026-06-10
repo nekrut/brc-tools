@@ -76,8 +76,8 @@ chains are proven to compose end-to-end in Galaxy:
 | [`trees`](workflows/trees) | G | e2e-green |
 | [`selection`](workflows/selection) | H | e2e-green |
 | [`multiz`](workflows/multiz) | I | e2e-green |
-| [`vcf_projection`](workflows/vcf_projection) | J | e2e-green |
-| [`ucsc_hub`](workflows/ucsc_hub) | K | e2e-green |
+| [`vcf_projection`](workflows/vcf_projection) | J | **one-click** (versioned tool_ids); real-data: synthetic cohort projected onto 4 targets |
+| [`ucsc_hub`](workflows/ucsc_hub) | K | tracks build green on real data; hub assembled out-of-band → **hubCheck clean** |
 
 Complex map-over steps (per-pair sizes, anchor×query cross-product, per-hinge
 scalars, per-assembly hub fanout) hit gxformat2 declarative limits — see each

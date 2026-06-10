@@ -23,8 +23,12 @@ resumable; outputs double as comparison artifacts.
 | G trees | treefiles | **489** | 275 | Galaxy ran the full set; GT strict built only 275 |
 | H selection | busted.json | **489** | 275 | Galaxy ran the full set |
 | I multiz | per-ref MAFs | 5 | 5 | block counts 86–93% of GT |
-| J vcf_projection | projected VCFs | **BLOCKED** | **BLOCKED** | no cohort VCF (MalariaGEN absent) — same in both |
-| K ucsc_hub | track hub | inputs ready | — | hub-tree assembly = documented out-of-band staging step |
+| J vcf_projection | projected VCFs | **4 targets** | BLOCKED in GT | GT had no cohort VCF; here a synthetic 360-var PvP01 cohort → 247/245/342/350 projected |
+| K ucsc_hub | track hub + hubCheck | **hubCheck clean** | — | tracks built green; hub tree assembled out-of-band; hubCheck exit 0, 0 warn |
+
+> **Follow-on (2026-06-10):** the relaxed MSA set + J + K were completed after the
+> initial run — see `execution/jk_relaxed_status.md`. Relaxed (min_intact=3):
+> 776 OGs → 773 trees + 773 BUSTED (GT 810/514). J + K details above.
 
 Concordance is excellent everywhere; all deltas trace to either (a) GPU-aligner
 run-to-run variance propagating downstream, or (b) GT building a partial G/H set.
@@ -43,8 +47,10 @@ Galaxy is *more* complete on G/H (full 489 vs GT's 275).
 - Galaxy `dependencies` / `objects` / `tmp` / `jobs_directory` **symlinked to the fast disk** (conda envs + dataset objects were filling `/`).
 - `docker_auto_rm=true` in `job_conf.xml` — job containers auto-delete (was accumulating tens of GB on `/var/lib/docker`).
 
-## Outstanding
+## Outstanding — all cleared 2026-06-10 (see `jk_relaxed_status.md`)
 
-- **J**: needs a cohort VCF (synthesize or MalariaGEN) — blocked in GT too.
-- **K**: all track inputs now exist (5 multiz MAFs, 20 chains, 12 annotations, ortholog_table, 489 BUSTED, assemblies); hub directory-tree + trackDb assembly is the out-of-band staging step per `ONE-CLICK-READINESS.md`.
-- Relaxed MSA set (min_intact=3) not yet run (GT: 810 codon / 514 trees).
+- ~~**J**: needs a cohort VCF~~ → **done** with a synthetic 360-variant PvP01 cohort; projected onto 4 targets.
+- ~~**K**: hub-tree assembly out-of-band~~ → **done**; assembled (`execution/assemble_hub.py`), hubCheck exit 0 / 0 warnings.
+- ~~Relaxed MSA set (min_intact=3)~~ → **done**: 776 OGs → 773 trees + 773 BUSTED.
+
+Nothing outstanding from the A→K scope. (A real-MalariaGEN cohort for J and a public-accession/GCA-space hub for K remain as future production refinements.)

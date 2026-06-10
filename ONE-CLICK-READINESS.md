@@ -118,6 +118,9 @@ new helper:
   collection-construction discipline, not a tool gap; no helper closes it
   (the chains/fastas already exist as upstream lists). **Verdict: one-click given
   identifier-aligned inputs.**
+  > **UPDATE 2026-06-10 — proven one-click on real data.** Synthetic 360-variant
+  > PvP01 cohort projected onto 4 targets (247/245/342/350). One real fix: the
+  > step `tool_id`s were **bare** and broke invocation scheduling — now versioned.
 
 - **WF-K `ucsc_hub`** — **`cross_product` does NOT fully solve it, and I did not
   force it in.** WF-K's two structural gaps are genuinely fundamental:
@@ -136,6 +139,14 @@ new helper:
   assembly + per-assembly trackDb is materialized by an out-of-band staging step
   (API staging at IWC packaging), as it was before — confirmed in
   `execution/wfk_e2e_status.md`.**
+  > **UPDATE 2026-06-10 — done on real data.** All tracks built green on the Pv4
+  > panel (PvP01-reference hub: bigMaf, 4 bigChain+bigLink, annotation, strict +
+  > relaxed BUSTED selection, orthogroup, 5 2bits, genomes.txt). The hub tree was
+  > assembled out-of-band (`execution/assemble_hub.py`) and **`hubCheck` returns
+  > exit 0, zero errors / zero warnings** (5 genomes, PvP01 = 9 tracks). Confirms
+  > the "science tracks one-click, hub tree out-of-band" verdict. Two input/
+  > packaging requirements documented in `workflows/ucsc_hub/README.md` (multiz
+  > must be `species.chrom` + space-separated; hub.txt/trackDb is out-of-band).
 
 ---
 

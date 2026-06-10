@@ -50,7 +50,7 @@ inputs:
 
 steps:
   rename_chroms:
-    tool_id: bcftools_annotate
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bcftools_annotate/bcftools_annotate/1.22+galaxy0
     doc: >
       Rename cohort VCF CHROM from _v1 names to GenBank accessions. Run once over
       the whole cohort. IUC bcftools_annotate. --rename-chrs lives in the
@@ -64,7 +64,7 @@ steps:
       - output_file
 
   crossmap_project:
-    tool_id: crossmap_vcf
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/crossmap_vcf/crossmap_vcf/0.7.3+galaxy0
     doc: >
       Lift the renamed cohort VCF onto each target assembly. Map-over target:
       one job per (cleaned_chain, target_fasta) pair. IUC crossmap_vcf - inputs
@@ -82,7 +82,7 @@ steps:
       - output
 
   sort_vcf:
-    tool_id: bcftools_sort
+    tool_id: toolshed.g2.bx.psu.edu/repos/greg/bcftools_sort/bcftools_sort/1.4.0
     doc: >
       CrossMap emits unsorted VCF; sort and bgzip/index each projected VCF so
       concat can merge them. Maps over the CrossMap output collection.
@@ -99,7 +99,7 @@ steps:
       - output_file
 
   concat_vcfs:
-    tool_id: bcftools_concat
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bcftools_concat/bcftools_concat/1.22+galaxy0
     doc: >
       Merge the per-target sorted VCFs with --allow-overlaps. The sort_vcf output
       collection reduces into the input_files multi-data param. IUC
