@@ -6,6 +6,19 @@ Path B is cut per Decision 6). **NO new wrappers — every step is an IUC tool.*
 
 File: `vcf_projection.gxwf.yml` (gxformat2, `class: GalaxyWorkflow`).
 
+## Status — proven on real data (2026-06-10)
+
+Runs **one-click** on the Pv4 panel. With no MalariaGEN cohort available (GT
+skips Phase J entirely), a synthetic 360-variant PvP01 cohort VCF was projected
+onto the four targets: **PvW1 247, PAM 245, PvT01 342, MHC087 350** of 360 — the
+mapping rate tracks alignment divergence (closer strains carry more).
+
+> **Fix (this commit):** the step `tool_id`s were **bare** (`bcftools_annotate`,
+> `crossmap_vcf`, `bcftools_sort`, `bcftools_concat`). These pass `planemo
+> workflow_lint` but the **invocation fails to schedule** (planemo crashes in
+> `structured_data` with no invocation created). They are now full versioned
+> toolshed ids, which schedules cleanly.
+
 ## Inputs
 
 | input | type | doc |

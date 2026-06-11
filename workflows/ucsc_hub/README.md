@@ -6,6 +6,26 @@ one manual UCSC-browser load (Decision 15).
 
 File: `ucsc_hub.gxwf.yml` (gxformat2, `class: GalaxyWorkflow`).
 
+## Status — proven on real data (2026-06-10)
+
+All track artifacts build green on the Pv4 panel (PvP01-reference hub): bigMaf,
+4×(bigChain+bigLink), annotation, strict + relaxed BUSTED selection, orthogroup,
+5 2bits, genomes.txt. The assembled hub passes **`hubCheck` with exit 0, zero
+errors, zero warnings** (5 genomes; PvP01 carries 9 tracks). Two operational
+requirements surfaced — neither is a workflow bug, both are input/packaging steps:
+
+1. **Multiz s-lines must be `species.chrom`-named AND single-space-separated**
+   before `process_maf` / `maf_to_bigmaf_bed`. WF-I emits bare-contig, tab-
+   separated MAF; if left tab-separated, `bedToBigBed -tab` splits the packed
+   bigMaf field (sees 14 cols vs `bed3+1`). Rename to `{species}.{chrom}` and
+   normalize whitespace to single spaces first.
+2. **`hub.txt` + per-genome `trackDb.txt` assembly is out-of-band.** The workflow
+   emits the *tracks* + `genomes.txt`, not `hub.txt`/`trackDb`, so the in-Galaxy
+   `hub_check` step always fails ("Couldn't open hub.txt"). Assemble the hub
+   directory tree (hub.txt, genomes.txt, `{genome}/{2bit,trackDb.txt,groups.txt,
+   description.html}`, PvP01 track stanzas) outside Galaxy, then run `hubCheck`
+   on that tree. A reference assembler is `execution/assemble_hub.py`.
+
 ## Inputs
 
 | input | type | doc |
