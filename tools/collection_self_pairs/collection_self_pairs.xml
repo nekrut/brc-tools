@@ -1,0 +1,24 @@
+<tool id="collection_self_pairs" name="Collection self-pairs" version="1.0+galaxy0" profile="23.0">
+    <description>one {id}_{id} per element identifier (self-cross diagonal to exclude)</description>
+    <requirements>
+        <requirement type="package" version="3.12">python</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python '$__tool_directory__/self_pairs.py'
+    --ids '#echo " ".join([str($el.element_identifier) for $el in $input])#'
+    --out '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data_collection" collection_type="list"
+               label="List collection"
+               help="The {id}_{id} self-pairs are derived from this collection's element identifiers."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}: self-pairs"/>
+    </outputs>
+    <help><![CDATA[
+Emits one ``{id}_{id}`` line per element identifier of the input list collection — the
+self-cross diagonal to remove with ``__FILTER_FROM_FILE__`` (remove_if_present). Run it on
+the genome collection for panel self-pairs, or on the anchor collection for anchor self-pairs.
+    ]]></help>
+</tool>

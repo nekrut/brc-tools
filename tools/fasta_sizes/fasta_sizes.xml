@@ -1,0 +1,25 @@
+<tool id="fasta_sizes" name="FASTA sizes" version="1.0+galaxy0" profile="23.0">
+    <description>per-sequence chrom&lt;TAB&gt;length (.sizes) from a FASTA</description>
+    <command detect_errors="exit_code"><![CDATA[
+#if str($input.ext) == 'fasta.gz'
+    gunzip -c '$input'
+#else
+    cat '$input'
+#end if
+| awk '/^>/{if(c!="")print c"\t"n; c=substr(\$1,2); n=0; next}{n+=length(\$0)}END{if(c!="")print c"\t"n}'
+> '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="FASTA"
+               help="Map over a list collection to produce a per-strain .sizes collection."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name} on ${on_string}: sizes"/>
+    </outputs>
+    <help><![CDATA[
+Emits a 2-column ``chrom<TAB>length`` table (UCSC ``.sizes``) from a FASTA — the sizes
+that chain/net (axtChain, chainPreNet, chainNet, netChainSubset) and multiz require.
+Length is computed directly (mask-invariant), no index needed. Map over a FASTA list
+collection to get a per-strain ``sizes`` collection.
+    ]]></help>
+</tool>
