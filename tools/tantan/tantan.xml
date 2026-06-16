@@ -1,0 +1,32 @@
+<tool id="tantan" name="tantan" version="51+galaxy0" profile="23.0">
+    <description>tantan gentle low-complexity intervals as content-annotated BED6</description>
+    <requirements>
+        <requirement type="package" version="51">tantan</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+set -o pipefail &&
+#if str($input.ext) == 'fasta.gz'
+    gunzip -c '$input'
+#else
+    cat '$input'
+#end if
+| awk '/^>/{print;next}{print toupper(\$0)}' > in.fa &&
+tantan in.fa
+| awk -f '$__tool_directory__/lc2bed.awk'
+| python3 '$__tool_directory__/lc_classify.py' in.fa -
+| LC_ALL=C sort -k1,1 -k2,2n > '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="Assembly FASTA"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed" label="${tool.name} on ${on_string}: low-complexity (BED6)"/>
+    </outputs>
+    <help><![CDATA[
+**tantan** (Martin Frith) — probabilistic "gentle" low-complexity masking, well suited
+to AT-rich genomes. Emitted as **BED6** with per-interval content: name = repeat-unit
+signature, score = purity x1000, strand = ``.``. Input is upper-cased first so masking
+is computed de novo.
+    ]]></help>
+    <citations><citation type="doi">10.1093/nar/gk010</citation></citations>
+</tool>

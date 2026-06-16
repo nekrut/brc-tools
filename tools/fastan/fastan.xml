@@ -1,0 +1,41 @@
+<tool id="fastan" name="fastan" version="0.8+galaxy0" profile="23.0">
+    <description>FASTAN tandem-repeat arrays as content-annotated BED6</description>
+    <!--
+      NOTE: bioconda fastan 0.5 does not implement masking (-m); the .1ano tandem
+      annotation requires the 0.8 line, and FASTGA's ANOtoBED converter is not in the
+      fastga 1.5 conda package yet. Until bioconda ships fastan 0.8 + ANOtoBED
+      (see bioconda-recipes PR #66389) this wrapper calls locally-built binaries
+      under /data/galaxy_local/bin (NFS-shared, node-readable). Flip to conda
+      requirements once those land.
+    -->
+    <requirements/>
+    <command detect_errors="exit_code"><![CDATA[
+set -o pipefail &&
+#if str($input.ext) == 'fasta.gz'
+    gunzip -c '$input'
+#else
+    cat '$input'
+#end if
+| awk '/^>/{print;next}{print toupper(\$0)}' > in.fa &&
+/data/galaxy_local/bin/FAtoGDB in.fa gdb || true ;
+/data/galaxy_local/bin/FasTAN -m -p -T\${GALAXY_SLOTS:-4} gdb &&
+/data/galaxy_local/bin/ANOtoBED gdb.1ano
+| grep -v '^#'
+| awk -f '$__tool_directory__/ano2bed6.awk'
+| LC_ALL=C sort -k1,1 -k2,2n > '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="Assembly FASTA"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed" label="${tool.name} on ${on_string}: tandem arrays (BED6)"/>
+    </outputs>
+    <help><![CDATA[
+**FASTAN** (Gene Myers) — tandem-array finder. Detects tandem repeats and partitions
+them into units. Emitted as **BED6**: name = ``u<unit_size>`` (tandem unit length),
+score = unit identity (0-1000 grayscale), strand = real orientation. Complementary to
+the DUST/low-complexity tracks. Pipeline: ``FAtoGDB`` -> ``FasTAN -m -p`` (.1ano) ->
+``ANOtoBED``. Input is upper-cased first.
+    ]]></help>
+    <citations><citation type="doi">10.1101/2023.04.01.535214</citation></citations>
+</tool>

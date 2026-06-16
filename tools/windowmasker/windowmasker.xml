@@ -1,0 +1,34 @@
+<tool id="windowmasker" name="windowmasker" version="2.17.0+galaxy0" profile="23.0">
+    <description>NCBI WindowMasker genome-frequency repeat/low-complexity intervals as content-annotated BED6</description>
+    <requirements>
+        <requirement type="package" version="2.17.0">blast</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+set -o pipefail &&
+#if str($input.ext) == 'fasta.gz'
+    gunzip -c '$input'
+#else
+    cat '$input'
+#end if
+| awk '/^>/{print;next}{print toupper(\$0)}' > in.fa &&
+windowmasker -mk_counts -in in.fa -out counts &&
+windowmasker -ustat counts -in in.fa -outfmt interval
+| awk -f '$__tool_directory__/interval2bed.awk'
+| python3 '$__tool_directory__/lc_classify.py' in.fa -
+| LC_ALL=C sort -k1,1 -k2,2n > '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="fasta,fasta.gz" label="Assembly FASTA"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bed" label="${tool.name} on ${on_string}: masked intervals (BED6)"/>
+    </outputs>
+    <help><![CDATA[
+**WindowMasker** (NCBI BLAST+) learns over-represented k-mers from the genome itself
+(no repeat library needed — well suited to Plasmodium) and masks repeats/low-complexity.
+Two-pass (``-mk_counts`` then ``-ustat``). Emitted as **BED6** with per-interval content:
+name = repeat-unit signature, score = purity x1000, strand = ``.``. Input is upper-cased
+first so masking is computed de novo.
+    ]]></help>
+    <citations><citation type="doi">10.1093/bioinformatics/bti774</citation></citations>
+</tool>

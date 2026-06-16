@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""lc_classify.py <fasta> <bed3|-> -> BED6
+
+For each low-complexity interval, classify what it is made of so the 4th column
+carries real content instead of the (redundant) tool name:
+
+  name   = repeat-unit signature: 'polyA'/'polyT'/... (period 1),
+           '(AT)n'/'(AAT)n'/... (short tandem, period 2-6), or 'lc' (complex)
+  score  = purity * 1000 (fraction of bases matching the best periodic consensus;
+           drives UCSC grayscale), clamped 0-1000
+  strand = '.'
+
+Smallest period that explains the interval well is preferred.
+"""
+import sys
+
+def load_fasta(path):
+    seq = {}; name = None; buf = []
+    with open(path) as fh:
+        for line in fh:
+            if line.startswith(">"):
+                if name is not None: seq[name] = "".join(buf).upper()
+                name = line[1:].split()[0]; buf = []
+            else:
+                buf.append(line.strip())
+    if name is not None: seq[name] = "".join(buf).upper()
+    return seq
+
+def classify(s):
+    L = len(s)
+    if L == 0: return "lc", 0
+    best_frac = 0.0; best_unit = ""; best_p = 0
+    for p in range(1, 7):
+        if p > L: break
+        cols = [{} for _ in range(p)]
+        for i, ch in enumerate(s):
+            cols[i % p][ch] = cols[i % p].get(ch, 0) + 1
+        match = 0; unit = ""
+        for j in range(p):
+            b = max(cols[j], key=cols[j].get); unit += b; match += cols[j][b]
+        frac = match / L
+        if frac > best_frac + 1e-9:
+            best_frac, best_unit, best_p = frac, unit, p
+        if frac >= 0.85:   # smallest period that explains it well -> stop
+            best_frac, best_unit, best_p = frac, unit, p
+            break
+    sc = int(round(best_frac * 1000))
+    if best_frac < 0.60: return "lc", sc
+    if best_p == 1:      return "poly" + best_unit, sc
+    return "(" + best_unit + ")n", sc
+
+def main():
+    seq = load_fasta(sys.argv[1])
+    src = sys.stdin if (len(sys.argv) < 3 or sys.argv[2] == "-") else open(sys.argv[2])
+    out = sys.stdout
+    for line in src:
+        f = line.rstrip("\n").split("\t")
+        if len(f) < 3: continue
+        c = f[0]; a = int(f[1]); b = int(f[2])
+        nm, sc = classify(seq.get(c, "")[a:b])
+        out.write("%s\t%d\t%d\t%s\t%d\t.\n" % (c, a, b, nm, sc))
+
+if __name__ == "__main__":
+    main()
