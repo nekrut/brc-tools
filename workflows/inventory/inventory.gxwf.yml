@@ -121,7 +121,9 @@ steps:
       One QC report: BUSCO completeness (busco module) + the sourmash clustered
       heatmap & dendrogram embedded via the image_content plugin. (The native
       MultiQC sourmash module exists in core 1.35 but is not yet exposed by the
-      IUC wrapper — see the tools-iuc sourmash_plugin PR.)
+      IUC wrapper — see tools-iuc PR galaxyproject/tools-iuc#8112, which adds it;
+      once merged, this step can switch the sourmash inputs to the native
+      `sourmash` software module instead of image_content.)
     in:
       results_0|software_cond|input: busco/busco_sum
       results_1|software_cond|image_content_input:
