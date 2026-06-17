@@ -208,7 +208,7 @@ steps:
     in:
       input: collapse_dust/output
     state:
-      cond: "c2=='genome' and c3=='1'"
+      cond: "c2=='genome' and c3==1"
       header_lines: 0
   cut_dust:
     tool_id: Cut1
@@ -254,7 +254,7 @@ steps:
     in:
       input: collapse_window/output
     state:
-      cond: "c2=='genome' and c3=='1'"
+      cond: "c2=='genome' and c3==1"
       header_lines: 0
   cut_window:
     tool_id: Cut1
@@ -299,7 +299,7 @@ steps:
     in:
       input: collapse_tantan/output
     state:
-      cond: "c2=='genome' and c3=='1'"
+      cond: "c2=='genome' and c3==1"
       header_lines: 0
   cut_tantan:
     tool_id: Cut1
@@ -344,7 +344,7 @@ steps:
     in:
       input: collapse_fastan/output
     state:
-      cond: "c2=='genome' and c3=='1'"
+      cond: "c2=='genome' and c3==1"
       header_lines: 0
   cut_fastan:
     tool_id: Cut1
@@ -389,7 +389,7 @@ steps:
     in:
       input: collapse_union/output
     state:
-      cond: "c2=='genome' and c3=='1'"
+      cond: "c2=='genome' and c3==1"
       header_lines: 0
   cut_union:
     tool_id: Cut1
