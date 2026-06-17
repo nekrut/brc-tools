@@ -15,8 +15,12 @@ ln -s '$sig' 'stage/${sig.element_identifier}.sig' &&
 #end for
 sourmash compare
     --ksize $ksize
+    -o cmp
     --csv '$output'
     stage/*.sig
+&&
+## clustered heatmap + dendrogram (scipy hierarchical clustering; matplotlib in the env)
+sourmash plot --labels cmp
     ]]></command>
     <inputs>
         <param name="signatures" type="data_collection" collection_type="list" format="json,txt"
@@ -28,11 +32,15 @@ sourmash compare
     </inputs>
     <outputs>
         <data name="output" format="csv" label="${tool.name} on ${on_string}: similarity matrix (CSV)"/>
+        <data name="matrix" format="data" from_work_dir="cmp" label="${tool.name} on ${on_string}: similarity matrix (binary)"/>
+        <data name="labels" format="txt" from_work_dir="cmp.labels.txt" label="${tool.name} on ${on_string}: matrix labels"/>
+        <data name="heatmap" format="png" from_work_dir="cmp.matrix.png" label="${tool.name} on ${on_string}: clustered heatmap (PNG)"/>
+        <data name="dendrogram" format="png" from_work_dir="cmp.dendro.png" label="${tool.name} on ${on_string}: dendrogram (PNG)"/>
     </outputs>
     <tests>
         <!-- Three tiny signatures (k=21) compared into an N×N matrix.
              Header carries the strain labels; the diagonal is 1.0. -->
-        <test expect_num_outputs="1">
+        <test expect_num_outputs="5">
             <param name="signatures">
                 <collection type="list">
                     <element name="strainA" value="strainA.sig" ftype="json"/>
@@ -50,7 +58,7 @@ sourmash compare
             </output>
         </test>
         <!-- Two signatures: 2×2 matrix, self-similarity 1.0 on the diagonal. -->
-        <test expect_num_outputs="1">
+        <test expect_num_outputs="5">
             <param name="signatures">
                 <collection type="list">
                     <element name="strainA" value="strainA.sig" ftype="json"/>
