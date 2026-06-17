@@ -1,0 +1,168 @@
+class: GalaxyWorkflow
+label: WF-C2 project_annotations (Liftoff projection, native collection ops)
+license: MIT
+creator:
+- class: Person
+  identifier: https://orcid.org/0000-0002-5987-8032
+  name: Anton Nekrutenko
+- class: Person
+  name: Claude Opus 4.8
+release: '0.3'
+doc: >-
+  Phase C, gene-projection half (split out of the former combined
+  align_chain_project; the chaining half is now WF-C align_chain). Projects each
+  anchor's gene annotation onto every query genome. CROSS_PRODUCT_FLAT builds the
+  anchor x query grid as aligned lists, FILTER_FROM_FILE drops the anchor self
+  cells (A_A, generated internally from the anchor element identifiers), then
+  Liftoff -> triage -> merge map over the grid (Liftoff-only; TOGA2 off). Proven
+  bit-identical to per-pair driving on the Pv4 test panel.
+inputs:
+  anchor_assemblies:
+    type: collection
+    collection_type: list
+    doc: anchor unmasked FASTAs (Liftoff reference), id=anchor
+  anchor_gene_gff3s:
+    type: collection
+    collection_type: list
+    doc: anchor gene.gff3 (Liftoff annotation), id=anchor
+  anchor_bed12s:
+    type: collection
+    collection_type: list
+    doc: anchor BED12 (triage/merge ref-bed), id=anchor
+  assemblies:
+    type: collection
+    collection_type: list
+    doc: query unmasked FASTAs (Liftoff target = query), id=strain
+  query_masked:
+    type: collection
+    collection_type: list
+    doc: query softmasked FASTAs (triage query-fasta; WF-B), id=strain
+steps:
+  # anchor self-cells (A_A) to exclude from the projection grid — generated
+  # internally from the anchor_assemblies element identifiers (no input file).
+  gen_anchor_self_pairs:
+    tool_id: collection_self_pairs
+    label: gen_anchor_self_pairs
+    in:
+      input: anchor_assemblies
+  p_grid_fa:
+    tool_id: __CROSS_PRODUCT_FLAT__
+    in:
+      input_a: anchor_assemblies
+      input_b: assemblies
+    out:
+      output_a: {}
+      output_b: {}
+  p_grid_gff:
+    tool_id: __CROSS_PRODUCT_FLAT__
+    in:
+      input_a: anchor_gene_gff3s
+      input_b: assemblies
+    out:
+      output_a: {}
+      output_b: {}
+  p_grid_bed:
+    tool_id: __CROSS_PRODUCT_FLAT__
+    in:
+      input_a: anchor_bed12s
+      input_b: query_masked
+    out:
+      output_a: {}
+      output_b: {}
+  p_anc_fa:
+    tool_id: __FILTER_FROM_FILE__
+    in:
+      input: p_grid_fa/output_a
+      how|filter_source: gen_anchor_self_pairs/output
+    state:
+      how:
+        how_filter: remove_if_present
+    out:
+      output_filtered: {}
+  p_qry_fa:
+    tool_id: __FILTER_FROM_FILE__
+    in:
+      input: p_grid_fa/output_b
+      how|filter_source: gen_anchor_self_pairs/output
+    state:
+      how:
+        how_filter: remove_if_present
+    out:
+      output_filtered: {}
+  p_anc_gff:
+    tool_id: __FILTER_FROM_FILE__
+    in:
+      input: p_grid_gff/output_a
+      how|filter_source: gen_anchor_self_pairs/output
+    state:
+      how:
+        how_filter: remove_if_present
+    out:
+      output_filtered: {}
+  p_anc_bed:
+    tool_id: __FILTER_FROM_FILE__
+    in:
+      input: p_grid_bed/output_a
+      how|filter_source: gen_anchor_self_pairs/output
+    state:
+      how:
+        how_filter: remove_if_present
+    out:
+      output_filtered: {}
+  p_qry_masked:
+    tool_id: __FILTER_FROM_FILE__
+    in:
+      input: p_grid_bed/output_b
+      how|filter_source: gen_anchor_self_pairs/output
+    state:
+      how:
+        how_filter: remove_if_present
+    out:
+      output_filtered: {}
+  p_liftoff:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/liftoff/liftoff/1.6.3+galaxy0
+    in:
+      target_fasta: p_qry_fa/output_filtered
+      reference_fasta: p_anc_fa/output_filtered
+      annotation: p_anc_gff/output_filtered
+    state:
+      chromosome_mapping:
+        copy_detection:
+          find_copies: true
+          copy_min_identity: 0.95
+    out:
+      liftoff_gff: {}
+  p_triage:
+    tool_id: phase_c2_triage
+    in:
+      liftoff_gff: p_liftoff/liftoff_gff
+      query_fasta: p_qry_masked/output_filtered
+      reference_bed: p_anc_bed/output_filtered
+    state:
+      query_name: query
+      core_identity_min: 0.95
+      core_coverage_min: 0.9
+      family_identity_min: 0.85
+      subtelomere_bp: 100000
+    out:
+      triage_tsv: {}
+      needs_cesar2_bed: {}
+      liftoff_clean_gff3: {}
+      summary_json: {}
+  p_merge:
+    tool_id: phase_c4_merge
+    in:
+      liftoff_clean: p_triage/liftoff_clean_gff3
+      ref_bed: p_anc_bed/output_filtered
+    state:
+      query: query
+      toga:
+        use_toga: 'no'
+    out:
+      annotation_gff3: {}
+      classification_tsv: {}
+outputs:
+  merged_annotations:
+    outputSource: p_merge/annotation_gff3
+  classifications:
+    outputSource: p_merge/classification_tsv
