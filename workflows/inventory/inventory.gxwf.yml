@@ -126,15 +126,17 @@ steps:
       `sourmash` software module instead of image_content.)
     in:
       results_0|software_cond|input: busco/busco_sum
-      results_1|software_cond|image_content_input:
+      # image_content_input is a TOP-LEVEL multiqc param (not a software_cond
+      # 'when'); the IUC 1.35+galaxy1 wrapper has no 'image_content' software
+      # option. Connecting it under results_1|software_cond|... yields a broken,
+      # unresolvable connection in the editor.
+      image_content_input:
         - sourmash_compare/heatmap
         - sourmash_compare/dendrogram
     state:
       results:
         - software_cond:
             software: busco
-        - software_cond:
-            software: image_content
 
   # --- panel prep: reusable artifacts derived from the assemblies (for WF-C etc.) ---
   panel_self_pairs:
