@@ -48,9 +48,9 @@ outputs:
   sourmash_dendrogram:
     outputSource: sourmash_compare/dendrogram
     doc: sourmash dendrogram (PNG).
-  busco_report:
-    outputSource: multiqc_busco/html_report
-    doc: MultiQC HTML aggregating per-strain BUSCO completeness.
+  qc_report:
+    outputSource: multiqc_report/html_report
+    doc: MultiQC HTML — per-strain BUSCO completeness + the sourmash clustered heatmap & dendrogram.
   sizes:
     outputSource: panel_sizes/out_file1
     doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; reused by C/D/I/J.
@@ -114,16 +114,25 @@ steps:
       adv:
         evalue: 0.001
 
-  multiqc_busco:
+  multiqc_report:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1
-    label: multiqc_busco
-    doc: Aggregate the per-strain BUSCO short summaries into one HTML report.
+    label: multiqc_report
+    doc: >-
+      One QC report: BUSCO completeness (busco module) + the sourmash clustered
+      heatmap & dendrogram embedded via the image_content plugin. (The native
+      MultiQC sourmash module exists in core 1.35 but is not yet exposed by the
+      IUC wrapper — see the tools-iuc sourmash_plugin PR.)
     in:
       results_0|software_cond|input: busco/busco_sum
+      results_1|software_cond|image_content_input:
+        - sourmash_compare/heatmap
+        - sourmash_compare/dendrogram
     state:
       results:
         - software_cond:
             software: busco
+        - software_cond:
+            software: image_content
 
   # --- panel prep: reusable artifacts derived from the assemblies (for WF-C etc.) ---
   panel_self_pairs:
