@@ -43,7 +43,7 @@ outputs:
     outputSource: busco/busco_sum
     doc: Per-strain BUSCO short summaries.
   sizes:
-    outputSource: panel_sizes/output
+    outputSource: panel_sizes/out_file1
     doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; reused by C/D/I/J.
   self_pairs:
     outputSource: panel_self_pairs/output
@@ -120,9 +120,19 @@ steps:
     in:
       input: assemblies
 
-  panel_sizes:
-    tool_id: fasta_sizes
-    label: panel_sizes
-    doc: Per-strain .sizes; maps over the assemblies collection (one .sizes per strain).
+  panel_faidx:
+    tool_id: samtools_faidx
+    label: panel_faidx
+    doc: Index each assembly (.fai); maps over the assemblies collection. IUC samtools.
     in:
       input: assemblies
+
+  panel_sizes:
+    tool_id: Cut1
+    label: panel_sizes
+    doc: chrom<TAB>length sizes = cut cols 1,2 of the .fai (no custom script).
+    in:
+      input: panel_faidx/output
+    state:
+      columnList: "c1,c2"
+      delimiter: "T"
