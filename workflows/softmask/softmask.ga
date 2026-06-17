@@ -37,7 +37,7 @@
       "outputs": [],
       "position": {
         "left": 0,
-        "top": 810.7505265930223
+        "top": 839.8944705810736
       },
       "tool_id": null,
       "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null, \"column_definitions\": null}",
@@ -69,7 +69,7 @@
       ],
       "position": {
         "left": 652.435068602665,
-        "top": 0.0
+        "top": 29.143943988051305
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -123,8 +123,8 @@
         }
       ],
       "position": {
-        "left": 2200,
-        "top": 620.7505265930223
+        "left": 1902.1733067001114,
+        "top": 0.0
       },
       "post_job_actions": {},
       "tool_id": "Cut1",
@@ -167,7 +167,7 @@
       ],
       "position": {
         "left": 2550,
-        "top": 200.7505265930223
+        "top": 229.89447058107362
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
@@ -216,7 +216,7 @@
       ],
       "position": {
         "left": 2550,
-        "top": 420.7505265930223
+        "top": 449.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
@@ -265,7 +265,7 @@
       ],
       "position": {
         "left": 2550,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
@@ -314,7 +314,7 @@
       ],
       "position": {
         "left": 2550,
-        "top": 860.7505265930223
+        "top": 889.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
@@ -363,7 +363,7 @@
       ],
       "position": {
         "left": 2550,
-        "top": 1080.7505265930222
+        "top": 1109.8944705810734
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
@@ -403,7 +403,7 @@
       ],
       "position": {
         "left": 2850,
-        "top": 230.7505265930223
+        "top": 259.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
@@ -443,7 +443,7 @@
       ],
       "position": {
         "left": 2850,
-        "top": 420.7505265930223
+        "top": 449.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
@@ -483,7 +483,7 @@
       ],
       "position": {
         "left": 2850,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
@@ -523,7 +523,7 @@
       ],
       "position": {
         "left": 2850,
-        "top": 810.7505265930223
+        "top": 839.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
@@ -563,7 +563,7 @@
       ],
       "position": {
         "left": 650,
-        "top": 230.7505265930223
+        "top": 259.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -618,7 +618,7 @@
       ],
       "position": {
         "left": 2850,
-        "top": 1000.7505265930223
+        "top": 1029.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
@@ -658,11 +658,11 @@
       ],
       "position": {
         "left": 3150,
-        "top": 230.7505265930223
+        "top": 259.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "Filter1",
-      "tool_state": "{\"cond\": \"c2=='genome' and c3=='1'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"cond\": \"c2=='genome' and c3==1\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.1.1",
       "type": "tool",
@@ -692,11 +692,11 @@
       ],
       "position": {
         "left": 3150,
-        "top": 420.7505265930223
+        "top": 449.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "Filter1",
-      "tool_state": "{\"cond\": \"c2=='genome' and c3=='1'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"cond\": \"c2=='genome' and c3==1\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.1.1",
       "type": "tool",
@@ -726,11 +726,11 @@
       ],
       "position": {
         "left": 3150,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "Filter1",
-      "tool_state": "{\"cond\": \"c2=='genome' and c3=='1'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"cond\": \"c2=='genome' and c3==1\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.1.1",
       "type": "tool",
@@ -760,11 +760,11 @@
       ],
       "position": {
         "left": 3150,
-        "top": 810.7505265930223
+        "top": 839.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "Filter1",
-      "tool_state": "{\"cond\": \"c2=='genome' and c3=='1'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"cond\": \"c2=='genome' and c3==1\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.1.1",
       "type": "tool",
@@ -794,11 +794,11 @@
       ],
       "position": {
         "left": 3150,
-        "top": 1000.7505265930223
+        "top": 1029.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "Filter1",
-      "tool_state": "{\"cond\": \"c2=='genome' and c3=='1'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"cond\": \"c2=='genome' and c3==1\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.1.1",
       "type": "tool",
@@ -828,7 +828,7 @@
       ],
       "position": {
         "left": 3450,
-        "top": 230.7505265930223
+        "top": 259.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionout_file1": {
@@ -870,7 +870,7 @@
       ],
       "position": {
         "left": 3450,
-        "top": 420.7505265930223
+        "top": 449.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionout_file1": {
@@ -912,7 +912,7 @@
       ],
       "position": {
         "left": 3450,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionout_file1": {
@@ -954,7 +954,7 @@
       ],
       "position": {
         "left": 3450,
-        "top": 810.7505265930223
+        "top": 839.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionout_file1": {
@@ -996,7 +996,7 @@
       ],
       "position": {
         "left": 639.5797990971207,
-        "top": 440.9366695051498
+        "top": 470.0806134932011
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -1051,7 +1051,7 @@
       ],
       "position": {
         "left": 3450,
-        "top": 1000.7505265930223
+        "top": 1029.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionout_file1": {
@@ -1111,7 +1111,7 @@
       ],
       "position": {
         "left": 3750,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_column_join/collection_column_join/0.0.3",
@@ -1166,7 +1166,7 @@
       ],
       "position": {
         "left": 4050,
-        "top": 640.7505265930223
+        "top": 669.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1",
@@ -1212,7 +1212,7 @@
       ],
       "position": {
         "left": 520.7965087158727,
-        "top": 1011.8223644147481
+        "top": 1040.9663084027993
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -1268,12 +1268,7 @@
           "output_name": "output"
         }
       },
-      "inputs": [
-        {
-          "description": "runtime parameter for tool Concatenate multiple datasets or collections",
-          "name": "input1"
-        }
-      ],
+      "inputs": [],
       "label": "union_cat",
       "name": "Concatenate multiple datasets or collections",
       "outputs": [
@@ -1284,11 +1279,11 @@
       ],
       "position": {
         "left": 1307.866056171389,
-        "top": 1500.5263481437155
+        "top": 1529.6702921317667
       },
       "post_job_actions": {},
       "tool_id": "cat1",
-      "tool_state": "{\"input1\": {\"__class__\": \"RuntimeValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 1, \"input2\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 2, \"input2\": {\"__class__\": \"RuntimeValue\"}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 1, \"input2\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 2, \"input2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
       "tool_uuid": null,
       "tool_version": "1.0.0",
       "type": "tool",
@@ -1323,7 +1318,7 @@
       ],
       "position": {
         "left": 950,
-        "top": 570.7505265930223
+        "top": 599.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_sortbed/2.31.1+galaxy0",
@@ -1363,7 +1358,7 @@
       ],
       "position": {
         "left": 1300,
-        "top": 570.7505265930223
+        "top": 599.8944705810736
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_mergebed/2.31.1+galaxy2",
@@ -1407,7 +1402,7 @@
       ],
       "position": {
         "left": 1600,
-        "top": 620.7505265930223
+        "top": 649.8944705810736
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -1467,8 +1462,8 @@
         }
       ],
       "position": {
-        "left": 1900,
-        "top": 620.7505265930223
+        "left": 1919.267766716919,
+        "top": 1615.47372639126
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -1509,6 +1504,6 @@
     }
   },
   "tags": [],
-  "uuid": "39ff50e6-4602-4088-b6a3-69e84138fad1",
-  "version": 6
+  "uuid": "c388e09c-90ec-44aa-a77c-6f5a8a6e3184",
+  "version": 8
 }
