@@ -51,6 +51,11 @@ steps:
     doc: NCBI DUST low-complexity -> content-annotated BED6. Maps over assemblies.
     in:
       input: assemblies
+    outputs:
+      output:
+        rename: "hub track: dustmasker LC (BED6)"
+        add_tags:
+          - "name:hub_dustmasker"
 
   windowmasker:
     tool_id: windowmasker
@@ -58,6 +63,11 @@ steps:
     doc: NCBI WindowMasker genome-frequency repeats -> BED6. Maps over assemblies.
     in:
       input: assemblies
+    outputs:
+      output:
+        rename: "hub track: windowmasker repeats (BED6)"
+        add_tags:
+          - "name:hub_windowmasker"
 
   tantan:
     tool_id: tantan
@@ -65,6 +75,11 @@ steps:
     doc: tantan gentle low-complexity -> BED6. Maps over assemblies.
     in:
       input: assemblies
+    outputs:
+      output:
+        rename: "hub track: tantan LC (BED6)"
+        add_tags:
+          - "name:hub_tantan"
 
   fastan:
     tool_id: fastan
@@ -72,6 +87,11 @@ steps:
     doc: FASTAN tandem arrays -> BED6. Maps over assemblies.
     in:
       input: assemblies
+    outputs:
+      output:
+        rename: "hub track: fastan tandem (BED6)"
+        add_tags:
+          - "name:hub_fastan"
 
   union_cat:
     tool_id: cat1
@@ -113,6 +133,11 @@ steps:
       input: merge_bed/output
     state:
       soft: true
+    outputs:
+      output:
+        rename: "softmasked FASTA (-> WF-C masked_fastas / query_masked)"
+        add_tags:
+          - "name:wfc_masked"
 
   faidx:
     tool_id: samtools_faidx
@@ -120,3 +145,8 @@ steps:
     doc: Index the soft-masked FASTA (.fai). IUC samtools_faidx.
     in:
       input: maskfasta/output
+    outputs:
+      output:
+        rename: "softmasked FASTA index (.fai)"
+        add_tags:
+          - "name:wfc_masked_fai"
