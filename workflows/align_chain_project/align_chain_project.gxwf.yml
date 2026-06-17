@@ -49,10 +49,14 @@ inputs:
     type: collection
     collection_type: list
     doc: 5 softmasked FASTAs (triage query-fasta)
-  anchor_self_pairs:
-    type: data
-    doc: txt of anchor self-cell ids (A_A) to exclude
 steps:
+  # anchor self-cells (A_A) to exclude from the projection grid — generated
+  # internally from the anchor_assemblies element identifiers (no input file).
+  gen_anchor_self_pairs:
+    tool_id: collection_self_pairs
+    label: gen_anchor_self_pairs
+    in:
+      input: anchor_assemblies
   xprod_fa:
     tool_id: __CROSS_PRODUCT_FLAT__
     in:
@@ -292,7 +296,7 @@ steps:
     tool_id: __FILTER_FROM_FILE__
     in:
       input: p_grid_fa/output_a
-      how|filter_source: anchor_self_pairs
+      how|filter_source: gen_anchor_self_pairs/output
     state:
       how:
         how_filter: remove_if_present
@@ -302,7 +306,7 @@ steps:
     tool_id: __FILTER_FROM_FILE__
     in:
       input: p_grid_fa/output_b
-      how|filter_source: anchor_self_pairs
+      how|filter_source: gen_anchor_self_pairs/output
     state:
       how:
         how_filter: remove_if_present
@@ -312,7 +316,7 @@ steps:
     tool_id: __FILTER_FROM_FILE__
     in:
       input: p_grid_gff/output_a
-      how|filter_source: anchor_self_pairs
+      how|filter_source: gen_anchor_self_pairs/output
     state:
       how:
         how_filter: remove_if_present
@@ -322,7 +326,7 @@ steps:
     tool_id: __FILTER_FROM_FILE__
     in:
       input: p_grid_bed/output_a
-      how|filter_source: anchor_self_pairs
+      how|filter_source: gen_anchor_self_pairs/output
     state:
       how:
         how_filter: remove_if_present
@@ -332,7 +336,7 @@ steps:
     tool_id: __FILTER_FROM_FILE__
     in:
       input: p_grid_bed/output_b
-      how|filter_source: anchor_self_pairs
+      how|filter_source: gen_anchor_self_pairs/output
     state:
       how:
         how_filter: remove_if_present

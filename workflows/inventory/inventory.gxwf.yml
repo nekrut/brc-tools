@@ -42,6 +42,15 @@ outputs:
   busco_summaries:
     outputSource: busco/busco_sum
     doc: Per-strain BUSCO short summaries.
+  sizes:
+    outputSource: panel_sizes/out_file1
+    doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; reused by C/D/I/J.
+  self_pairs:
+    outputSource: panel_self_pairs/output
+    doc: One X_X per strain (WF-C alignment-grid diagonal to exclude).
+  relabel_map:
+    outputSource: panel_relabel_map/output
+    doc: A_B<TAB>A.B for every ordered pair (Phase E ids; WF-C relabel).
 
 steps:
   sourmash_sketch:
@@ -95,3 +104,35 @@ steps:
         lineage_mode: select_lineage
       adv:
         evalue: 0.001
+
+  # --- panel prep: reusable artifacts derived from the assemblies (for WF-C etc.) ---
+  panel_self_pairs:
+    tool_id: collection_self_pairs
+    label: panel_self_pairs
+    doc: One X_X per strain from the assemblies element identifiers.
+    in:
+      input: assemblies
+
+  panel_relabel_map:
+    tool_id: collection_relabel_map
+    label: panel_relabel_map
+    doc: A_B->A.B relabel map from the assemblies element identifiers.
+    in:
+      input: assemblies
+
+  panel_faidx:
+    tool_id: samtools_faidx
+    label: panel_faidx
+    doc: Index each assembly (.fai); maps over the assemblies collection. IUC samtools.
+    in:
+      input: assemblies
+
+  panel_sizes:
+    tool_id: Cut1
+    label: panel_sizes
+    doc: chrom<TAB>length sizes = cut cols 1,2 of the .fai (no custom script).
+    in:
+      input: panel_faidx/output
+    state:
+      columnList: "c1,c2"
+      delimiter: "T"
