@@ -43,6 +43,14 @@ outputs:
   fastan_bed:
     outputSource: fastan/output
     doc: fastan tandem-array BED6 (UCSC-hub track).
+  masking_table:
+    outputSource: masking_matrix/tabular_output
+    doc: >-
+      strain x masker matrix of genome fraction masked (key column = strain;
+      one column per tool + union), built from bedtools genomecov. Feeds MultiQC.
+  masking_report:
+    outputSource: masking_multiqc/html_report
+    doc: MultiQC report of per-strain soft-masking proportions per tool (custom-content table).
 
 steps:
   dustmasker:
@@ -150,3 +158,282 @@ steps:
         rename: "softmasked FASTA index (.fai)"
         add_tags:
           - "name:wfc_masked_fai"
+
+  # ---- masking-proportions report (all stock tools) ----
+  # Per masker (and the union): bedtools genomecov (hist, -max 1) gives the
+  # genome-wide masked fraction; collapse_dataset prepends the strain id so the
+  # value carries its strain; Filter keeps the genome/depth-1 row; Cut keeps
+  # strain<TAB>fraction. collection_column_join then merges the five tables into
+  # one strain x masker matrix (key = strain), which MultiQC renders as a table.
+  sizes_cut:
+    tool_id: Cut1
+    label: sizes_cut
+    doc: chrom<TAB>length from each softmasked .fai (the bedtools genome file). Maps over faidx.
+    in:
+      input: faidx/output
+    state:
+      columnList: "c1,c2"
+      delimiter: "T"
+
+  gcov_dust:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
+    label: gcov_dust
+    doc: Genome coverage histogram (max depth 1) of dustmasker intervals; maps over strains.
+    in:
+      input_type|input: dustmasker/output
+      input_type|genome_file_opts|genome: sizes_cut/out_file1
+    state:
+      input_type:
+        input_type_select: bed
+        genome_file_opts:
+          genome_file_opts_selector: hist
+      report:
+        report_select: hist
+        max: 1
+  collapse_dust:
+    tool_id: toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0
+    label: collapse_dust
+    doc: Collapse per-strain genomecov into one table, prepending the strain id as column 1.
+    in:
+      input_list: gcov_dust/output
+    state:
+      one_header: false
+      filename:
+        add_name: true
+        place_name: same_multiple
+  filter_dust:
+    tool_id: Filter1
+    label: filter_dust
+    doc: Keep the genome-wide depth>=1 row (cols = strain, genome, 1, bp, size, fraction).
+    in:
+      input: collapse_dust/output
+    state:
+      cond: "c2=='genome' and c3=='1'"
+      header_lines: 0
+  cut_dust:
+    tool_id: Cut1
+    label: cut_dust
+    doc: strain<TAB>fraction; renamed to the masker name so Column join headers it 'dustmasker'.
+    in:
+      input: filter_dust/out_file1
+    state:
+      columnList: "c1,c6"
+      delimiter: "T"
+    outputs:
+      out_file1:
+        rename: "dustmasker"
+
+  gcov_window:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
+    label: gcov_window
+    doc: Genome coverage (max depth 1) of windowmasker intervals; maps over strains.
+    in:
+      input_type|input: windowmasker/output
+      input_type|genome_file_opts|genome: sizes_cut/out_file1
+    state:
+      input_type:
+        input_type_select: bed
+        genome_file_opts:
+          genome_file_opts_selector: hist
+      report:
+        report_select: hist
+        max: 1
+  collapse_window:
+    tool_id: toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0
+    label: collapse_window
+    in:
+      input_list: gcov_window/output
+    state:
+      one_header: false
+      filename:
+        add_name: true
+        place_name: same_multiple
+  filter_window:
+    tool_id: Filter1
+    label: filter_window
+    in:
+      input: collapse_window/output
+    state:
+      cond: "c2=='genome' and c3=='1'"
+      header_lines: 0
+  cut_window:
+    tool_id: Cut1
+    label: cut_window
+    in:
+      input: filter_window/out_file1
+    state:
+      columnList: "c1,c6"
+      delimiter: "T"
+    outputs:
+      out_file1:
+        rename: "windowmasker"
+
+  gcov_tantan:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
+    label: gcov_tantan
+    doc: Genome coverage (max depth 1) of tantan intervals; maps over strains.
+    in:
+      input_type|input: tantan/output
+      input_type|genome_file_opts|genome: sizes_cut/out_file1
+    state:
+      input_type:
+        input_type_select: bed
+        genome_file_opts:
+          genome_file_opts_selector: hist
+      report:
+        report_select: hist
+        max: 1
+  collapse_tantan:
+    tool_id: toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0
+    label: collapse_tantan
+    in:
+      input_list: gcov_tantan/output
+    state:
+      one_header: false
+      filename:
+        add_name: true
+        place_name: same_multiple
+  filter_tantan:
+    tool_id: Filter1
+    label: filter_tantan
+    in:
+      input: collapse_tantan/output
+    state:
+      cond: "c2=='genome' and c3=='1'"
+      header_lines: 0
+  cut_tantan:
+    tool_id: Cut1
+    label: cut_tantan
+    in:
+      input: filter_tantan/out_file1
+    state:
+      columnList: "c1,c6"
+      delimiter: "T"
+    outputs:
+      out_file1:
+        rename: "tantan"
+
+  gcov_fastan:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
+    label: gcov_fastan
+    doc: Genome coverage (max depth 1) of fastan tandem intervals; maps over strains.
+    in:
+      input_type|input: fastan/output
+      input_type|genome_file_opts|genome: sizes_cut/out_file1
+    state:
+      input_type:
+        input_type_select: bed
+        genome_file_opts:
+          genome_file_opts_selector: hist
+      report:
+        report_select: hist
+        max: 1
+  collapse_fastan:
+    tool_id: toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0
+    label: collapse_fastan
+    in:
+      input_list: gcov_fastan/output
+    state:
+      one_header: false
+      filename:
+        add_name: true
+        place_name: same_multiple
+  filter_fastan:
+    tool_id: Filter1
+    label: filter_fastan
+    in:
+      input: collapse_fastan/output
+    state:
+      cond: "c2=='genome' and c3=='1'"
+      header_lines: 0
+  cut_fastan:
+    tool_id: Cut1
+    label: cut_fastan
+    in:
+      input: filter_fastan/out_file1
+    state:
+      columnList: "c1,c6"
+      delimiter: "T"
+    outputs:
+      out_file1:
+        rename: "fastan"
+
+  gcov_union:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
+    label: gcov_union
+    doc: Genome coverage (max depth 1) of the merged union intervals; maps over strains.
+    in:
+      input_type|input: merge_bed/output
+      input_type|genome_file_opts|genome: sizes_cut/out_file1
+    state:
+      input_type:
+        input_type_select: bed
+        genome_file_opts:
+          genome_file_opts_selector: hist
+      report:
+        report_select: hist
+        max: 1
+  collapse_union:
+    tool_id: toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0
+    label: collapse_union
+    in:
+      input_list: gcov_union/output
+    state:
+      one_header: false
+      filename:
+        add_name: true
+        place_name: same_multiple
+  filter_union:
+    tool_id: Filter1
+    label: filter_union
+    in:
+      input: collapse_union/output
+    state:
+      cond: "c2=='genome' and c3=='1'"
+      header_lines: 0
+  cut_union:
+    tool_id: Cut1
+    label: cut_union
+    in:
+      input: filter_union/out_file1
+    state:
+      columnList: "c1,c6"
+      delimiter: "T"
+    outputs:
+      out_file1:
+        rename: "union"
+
+  masking_matrix:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/collection_column_join/collection_column_join/0.0.3
+    label: masking_matrix
+    doc: >-
+      Join the five strain<TAB>fraction tables on the strain key into one
+      strain x masker matrix. old_col_in_header makes each column header the
+      input's name (the masker); the key column is named #KEY.
+    in:
+      input_tabular:
+        - cut_dust/out_file1
+        - cut_window/out_file1
+        - cut_tantan/out_file1
+        - cut_fastan/out_file1
+        - cut_union/out_file1
+    state:
+      identifier_column: 1
+      has_header: 0
+      old_col_in_header: true
+      fill_char: "0"
+
+  masking_multiqc:
+    tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1
+    label: masking_multiqc
+    doc: MultiQC report rendering the masking matrix (custom content, table).
+    in:
+      results_0|software_cond|input: masking_matrix/tabular_output
+    state:
+      results:
+        - software_cond:
+            software: custom_content
+            plot_type: table
+            section_name: "Soft-masking proportions"
+            title: "Per-strain genome fraction masked"
+            description: "Genome fraction soft-masked per strain by dustmasker, windowmasker, tantan, fastan, and their union (bedtools genomecov)."
