@@ -115,6 +115,13 @@ steps:
     tool_id: toolshed.g2.bx.psu.edu/repos/richard-burhans/batched_lastz/batched_lastz/1.04.22+galaxy1
     in:
       input: kegalign/kegalign_output
+    # batched_lastz declares its output format as 'auto' (sniffed at runtime);
+    # axtchain in_aln only accepts axt/psl, so the editor shows the connection as
+    # an unverifiable (orange) line. kegalign is configured format=axt, so pin the
+    # datatype to axt -> the editor draws a solid, valid connection.
+    outputs:
+      output:
+        change_datatype: axt
     out:
       output: {}
   axtchain:
