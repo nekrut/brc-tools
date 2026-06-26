@@ -16,48 +16,60 @@
   "format-version": "0.1",
   "license": "MIT",
   "name": "WF-B softmask (Phase B) \u2014 4 maskers + BED6 + masking report",
-  "release": "0.2",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
   "steps": {
     "0": {
       "annotation": "Per-strain assembly FASTAs. Element identifier = strain. Every step maps over this.",
+      "content_id": null,
+      "errors": null,
       "id": 0,
       "input_connections": {},
       "inputs": [
         {
-          "description": "",
+          "description": "Per-strain assembly FASTAs. Element identifier = strain. Every step maps over this.",
           "name": "assemblies"
         }
       ],
       "label": "assemblies",
-      "name": "assemblies",
+      "name": "Input dataset collection",
       "outputs": [],
       "position": {
         "left": 0,
-        "top": 0
+        "top": 170
       },
-      "post_job_actions": {},
-      "tool_state": "{\"name\": \"assemblies\", \"collection_type\": \"list\"}",
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null, \"column_definitions\": null}",
+      "tool_version": null,
       "type": "data_collection_input",
+      "uuid": "00621c55-c87e-485f-a299-4cdb198035d7",
+      "when": null,
       "workflow_outputs": []
     },
     "1": {
-      "annotation": "NCBI DUST low-complexity -> content-annotated BED6. Maps over assemblies.",
+      "annotation": "NCBI DUST low-complexity -&gt; content-annotated BED6. Maps over assemblies.",
+      "content_id": "dustmasker",
+      "errors": null,
       "id": 1,
       "input_connections": {
-        "input": [
-          {
-            "id": 0,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "dustmasker",
       "name": "dustmasker",
-      "outputs": [],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
       "position": {
-        "left": 10,
-        "top": 10
+        "left": 300,
+        "top": 0
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -69,304 +81,434 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:hub_dustmasker"
+            "tags": "DustMakser"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
       "tool_id": "dustmasker",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.17.0+galaxy0",
       "type": "tool",
-      "workflow_outputs": [
-        {
-          "label": "dustmasker_bed",
-          "output_name": "output"
-        }
-      ]
+      "uuid": "cbbd21d1-3252-44de-b0d8-74b8cd399ddb",
+      "when": null,
+      "workflow_outputs": []
     },
     "10": {
-      "annotation": "chrom<TAB>length from each softmasked .fai (the bedtools genome file). Maps over faidx.",
+      "annotation": "chromlength from each softmasked .fai (the bedtools genome file). Maps over faidx.",
+      "content_id": "Cut1",
+      "errors": null,
       "id": 10,
       "input_connections": {
-        "input": [
-          {
-            "id": 9,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 9,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "sizes_cut",
-      "name": "Cut1",
-      "outputs": [],
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
       "position": {
-        "left": 100,
-        "top": 100
+        "left": 2200,
+        "top": 270
       },
       "post_job_actions": {},
       "tool_id": "Cut1",
-      "tool_state": "{\"__page__\": 0, \"columnList\": \"c1,c2\", \"delimiter\": \"T\"}",
+      "tool_state": "{\"columnList\": \"c1,c2\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "1.0.2",
       "type": "tool",
+      "uuid": "06819572-fa3b-441a-a997-bcf702fa25b0",
+      "when": null,
       "workflow_outputs": []
     },
     "11": {
       "annotation": "Genome coverage histogram (max depth 1) of dustmasker intervals; maps over strains.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
+      "errors": null,
       "id": 11,
       "input_connections": {
-        "input_type|genome_file_opts|genome": [
-          {
-            "id": 10,
-            "output_name": "out_file1"
-          }
-        ],
-        "input_type|input": [
-          {
-            "id": 1,
-            "output_name": "output"
-          }
-        ]
+        "input_type|genome_file_opts|genome": {
+          "id": 10,
+          "output_name": "out_file1"
+        },
+        "input_type|input": {
+          "id": 1,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools Genome Coverage",
+          "name": "input_type"
+        }
+      ],
       "label": "gcov_dust",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "outputs": [],
+      "name": "bedtools Genome Coverage",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bedgraph"
+        }
+      ],
       "position": {
-        "left": 110,
-        "top": 110
+        "left": 2550,
+        "top": 0
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "tool_state": "{\"__page__\": 0, \"input_type\": {\"input_type_select\": \"bed\", \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}, \"report\": {\"report_select\": \"hist\", \"max\": 1}}",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"d\": false, \"dz\": false, \"five\": false, \"input_type\": {\"input_type_select\": \"bed\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}}, \"report\": {\"report_select\": \"hist\", \"__current_case__\": 1, \"max\": \"1\"}, \"split\": false, \"strand\": \"\", \"three\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "e74a135c-cc18-4cad-8912-994167425d54",
+      "when": null,
       "workflow_outputs": []
     },
     "12": {
       "annotation": "Genome coverage (max depth 1) of windowmasker intervals; maps over strains.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
+      "errors": null,
       "id": 12,
       "input_connections": {
-        "input_type|genome_file_opts|genome": [
-          {
-            "id": 10,
-            "output_name": "out_file1"
-          }
-        ],
-        "input_type|input": [
-          {
-            "id": 2,
-            "output_name": "output"
-          }
-        ]
+        "input_type|genome_file_opts|genome": {
+          "id": 10,
+          "output_name": "out_file1"
+        },
+        "input_type|input": {
+          "id": 2,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools Genome Coverage",
+          "name": "input_type"
+        }
+      ],
       "label": "gcov_window",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "outputs": [],
+      "name": "bedtools Genome Coverage",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bedgraph"
+        }
+      ],
       "position": {
-        "left": 120,
-        "top": 120
+        "left": 2550,
+        "top": 220
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "tool_state": "{\"__page__\": 0, \"input_type\": {\"input_type_select\": \"bed\", \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}, \"report\": {\"report_select\": \"hist\", \"max\": 1}}",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"d\": false, \"dz\": false, \"five\": false, \"input_type\": {\"input_type_select\": \"bed\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}}, \"report\": {\"report_select\": \"hist\", \"__current_case__\": 1, \"max\": \"1\"}, \"split\": false, \"strand\": \"\", \"three\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "381c0748-0276-45a1-92ff-8dece616b3cc",
+      "when": null,
       "workflow_outputs": []
     },
     "13": {
-      "annotation": "Genome coverage (max depth 1) of tantan intervals; maps over strains.",
+      "annotation": "Genome coverage (max depth 1) of the merged union intervals; maps over strains.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
+      "errors": null,
       "id": 13,
       "input_connections": {
-        "input_type|genome_file_opts|genome": [
-          {
-            "id": 10,
-            "output_name": "out_file1"
-          }
-        ],
-        "input_type|input": [
-          {
-            "id": 3,
-            "output_name": "output"
-          }
-        ]
+        "input_type|genome_file_opts|genome": {
+          "id": 10,
+          "output_name": "out_file1"
+        },
+        "input_type|input": {
+          "id": 7,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
-      "label": "gcov_tantan",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "outputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools Genome Coverage",
+          "name": "input_type"
+        }
+      ],
+      "label": "gcov_union",
+      "name": "bedtools Genome Coverage",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bedgraph"
+        }
+      ],
       "position": {
-        "left": 130,
-        "top": 130
+        "left": 2550,
+        "top": 440
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "tool_state": "{\"__page__\": 0, \"input_type\": {\"input_type_select\": \"bed\", \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}, \"report\": {\"report_select\": \"hist\", \"max\": 1}}",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"d\": false, \"dz\": false, \"five\": false, \"input_type\": {\"input_type_select\": \"bed\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}}, \"report\": {\"report_select\": \"hist\", \"__current_case__\": 1, \"max\": \"1\"}, \"split\": false, \"strand\": \"\", \"three\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "30eefd9f-3faa-420a-a70d-ee8a6bdcac02",
+      "when": null,
       "workflow_outputs": []
     },
     "14": {
-      "annotation": "Genome coverage (max depth 1) of fastan tandem intervals; maps over strains.",
+      "annotation": "Genome coverage (max depth 1) of tantan intervals; maps over strains.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
+      "errors": null,
       "id": 14,
       "input_connections": {
-        "input_type|genome_file_opts|genome": [
-          {
-            "id": 10,
-            "output_name": "out_file1"
-          }
-        ],
-        "input_type|input": [
-          {
-            "id": 4,
-            "output_name": "output"
-          }
-        ]
+        "input_type|genome_file_opts|genome": {
+          "id": 10,
+          "output_name": "out_file1"
+        },
+        "input_type|input": {
+          "id": 3,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
-      "label": "gcov_fastan",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "outputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools Genome Coverage",
+          "name": "input_type"
+        }
+      ],
+      "label": "gcov_tantan",
+      "name": "bedtools Genome Coverage",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bedgraph"
+        }
+      ],
       "position": {
-        "left": 140,
-        "top": 140
+        "left": 2550,
+        "top": 660
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "tool_state": "{\"__page__\": 0, \"input_type\": {\"input_type_select\": \"bed\", \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}, \"report\": {\"report_select\": \"hist\", \"max\": 1}}",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"d\": false, \"dz\": false, \"five\": false, \"input_type\": {\"input_type_select\": \"bed\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}}, \"report\": {\"report_select\": \"hist\", \"__current_case__\": 1, \"max\": \"1\"}, \"split\": false, \"strand\": \"\", \"three\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "f23a9345-f6d0-4188-82f8-6ac208c784a1",
+      "when": null,
       "workflow_outputs": []
     },
     "15": {
-      "annotation": "Genome coverage (max depth 1) of the merged union intervals; maps over strains.",
+      "annotation": "Genome coverage (max depth 1) of fastan tandem intervals; maps over strains.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
+      "errors": null,
       "id": 15,
       "input_connections": {
-        "input_type|genome_file_opts|genome": [
-          {
-            "id": 10,
-            "output_name": "out_file1"
-          }
-        ],
-        "input_type|input": [
-          {
-            "id": 7,
-            "output_name": "output"
-          }
-        ]
+        "input_type|genome_file_opts|genome": {
+          "id": 10,
+          "output_name": "out_file1"
+        },
+        "input_type|input": {
+          "id": 4,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
-      "label": "gcov_union",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "outputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools Genome Coverage",
+          "name": "input_type"
+        }
+      ],
+      "label": "gcov_fastan",
+      "name": "bedtools Genome Coverage",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bedgraph"
+        }
+      ],
       "position": {
-        "left": 150,
-        "top": 150
+        "left": 2550,
+        "top": 880
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1",
-      "tool_state": "{\"__page__\": 0, \"input_type\": {\"input_type_select\": \"bed\", \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}, \"report\": {\"report_select\": \"hist\", \"max\": 1}}",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"d\": false, \"dz\": false, \"five\": false, \"input_type\": {\"input_type_select\": \"bed\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}}, \"report\": {\"report_select\": \"hist\", \"__current_case__\": 1, \"max\": \"1\"}, \"split\": false, \"strand\": \"\", \"three\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "bbcd86e3-dc69-43ba-8034-5475d9e2042d",
+      "when": null,
       "workflow_outputs": []
     },
     "16": {
       "annotation": "Pivot the five per-strain genomecov outputs into one Sample x masker percent-masked table (locally-authored tool; reads element identifiers). Clean header (no leading '#') so MultiQC custom-content reads it as a table.",
+      "content_id": "masking_table",
+      "errors": null,
       "id": 16,
       "input_connections": {
-        "dustmasker": [
-          {
-            "id": 11,
-            "output_name": "output"
-          }
-        ],
-        "fastan": [
-          {
-            "id": 14,
-            "output_name": "output"
-          }
-        ],
-        "tantan": [
-          {
-            "id": 13,
-            "output_name": "output"
-          }
-        ],
-        "union": [
-          {
-            "id": 15,
-            "output_name": "output"
-          }
-        ],
-        "windowmasker": [
-          {
-            "id": 12,
-            "output_name": "output"
-          }
-        ]
+        "dustmasker": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "fastan": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "tantan": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "union": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "windowmasker": {
+          "id": 12,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "masking_table",
-      "name": "masking_table",
-      "outputs": [],
+      "name": "Masking table",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "tabular"
+        }
+      ],
       "position": {
-        "left": 160,
-        "top": 160
+        "left": 2900,
+        "top": 360
       },
       "post_job_actions": {},
       "tool_id": "masking_table",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"dustmasker\": {\"__class__\": \"ConnectedValue\"}, \"fastan\": {\"__class__\": \"ConnectedValue\"}, \"tantan\": {\"__class__\": \"ConnectedValue\"}, \"union\": {\"__class__\": \"ConnectedValue\"}, \"windowmasker\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "1.0+galaxy0",
       "type": "tool",
+      "uuid": "8423c0dc-9a94-466e-a1cc-c4b3245d44b2",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "masking_table",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "3c957747-3058-46dc-9b5f-ef15d49ccab8"
         }
       ]
     },
     "17": {
       "annotation": "MultiQC report rendering the masking_table matrix (custom content, table).",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1",
+      "errors": null,
       "id": 17,
       "input_connections": {
-        "results_0|software_cond|input": [
-          {
-            "id": 16,
-            "output_name": "output"
-          }
-        ]
+        "results_0|software_cond|input": {
+          "id": 16,
+          "output_name": "output"
+        }
       },
-      "inputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool MultiQC",
+          "name": "image_content_input"
+        }
+      ],
       "label": "masking_multiqc",
-      "name": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1",
-      "outputs": [],
+      "name": "MultiQC",
+      "outputs": [
+        {
+          "name": "html_report",
+          "type": "html"
+        },
+        {
+          "name": "stats",
+          "type": "tabular"
+        }
+      ],
       "position": {
-        "left": 170,
-        "top": 170
+        "left": 3200,
+        "top": 360
       },
       "post_job_actions": {},
       "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1",
-      "tool_state": "{\"__page__\": 0, \"results\": [{\"software_cond\": {\"software\": \"custom_content\", \"plot_type\": \"table\", \"section_name\": \"Soft-masking proportions\", \"title\": \"Per-strain % genome masked\", \"description\": \"Percent of each genome soft-masked by dustmasker, windowmasker, tantan, fastan, and their union (bedtools genomecov).\"}}]}",
+      "tool_shed_repository": {
+        "changeset_revision": "fac2260bc88a",
+        "name": "multiqc",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"comment\": \"\", \"export\": false, \"flat\": false, \"image_content_input\": {\"__class__\": \"RuntimeValue\"}, \"png_plots\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"custom_content\", \"__current_case__\": 54, \"plot_type\": \"table\", \"section_name\": \"Soft-masking proportions\", \"title\": \"Per-strain % genome masked\", \"description\": \"Percent of each genome soft-masked by dustmasker, windowmasker, tantan, fastan, and their union (bedtools genomecov).\", \"xlab\": null, \"ylab\": null, \"input\": {\"__class__\": \"ConnectedValue\"}}}], \"title\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "1.35+galaxy1",
       "type": "tool",
+      "uuid": "dcafd716-abc5-4a1d-affb-b23aac9f33ef",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "masking_report",
-          "output_name": "html_report"
+          "output_name": "html_report",
+          "uuid": "0f592ce2-380f-427d-95fb-57a3b3039098"
         }
       ]
     },
     "2": {
-      "annotation": "NCBI WindowMasker genome-frequency repeats -> BED6. Maps over assemblies.",
+      "annotation": "NCBI WindowMasker genome-frequency repeats -&gt; BED6. Maps over assemblies.",
+      "content_id": "windowmasker",
+      "errors": null,
       "id": 2,
       "input_connections": {
-        "input": [
-          {
-            "id": 0,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "windowmasker",
       "name": "windowmasker",
-      "outputs": [],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
       "position": {
-        "left": 20,
-        "top": 20
+        "left": 300,
+        "top": 220
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -378,40 +520,50 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:hub_windowmasker"
+            "tags": "WindowMasker"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
       "tool_id": "windowmasker",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.17.0+galaxy0",
       "type": "tool",
+      "uuid": "766a4495-4abc-4502-aa7e-e1fabd71d607",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "windowmasker_bed",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "89c6b0a6-7919-4865-a117-7e03c57c892d"
         }
       ]
     },
     "3": {
-      "annotation": "tantan gentle low-complexity -> BED6. Maps over assemblies.",
+      "annotation": "tantan gentle low-complexity -&gt; BED6. Maps over assemblies.",
+      "content_id": "tantan",
+      "errors": null,
       "id": 3,
       "input_connections": {
-        "input": [
-          {
-            "id": 0,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "tantan",
       "name": "tantan",
-      "outputs": [],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
       "position": {
-        "left": 30,
-        "top": 30
+        "left": 300,
+        "top": 660
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -423,40 +575,50 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:hub_tantan"
+            "tags": "TanTan"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
       "tool_id": "tantan",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "51+galaxy0",
       "type": "tool",
+      "uuid": "21d8d652-2941-4dc6-9498-a315d43a31bd",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "tantan_bed",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "4b25403c-37ee-4783-9d30-22c1edbae47b"
         }
       ]
     },
     "4": {
-      "annotation": "FASTAN tandem arrays -> BED6. Maps over assemblies.",
+      "annotation": "FASTAN tandem arrays -&gt; BED6. Maps over assemblies.",
+      "content_id": "fastan",
+      "errors": null,
       "id": 4,
       "input_connections": {
-        "input": [
-          {
-            "id": 0,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "fastan",
       "name": "fastan",
-      "outputs": [],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
       "position": {
-        "left": 40,
-        "top": 40
+        "left": 300,
+        "top": 830
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -468,139 +630,185 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:hub_fastan"
+            "tags": "fastan"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
       "tool_id": "fastan",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "0.8+galaxy0",
       "type": "tool",
+      "uuid": "7e372d99-7446-4904-bb66-93400ae612c7",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "fastan_bed",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "41f34bfd-7e3b-40a0-862b-c249e27b7507"
         }
       ]
     },
     "5": {
       "annotation": "Concatenate the four per-strain BED6 interval sets (zipped by element identifier) into one set before sort/merge. Galaxy distro tool.",
+      "content_id": "cat1",
+      "errors": null,
       "id": 5,
       "input_connections": {
-        "input1": [
-          {
-            "id": 1,
-            "output_name": "output"
-          }
-        ],
-        "queries_0|input2": [
-          {
-            "id": 2,
-            "output_name": "output"
-          }
-        ],
-        "queries_1|input2": [
-          {
-            "id": 3,
-            "output_name": "output"
-          }
-        ],
-        "queries_2|input2": [
-          {
-            "id": 4,
-            "output_name": "output"
-          }
-        ]
+        "input1": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "queries_0|input2": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "queries_1|input2": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "queries_2|input2": {
+          "id": 4,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "union_cat",
-      "name": "cat1",
-      "outputs": [],
+      "name": "Concatenate multiple datasets or collections",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
       "position": {
-        "left": 50,
-        "top": 50
+        "left": 650,
+        "top": 420
       },
       "post_job_actions": {},
       "tool_id": "cat1",
-      "tool_state": "{\"__page__\": 0, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 1, \"input2\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 2, \"input2\": {\"__class__\": \"RuntimeValue\"}}]}",
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 1, \"input2\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 2, \"input2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "1.0.0",
       "type": "tool",
+      "uuid": "83d19e09-d3b2-48a3-9da9-a3d2b25b7efb",
+      "when": null,
       "workflow_outputs": []
     },
     "6": {
       "annotation": "Sort the concatenated intervals (required before merge). IUC bedtools.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_sortbed/2.31.1+galaxy0",
+      "errors": null,
       "id": 6,
       "input_connections": {
-        "input": [
-          {
-            "id": 5,
-            "output_name": "out_file1"
-          }
-        ]
+        "input": {
+          "id": 5,
+          "output_name": "out_file1"
+        }
       },
-      "inputs": [],
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bedtools SortBED",
+          "name": "genome_file_opts"
+        }
+      ],
       "label": "sort_bed",
-      "name": "bedtools_sortbed",
-      "outputs": [],
+      "name": "bedtools SortBED",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
       "position": {
-        "left": 60,
-        "top": 60
+        "left": 950,
+        "top": 420
       },
       "post_job_actions": {},
-      "tool_id": "bedtools_sortbed",
-      "tool_state": "{\"__page__\": 0, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\"}}",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_sortbed/2.31.1+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"RuntimeValue\"}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"option\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1+galaxy0",
       "type": "tool",
+      "uuid": "df793c42-bd7d-49b2-a8cd-db81f39b049f",
+      "when": null,
       "workflow_outputs": []
     },
     "7": {
       "annotation": "Merge/union overlapping intervals across all four maskers. IUC bedtools.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_mergebed/2.31.1+galaxy2",
+      "errors": null,
       "id": 7,
       "input_connections": {
-        "input": [
-          {
-            "id": 6,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "merge_bed",
-      "name": "bedtools_mergebed",
-      "outputs": [],
+      "name": "bedtools MergeBED",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
       "position": {
-        "left": 70,
-        "top": 70
+        "left": 1250,
+        "top": 420
       },
       "post_job_actions": {},
-      "tool_id": "bedtools_mergebed",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_mergebed/2.31.1+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"c_and_o_argument_repeat\": [], \"distance\": \"0\", \"header\": false, \"input\": {\"__class__\": \"ConnectedValue\"}, \"strand\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1+galaxy2",
       "type": "tool",
+      "uuid": "d8296ea6-2b8b-4ac7-babd-8178651da4a9",
+      "when": null,
       "workflow_outputs": []
     },
     "8": {
       "annotation": "Soft-mask the assembly at the merged union intervals (-soft). IUC bedtools. fasta = assembly (per strain), bed = merged union (per strain), zipped by strain.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_maskfastabed/2.31.1",
+      "errors": null,
       "id": 8,
       "input_connections": {
-        "fasta": [
-          {
-            "id": 0,
-            "output_name": "output"
-          }
-        ],
-        "input": [
-          {
-            "id": 7,
-            "output_name": "output"
-          }
-        ]
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "maskfasta",
-      "name": "bedtools_maskfastabed",
-      "outputs": [],
+      "name": "bedtools MaskFastaBed",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "fasta"
+        }
+      ],
       "position": {
-        "left": 80,
-        "top": 80
+        "left": 1600,
+        "top": 270
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -612,40 +820,56 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:wfc_masked"
+            "tags": "SoftmaskedFasta"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
-      "tool_id": "bedtools_maskfastabed",
-      "tool_state": "{\"__page__\": 0, \"soft\": true}",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_maskfastabed/2.31.1",
+      "tool_shed_repository": {
+        "changeset_revision": "2892111d91f8",
+        "name": "bedtools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"fasta\": {\"__class__\": \"ConnectedValue\"}, \"fullheader\": false, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mc\": \"N\", \"soft\": true, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "2.31.1",
       "type": "tool",
+      "uuid": "59facc05-8b73-44a7-b4d1-14cc15fd9475",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "softmasked_fasta",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "3b0b5bad-b0da-4b22-9af8-b28d0b37c905"
         }
       ]
     },
     "9": {
       "annotation": "Index the soft-masked FASTA (.fai). IUC samtools_faidx.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_faidx/samtools_faidx/1.22+galaxy1",
+      "errors": null,
       "id": 9,
       "input_connections": {
-        "input": [
-          {
-            "id": 8,
-            "output_name": "output"
-          }
-        ]
+        "input": {
+          "id": 8,
+          "output_name": "output"
+        }
       },
       "inputs": [],
       "label": "faidx",
-      "name": "samtools_faidx",
-      "outputs": [],
+      "name": "Samtools faidx",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "tabular"
+        }
+      ],
       "position": {
-        "left": 90,
-        "top": 90
+        "left": 1900,
+        "top": 270
       },
       "post_job_actions": {
         "RenameDatasetActionoutput": {
@@ -657,23 +881,35 @@
         },
         "TagDatasetActionoutput": {
           "action_arguments": {
-            "tags": "name:wfc_masked_fai"
+            "tags": "Softmaskedfai"
           },
           "action_type": "TagDatasetAction",
           "output_name": "output"
         }
       },
-      "tool_id": "samtools_faidx",
-      "tool_state": "{\"__page__\": 0}",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_faidx/samtools_faidx/1.22+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "78d6d62d4ce4",
+        "name": "samtools_faidx",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_uuid": null,
+      "tool_version": "1.22+galaxy1",
       "type": "tool",
+      "uuid": "ba2364f6-4642-43b1-83d4-ff5a7795f836",
+      "when": null,
       "workflow_outputs": [
         {
           "label": "fasta_index",
-          "output_name": "output"
+          "output_name": "output",
+          "uuid": "6332229a-7695-4a30-871f-5ec45ad29ff2"
         }
       ]
     }
   },
   "tags": [],
-  "uuid": "b3b21371-fffc-47a3-9196-e11443dd7ddf"
+  "uuid": "7d209d18-a26b-489c-aa16-ce84b206c46d",
+  "version": 10
 }
