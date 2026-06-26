@@ -23,7 +23,7 @@ inputs:
     type: collection
     collection_type: list
     doc: Per-strain assembly FASTAs. Element identifier = strain. Every step maps over this.
-
+    position: {top: 170, left: 0}
 outputs:
   softmasked_fasta:
     outputSource: maskfasta/output
@@ -59,48 +59,72 @@ steps:
     doc: NCBI DUST low-complexity -> content-annotated BED6. Maps over assemblies.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "hub track: dustmasker LC (BED6)"
-        add_tags:
-          - "name:hub_dustmasker"
-
+    position: {top: 0, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'hub track: dustmasker LC (BED6)'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: DustMakser
+        action_type: TagDatasetAction
+        output_name: output
   windowmasker:
     tool_id: windowmasker
     label: windowmasker
     doc: NCBI WindowMasker genome-frequency repeats -> BED6. Maps over assemblies.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "hub track: windowmasker repeats (BED6)"
-        add_tags:
-          - "name:hub_windowmasker"
-
+    position: {top: 220, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'hub track: windowmasker repeats (BED6)'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: WindowMasker
+        action_type: TagDatasetAction
+        output_name: output
   tantan:
     tool_id: tantan
     label: tantan
     doc: tantan gentle low-complexity -> BED6. Maps over assemblies.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "hub track: tantan LC (BED6)"
-        add_tags:
-          - "name:hub_tantan"
-
+    position: {top: 660, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'hub track: tantan LC (BED6)'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: TanTan
+        action_type: TagDatasetAction
+        output_name: output
   fastan:
     tool_id: fastan
     label: fastan
     doc: FASTAN tandem arrays -> BED6. Maps over assemblies.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "hub track: fastan tandem (BED6)"
-        add_tags:
-          - "name:hub_fastan"
-
+    position: {top: 830, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'hub track: fastan tandem (BED6)'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: fastan
+        action_type: TagDatasetAction
+        output_name: output
   union_cat:
     tool_id: cat1
     label: union_cat
@@ -112,7 +136,15 @@ steps:
       queries_0|input2: windowmasker/output
       queries_1|input2: tantan/output
       queries_2|input2: fastan/output
-
+    position: {top: 420, left: 650}
+    state:
+      queries:
+        - input2:
+            __class__: ConnectedValue
+        - input2:
+            __class__: ConnectedValue
+        - input2:
+            __class__: ConnectedValue
   sort_bed:
     tool_id: bedtools_sortbed
     label: sort_bed
@@ -122,14 +154,14 @@ steps:
     state:
       genome_file_opts:
         genome_file_opts_selector: hist
-
+    position: {top: 420, left: 950}
   merge_bed:
     tool_id: bedtools_mergebed
     label: merge_bed
     doc: Merge/union overlapping intervals across all four maskers. IUC bedtools.
     in:
       input: sort_bed/output
-
+    position: {top: 420, left: 1250}
   maskfasta:
     tool_id: bedtools_maskfastabed
     label: maskfasta
@@ -141,30 +173,36 @@ steps:
       input: merge_bed/output
     state:
       soft: true
-    outputs:
-      output:
-        rename: "softmasked FASTA (-> WF-C masked_fastas / query_masked)"
-        add_tags:
-          - "name:wfc_masked"
-
+    position: {top: 270, left: 1600}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: softmasked FASTA (-> WF-C masked_fastas / query_masked)
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: SoftmaskedFasta
+        action_type: TagDatasetAction
+        output_name: output
   faidx:
     tool_id: samtools_faidx
     label: faidx
     doc: Index the soft-masked FASTA (.fai). IUC samtools_faidx.
     in:
       input: maskfasta/output
-    outputs:
-      output:
-        rename: "softmasked FASTA index (.fai)"
-        add_tags:
-          - "name:wfc_masked_fai"
-
-  # ---- masking-proportions report ----
-  # bedtools genomecov (hist, -max 1) gives each masker's genome-wide masked
-  # fraction per strain; masking_table pivots the five genomecov collections into
-  # one clean Sample x masker percent table; MultiQC renders it (custom content,
-  # table). (Replaced an earlier collapse/filter/cut/column_join chain that was
-  # brittle against MultiQC custom-content's #-header / YAML parsing.)
+    position: {top: 270, left: 1900}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: softmasked FASTA index (.fai)
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: Softmaskedfai
+        action_type: TagDatasetAction
+        output_name: output
   sizes_cut:
     tool_id: Cut1
     label: sizes_cut
@@ -174,7 +212,7 @@ steps:
     state:
       columnList: "c1,c2"
       delimiter: "T"
-
+    position: {top: 270, left: 2200}
   gcov_dust:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
     label: gcov_dust
@@ -190,7 +228,7 @@ steps:
       report:
         report_select: hist
         max: 1
-
+    position: {top: 0, left: 2550}
   gcov_window:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
     label: gcov_window
@@ -206,7 +244,7 @@ steps:
       report:
         report_select: hist
         max: 1
-
+    position: {top: 220, left: 2550}
   gcov_tantan:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
     label: gcov_tantan
@@ -222,7 +260,7 @@ steps:
       report:
         report_select: hist
         max: 1
-
+    position: {top: 660, left: 2550}
   gcov_fastan:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
     label: gcov_fastan
@@ -238,7 +276,7 @@ steps:
       report:
         report_select: hist
         max: 1
-
+    position: {top: 880, left: 2550}
   gcov_union:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.31.1
     label: gcov_union
@@ -254,7 +292,7 @@ steps:
       report:
         report_select: hist
         max: 1
-
+    position: {top: 440, left: 2550}
   masking_table:
     tool_id: masking_table
     label: masking_table
@@ -268,7 +306,7 @@ steps:
       tantan: gcov_tantan/output
       fastan: gcov_fastan/output
       union: gcov_union/output
-
+    position: {top: 360, left: 2900}
   masking_multiqc:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1
     label: masking_multiqc
@@ -283,3 +321,4 @@ steps:
             section_name: "Soft-masking proportions"
             title: "Per-strain % genome masked"
             description: "Percent of each genome soft-masked by dustmasker, windowmasker, tantan, fastan, and their union (bedtools genomecov)."
+    position: {top: 360, left: 3200}

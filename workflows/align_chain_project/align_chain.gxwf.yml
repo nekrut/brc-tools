@@ -2,11 +2,11 @@ class: GalaxyWorkflow
 label: WF-C align_chain (one-click, native collection ops)
 license: MIT
 creator:
-- class: Person
-  identifier: https://orcid.org/0000-0002-5987-8032
-  name: Anton Nekrutenko
-- class: Person
-  name: Claude Opus 4.8
+  - class: Person
+    identifier: https://orcid.org/0000-0002-5987-8032
+    name: Anton Nekrutenko
+  - class: Person
+    name: Claude Opus 4.8
 release: '0.3'
 doc: >-
   Phase C, chaining half (split out of the former combined align_chain_project;
@@ -23,16 +23,20 @@ inputs:
     type: collection
     collection_type: list
     doc: softmasked per-strain FASTAs (WF-B), id=strain
+    position: {top: 142, left: 17}
   sizes:
     type: collection
     collection_type: list
     doc: per-strain .sizes (WF-A), id=strain
+    position: {top: 537, left: 0}
   self_pairs:
     type: data
     doc: txt of self-pair ids (X_X) to exclude (WF-A)
+    position: {top: 262, left: 4}
   relabel_map:
     type: data
     doc: tabular A_B<TAB>A.B id map for Phase E (WF-A)
+    position: {top: 391, left: 5}
 steps:
   xprod_fa:
     tool_id: __CROSS_PRODUCT_FLAT__
@@ -42,6 +46,7 @@ steps:
     out:
       output_a: {}
       output_b: {}
+    position: {top: 320, left: 251}
   xprod_sz:
     tool_id: __CROSS_PRODUCT_FLAT__
     in:
@@ -50,6 +55,7 @@ steps:
     out:
       output_a: {}
       output_b: {}
+    position: {top: 320, left: 1651}
   tgt_fa:
     tool_id: __FILTER_FROM_FILE__
     in:
@@ -60,6 +66,7 @@ steps:
         how_filter: remove_if_present
     out:
       output_filtered: {}
+    position: {top: 90, left: 601}
   qry_fa:
     tool_id: __FILTER_FROM_FILE__
     in:
@@ -70,6 +77,7 @@ steps:
         how_filter: remove_if_present
     out:
       output_filtered: {}
+    position: {top: 340, left: 601}
   tgt_sz:
     tool_id: __FILTER_FROM_FILE__
     in:
@@ -80,6 +88,7 @@ steps:
         how_filter: remove_if_present
     out:
       output_filtered: {}
+    position: {top: 320, left: 2001}
   qry_sz:
     tool_id: __FILTER_FROM_FILE__
     in:
@@ -90,6 +99,7 @@ steps:
         how_filter: remove_if_present
     out:
       output_filtered: {}
+    position: {top: 570, left: 2001}
   kegalign:
     tool_id: toolshed.g2.bx.psu.edu/repos/richard-burhans/kegalign/kegalign/0.1.2.9+galaxy1
     in:
@@ -111,6 +121,7 @@ steps:
           axt_type: axt
     out:
       kegalign_output: {}
+    position: {top: 140, left: 901}
   batched_lastz:
     tool_id: toolshed.g2.bx.psu.edu/repos/richard-burhans/batched_lastz/batched_lastz/1.04.22+galaxy1
     in:
@@ -119,11 +130,15 @@ steps:
     # axtchain in_aln only accepts axt/psl, so the editor shows the connection as
     # an unverifiable (orange) line. kegalign is configured format=axt, so pin the
     # datatype to axt -> the editor draws a solid, valid connection.
-    outputs:
-      output:
-        change_datatype: axt
     out:
       output: {}
+    position: {top: 140, left: 1201}
+    post_job_actions:
+      ChangeDatatypeActionoutput:
+        action_arguments:
+          newtype: axt
+        action_type: ChangeDatatypeAction
+        output_name: output
   axtchain:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_axtchain/ucsc_axtchain/482+galaxy2
     in:
@@ -135,12 +150,14 @@ steps:
         linear_gap: loose
     out:
       out: {}
+    position: {top: 80, left: 1651}
   chainsort_clean:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainsort/ucsc_chainsort/482+galaxy0
     in:
       in_chain: axtchain/out
     out:
       out: {}
+    position: {top: 0, left: 2001}
   chainprenet:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainprenet/ucsc_chainprenet/482+galaxy0
     in:
@@ -154,6 +171,7 @@ steps:
         query_reference_index_source_selector: history
     out:
       out: {}
+    position: {top: 0, left: 2351}
   chainnet:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainnet/ucsc_chainnet/482+galaxy0
     in:
@@ -167,6 +185,7 @@ steps:
         query_reference_index_source_selector: history
     out:
       targetNet: {}
+    position: {top: 0, left: 2751}
   netchainsubset:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_netchainsubset/ucsc_netchainsubset/482+galaxy0
     in:
@@ -174,24 +193,28 @@ steps:
       in_chain: chainprenet/out
     out:
       out: {}
+    position: {top: 0, left: 3051}
   chainstitchid_clean:
     tool_id: chainStitchId
     in:
       input: netchainsubset/out
     out:
       output: {}
+    position: {top: 150, left: 3351}
   rb_swap1:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainswap/ucsc_chainswap/482+galaxy0
     in:
       in_chain: chainstitchid_clean/output
     out:
       out: {}
+    position: {top: 150, left: 3651}
   rb_sort1:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainsort/ucsc_chainsort/482+galaxy0
     in:
       in_chain: rb_swap1/out
     out:
       out: {}
+    position: {top: 170, left: 3951}
   rb_net:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainnet/ucsc_chainnet/482+galaxy0
     in:
@@ -205,6 +228,7 @@ steps:
         query_reference_index_source_selector: history
     out:
       targetNet: {}
+    position: {top: 280, left: 4251}
   rb_subset:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_netchainsubset/ucsc_netchainsubset/482+galaxy0
     in:
@@ -212,24 +236,28 @@ steps:
       in_chain: rb_sort1/out
     out:
       out: {}
+    position: {top: 280, left: 4551}
   rb_stitch:
     tool_id: chainStitchId
     in:
       input: rb_subset/out
     out:
       output: {}
+    position: {top: 280, left: 4851}
   rb_swap2:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainswap/ucsc_chainswap/482+galaxy0
     in:
       in_chain: rb_stitch/output
     out:
       out: {}
+    position: {top: 280, left: 5151}
   rb_sort2:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/ucsc_chainsort/ucsc_chainsort/482+galaxy0
     in:
       in_chain: rb_swap2/out
     out:
       out: {}
+    position: {top: 280, left: 5451}
   relabel_cleaned:
     tool_id: __RELABEL_FROM_FILE__
     in:
@@ -241,6 +269,7 @@ steps:
         strict: false
     out:
       output: {}
+    position: {top: 370, left: 3651}
   relabel_rbest:
     tool_id: __RELABEL_FROM_FILE__
     in:
@@ -252,6 +281,7 @@ steps:
         strict: false
     out:
       output: {}
+    position: {top: 280, left: 5751}
 outputs:
   cleaned_chains:
     outputSource: relabel_cleaned/output

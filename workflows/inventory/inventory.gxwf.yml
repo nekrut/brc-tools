@@ -21,17 +21,19 @@ inputs:
     doc: >-
       Per-strain assembly FASTAs. Element identifier = strain name (e.g. PvP01).
       sourmash_sketch maps over this collection (one .sig per assembly).
+    position: {top: 190, left: 0}
   proteomes:
     type: collection
     collection_type: list
     doc: >-
       Per-strain protein FASTAs (parallel to assemblies, keyed by strain).
       BUSCO runs -m prot, so it MUST map over proteins, not assemblies.
+    position: {top: 380, left: 300}
   busco_lineage:
     type: string
     default: apicomplexa_odb10
     doc: BUSCO lineage dataset (species-configurable, e.g. <clade>_odb10).
-
+    position: {top: 500, left: 300}
 outputs:
   similarity_matrix:
     outputSource: sourmash_compare/output
@@ -76,7 +78,7 @@ steps:
       input: assemblies
     # No state: the only input is the mapped-over `input`; k=31/scaled=1000 are
     # hardcoded in the wrapper command.
-
+    position: {top: 810, left: 300}
   sourmash_compare:
     tool_id: sourmash_compare
     label: sourmash_compare
@@ -89,7 +91,7 @@ steps:
       signatures: sourmash_sketch/output
     state:
       ksize: 31
-
+    position: {top: 690, left: 600}
   busco:
     tool_id: busco
     label: busco
@@ -113,7 +115,7 @@ steps:
         lineage_mode: select_lineage
       adv:
         evalue: 0.001
-
+    position: {top: 480, left: 600}
   multiqc_report:
     tool_id: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.35+galaxy1
     label: multiqc_report
@@ -137,6 +139,7 @@ steps:
       results:
         - software_cond:
             software: busco
+    position: {top: 577, left: 978}
 
   # --- panel prep: reusable artifacts derived from the assemblies (for WF-C etc.) ---
   panel_self_pairs:
@@ -145,31 +148,43 @@ steps:
     doc: One X_X per strain from the assemblies element identifiers.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "WF-C input: self_pairs"
-        add_tags:
-          - "name:wfc_self_pairs"
-
+    position: {top: 0, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'WF-C input: self_pairs'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: name:wfc_self_pairs
+        action_type: TagDatasetAction
+        output_name: output
   panel_relabel_map:
     tool_id: collection_relabel_map
     label: panel_relabel_map
     doc: A_B->A.B relabel map from the assemblies element identifiers.
     in:
       input: assemblies
-    outputs:
-      output:
-        rename: "WF-C input: relabel_map"
-        add_tags:
-          - "name:wfc_relabel_map"
-
+    position: {top: 620, left: 300}
+    post_job_actions:
+      RenameDatasetActionoutput:
+        action_arguments:
+          newname: 'WF-C input: relabel_map'
+        action_type: RenameDatasetAction
+        output_name: output
+      TagDatasetActionoutput:
+        action_arguments:
+          tags: name:wfc_relabel_map
+        action_type: TagDatasetAction
+        output_name: output
   panel_faidx:
     tool_id: samtools_faidx
     label: panel_faidx
     doc: Index each assembly (.fai); maps over the assemblies collection. IUC samtools.
     in:
       input: assemblies
-
+    position: {top: 190, left: 300}
   panel_sizes:
     tool_id: Cut1
     label: panel_sizes
@@ -179,8 +194,15 @@ steps:
     state:
       columnList: "c1,c2"
       delimiter: "T"
-    outputs:
-      out_file1:
-        rename: "WF-C input: sizes"
-        add_tags:
-          - "name:wfc_sizes"
+    position: {top: 190, left: 600}
+    post_job_actions:
+      RenameDatasetActionout_file1:
+        action_arguments:
+          newname: 'WF-C input: sizes'
+        action_type: RenameDatasetAction
+        output_name: out_file1
+      TagDatasetActionout_file1:
+        action_arguments:
+          tags: name:wfc_sizes
+        action_type: TagDatasetAction
+        output_name: out_file1
