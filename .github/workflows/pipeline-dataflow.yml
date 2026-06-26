@@ -1,0 +1,61 @@
+name: pipeline-dataflow
+
+# Keep workflows/pipeline_dataflow.html in sync with the workflow definitions.
+# Triggers only on changes to the workflow source files or the generator — NOT on
+# the generated HTML itself — so it can't loop.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workflows/**/*.gxwf.yml'
+      - 'workflows/**/*.ga'
+      - 'workflows/gen_pipeline_dataflow.py'
+  pull_request:
+    paths:
+      - 'workflows/**/*.gxwf.yml'
+      - 'workflows/**/*.ga'
+      - 'workflows/gen_pipeline_dataflow.py'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet pyyaml
+      # Regenerate. The generator exits non-zero if a curated edge references a
+      # workflow port that no longer exists -> this step fails and tells you which
+      # EDGES entry to fix.
+      - name: Regenerate diagram
+        run: python workflows/gen_pipeline_dataflow.py
+
+      # On a PR: gate. Fail if the committed HTML is stale (didn't include a regen).
+      - name: Verify diagram is up to date (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          if ! git diff --quiet -- workflows/pipeline_dataflow.html; then
+            echo "::error::workflows/pipeline_dataflow.html is out of date. Run 'python workflows/gen_pipeline_dataflow.py' and commit the result."
+            git --no-pager diff -- workflows/pipeline_dataflow.html | head -40
+            exit 1
+          fi
+          echo "pipeline_dataflow.html is up to date."
+
+      # On push to main: auto-commit the refreshed HTML if it changed.
+      # (Pushes made with GITHUB_TOKEN do not re-trigger workflows, so no loop.)
+      - name: Commit refreshed diagram (push)
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- workflows/pipeline_dataflow.html; then
+            echo "pipeline_dataflow.html already up to date."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add workflows/pipeline_dataflow.html
+          git commit -m "CI: regenerate pipeline_dataflow.html [skip ci]"
+          git push
