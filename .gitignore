@@ -36,3 +36,7 @@ tool_test_output.json
 
 # installed IUC toolshed repos (not ours)
 tools/toolshed.g2.bx.psu.edu/
+
+# Tailscale Funnel/Serve cert artifacts (private key — never commit)
+*.ts.net.crt
+*.ts.net.key
