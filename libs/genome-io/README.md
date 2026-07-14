@@ -1,8 +1,8 @@
 # genome-io
 
-Utility functions shared by the genomics workflow wrappers in the `brc-tools`
-repository. The goal is to keep frequently copied parsing logic (BED/GFF/FASTA)
-and small algorithms (repeat classifiers, MAF helpers) in one importable place.
+Lightweight, reusable Python library for parsing and processing genomic data formats (BED, GFF3, FASTA, MAF, etc.). Designed to be used by genomics workflow wrappers and other tools that need to manipulate sequence annotations and alignments without heavy dependencies.
+
+Part of the `brc-tools` repository (`libs/genome-io/`), but published independently on PyPI and Bioconda.
 
 ## What it provides today
 
@@ -25,12 +25,20 @@ them without inheriting pipeline-specific behavior.
 
 ## Install
 
+From PyPI:
 ```bash
+pip install genome-io
+```
+
+From source (development):
+```bash
+cd libs/genome-io
 pip install -e ".[test]"
 ```
 
 ## Run tests
 
 ```bash
+cd libs/genome-io
 pytest
 ```
