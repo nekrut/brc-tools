@@ -4,6 +4,25 @@ from pathlib import Path
 
 
 COMPLEMENT = str.maketrans("ACGTacgtNn", "TGCAtgcaNn")
+CODON_TABLE = {
+    "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
+    "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+    "ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M",
+    "GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+    "TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S",
+    "CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+    "ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T",
+    "GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+    "TAT": "Y", "TAC": "Y", "TAA": "*", "TAG": "*",
+    "CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+    "AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K",
+    "GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+    "TGT": "C", "TGC": "C", "TGA": "*", "TGG": "W",
+    "CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+    "AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R",
+    "GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G",
+}
+STOP_CODONS = {"TAA", "TAG", "TGA"}
 
 
 def load_fasta_as_dict(path: str | Path) -> dict[str, str]:
@@ -85,3 +104,76 @@ def classify_bed_interval(
     """
     seq = fasta.get(chrom, "")[start:end]
     return classify_repeat_signature(seq)
+
+
+def revcomp(seq: str) -> str:
+    """Return the reverse complement of ``seq`` (accepts mixed case)."""
+    return seq.translate(COMPLEMENT)[::-1]
+
+
+def translate(cds: str) -> str:
+    """Translate a nucleotide CDS into amino acids using the standard table."""
+    aa = []
+    upper = cds.upper()
+    for i in range(0, len(upper) - 2, 3):
+        codon = upper[i : i + 3]
+        aa.append(CODON_TABLE.get(codon, "X"))
+    return "".join(aa)
+
+
+def strip_internal_stops(cds: str) -> str:
+    """Replace in-frame internal stop codons (all but the terminal codon)."""
+    if len(cds) < 3:
+        return cds
+    codons = [cds[i : i + 3] for i in range(0, len(cds), 3)]
+    n_full = len(cds) // 3
+    fixed: list[str] = []
+    for codon in codons[: max(n_full - 1, 0)]:
+        fixed.append("NNN" if codon.upper() in STOP_CODONS else codon)
+    fixed.extend(codons[max(n_full - 1, 0) :])
+    return "".join(fixed)
+
+
+def has_internal_stop(cds_nt: str) -> bool:
+    """Return True when ``cds_nt`` contains an in-frame stop before the end."""
+    if len(cds_nt) < 6 or len(cds_nt) % 3 != 0:
+        return False
+    n_codons = len(cds_nt) // 3
+    for i in range(n_codons - 1):
+        codon = cds_nt[i * 3 : (i + 1) * 3].upper()
+        if codon in STOP_CODONS:
+            return True
+    return False
+
+
+def extract_sequence(fasta, chrom: str, start: int, end: int, strand: str) -> str:
+    """Extract a region (1-based, inclusive) from ``fasta`` and strand-correct it."""
+    seq = str(fasta[chrom][start - 1 : end]).upper()
+    return revcomp(seq) if strand == "-" else seq
+
+
+def extract_cds(segments, fasta, transcript: str | None = None) -> str:
+    """Assemble CDS sequence from parsed segments.
+
+    ``segments`` should be a list of ``(chrom, start, end, strand, phase, parent)``
+    tuples such as those returned by :func:`galaxy_data_helpers.gff.parse_gff_cds`.
+    When ``transcript`` is given only segments for that Parent are used; otherwise
+    segments belonging to the first entry's parent are preferred.
+    """
+
+    if not segments:
+        return ""
+    parent = transcript or segments[0][5]
+    parent_segments = [s for s in segments if s[5] == parent] or segments
+    strand = parent_segments[0][3]
+    ordered = sorted(parent_segments, key=lambda s: s[1], reverse=(strand == "-"))
+    parts: list[str] = []
+    for chrom, start, end, strd, _phase, _parent in ordered:
+        try:
+            seq = str(fasta[chrom][start - 1 : end]).upper()
+        except (KeyError, IndexError):
+            continue
+        if strd == "-":
+            seq = revcomp(seq)
+        parts.append(seq)
+    return "".join(parts)

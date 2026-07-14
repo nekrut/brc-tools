@@ -18,18 +18,12 @@ The remaining work for these two is on the **tool-wrapper side**, not in the lib
 | `load_fasta_as_dict`, `classify_repeat_signature`, `classify_bed_interval` | `galaxy_data_helpers.sequence` | `tools/dustmasker/lc_classify.py`, `tools/tantan/lc_classify.py`, `tools/windowmasker/lc_classify.py` |
 | `species_of` | `galaxy_data_helpers.maf` | `tools/process_maf/process_maf.py`, `tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.py` |
 
-## 0.3.0 — GFF/CDS/sequence helpers (merge similar patterns)
+## 0.3.0 — already done
 
-| Candidate | Type | Donor scripts | Notes |
-|---|---|---|---|
-| `normalize_gene_id` | Function | `tools/phase_e_consensus/phase_e_consensus.py`, `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py` | Strips `_tN`, `.N`, and `_N` Liftoff extra-copy suffixes. Implementations differ slightly; `group_cds_by_og` covers the `_N` case and is the most general. Suggested module: `galaxy_data_helpers.gff` or `galaxy_data_helpers.ids`. |
-| `parse_gff_cds` + `extract_cds` | Functions | `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py` | Both parse GFF3 to build a transcript-to-CDS map and extract the CDS sequence from a `pyfaidx` FASTA. `group_cds_by_og` is more general and should be the library version. `phase_c2_triage` can use it. |
-| `revcomp` + `COMPLEMENT` | Function/constant | `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py` | Same translation table. Suggested module: `galaxy_data_helpers.sequence`. |
-| `translate` + `CODON_TABLE` + `STOP_CODONS` | Function/constants | `tools/group_cds_by_og/group_cds_by_og.py` | Only one implementation now, but `phase_c2_triage` already uses `STOP_CODONS` and `extract_cds`; it will need `translate` once the two are merged. Suggested module: `galaxy_data_helpers.sequence`. |
-| `strip_internal_stops` | Function | `tools/group_cds_by_og/group_cds_by_og.py` | Related to `has_internal_stop` in `phase_c2_triage.py`. Could be a single `sequence` helper. |
-| `has_internal_stop` | Function | `tools/phase_c2_triage/phase_c2_triage.py` | Could be merged with `strip_internal_stops` in `galaxy_data_helpers.sequence`. |
-| `GENE_TYPES` / `TX_TYPES` | Constants | `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py`, `tools/phase_c4_merge/phase_c4_merge.py`, `tools/anchor_prep/build_anchor_inputs.py`, `tools/gene_bed/gene_bed.py` | Feature-type sets are duplicated and drift-prone. Standardize in `galaxy_data_helpers.gff`. |
-| `parse_gff_attributes` (inline) | Inline pattern | `tools/group_cds_by_og/group_cds_by_og.py` (2×), `tools/anchor_prep/build_anchor_inputs.py`, `tools/gene_bed/gene_bed.py`, `tools/phase_c2_triage/phase_c2_triage.py`, `tools/phase_c4_merge/phase_c4_merge.py` | Several scripts parse `key=value` GFF attributes with a dict comprehension. All should call `galaxy_data_helpers.gff.parse_gff_attributes_to_dict`. |
+| Function | Module | Donor scripts |
+|---|---|---|
+| `normalize_gene_id`, `parse_gff_cds` | `galaxy_data_helpers.gff` | `tools/phase_e_consensus/phase_e_consensus.py`, `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py`, `tools/phase_c4_merge/phase_c4_merge.py` |
+| `revcomp`, `translate`, `strip_internal_stops`, `has_internal_stop`, `extract_cds`, `extract_sequence` | `galaxy_data_helpers.sequence` | `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py` |
 
 ## 0.4.0 — orthology / graph / chain algorithms
 

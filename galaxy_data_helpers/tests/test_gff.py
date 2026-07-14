@@ -1,6 +1,10 @@
 import os
 
-from galaxy_data_helpers.gff import parse_gff_attributes_to_dict
+from galaxy_data_helpers.gff import (
+    normalize_gene_id,
+    parse_gff_attributes_to_dict,
+    parse_gff_cds,
+)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "gff")
 
@@ -57,3 +61,26 @@ def test_parse_gff_attributes_to_dict_preserves_equals_in_value():
 def test_parse_gff_attributes_to_dict_whitespace_trimmed():
     attrs = parse_gff_attributes_to_dict("  ID = gene1 ; name = foo  ")
     assert attrs == {"ID": "gene1", "name": "foo"}
+
+
+def test_normalize_gene_id_variants():
+    assert normalize_gene_id("gene1_t2") == "gene1"
+    assert normalize_gene_id("gene1.3") == "gene1"
+    assert normalize_gene_id("gene1_2") == "gene1"
+    assert normalize_gene_id("gene1_200") == "gene1_200"  # suffix too long
+
+
+def test_parse_gff_cds_builds_segments(tmp_path):
+    path = os.path.join(DATA_DIR, "liftoff_clean.gff3")
+    segments = parse_gff_cds(path)
+    assert "geneA" in segments
+    assert len(segments["geneA"]) == 2
+    chrom, start, end, strand, phase, parent = segments["geneA"][0]
+    assert chrom == "chr1"
+    assert start == 1000 and end == 1500
+    assert strand == "+"
+    assert phase == 0
+    assert parent == "geneA.t1"
+
+    filtered = parse_gff_cds(path, target_genes={"geneX"})
+    assert filtered == {}

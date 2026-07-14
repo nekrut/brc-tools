@@ -9,8 +9,8 @@ and small algorithms (repeat classifiers, MAF helpers) in one importable place.
 | Module | What it covers | Typical use cases |
 | --- | --- | --- |
 | `galaxy_data_helpers.bed` | Load per-sample BED files keyed by filename stem. | Phase E reciprocal-best overlap + graph-edges tools. |
-| `galaxy_data_helpers.gff` | Parse column 9 `key=value` pairs into a dict. | Liftoff triage, TOGA merge, anchor-prep filters. |
-| `galaxy_data_helpers.sequence` | FASTA-to-dict loader plus mono/tandem repeat classifier and BED interval helper. | Dustmasker, tantan, Windowmasker `lc_classify` scripts. |
+| `galaxy_data_helpers.gff` | Attribute parsing, `normalize_gene_id`, and `parse_gff_cds` to build gene→CDS maps. | Liftoff triage, TOGA merge, anchor-prep filters, orthogroup CDS grouping. |
+| `galaxy_data_helpers.sequence` | FASTA loader, repeat classifier, reverse complement, translation, CDS extractors, stop-codon utilities. | Dustmasker/tantan/Windowmasker helpers, `phase_c2_triage`, `group_cds_by_og`. |
 | `galaxy_data_helpers.maf` | Extract species/accession prefix from an MAF `s`-line sequence name. | `process_maf.py`, `maf_to_bigmaf_bed.py`. |
 
 Each helper is intentionally small (“do one thing”) so tool wrappers can compose
