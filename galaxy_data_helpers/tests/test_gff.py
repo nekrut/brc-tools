@@ -1,12 +1,16 @@
 import os
 
 from galaxy_data_helpers.gff import (
+    build_isoforms,
+    collect_protein_coding_genes,
+    filter_bed12,
+    gff_to_bed_rows,
     normalize_gene_id,
     parse_gff_attributes_to_dict,
     parse_gff_cds,
 )
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "gff")
+ANCHOR_DIR = os.path.join(os.path.dirname(__file__), "data", "anchor_prep")
 
 
 def _attr_line(path: str, line_index: int) -> str:
@@ -61,6 +65,36 @@ def test_parse_gff_attributes_to_dict_preserves_equals_in_value():
 def test_parse_gff_attributes_to_dict_whitespace_trimmed():
     attrs = parse_gff_attributes_to_dict("  ID = gene1 ; name = foo  ")
     assert attrs == {"ID": "gene1", "name": "foo"}
+
+
+def test_collect_protein_coding_genes(tmp_path):
+    pc = collect_protein_coding_genes(os.path.join(ANCHOR_DIR, "test.gff3"))
+    assert pc == {"gene1", "gene2"}
+
+
+def test_filter_bed12(tmp_path):
+    raw = tmp_path / "raw.bed"
+    raw.write_text("chr1\t0\t10\ttranscript1\t0\t+\t0\t10\t0\t1\t10\t0\tgeneID=gene1\n")
+    out = tmp_path / "out.bed"
+    total, kept = filter_bed12(raw, out, {"gene1"})
+    assert (total, kept) == (1, 1)
+    assert "gene1" in out.read_text()
+
+
+def test_build_isoforms(tmp_path):
+    out = tmp_path / "isoforms.tsv"
+    n = build_isoforms(os.path.join(ANCHOR_DIR, "test.gff3"), out)
+    assert n == 2
+    assert "gene1\tgene1.t1" in out.read_text()
+
+
+def test_gff_to_bed_rows(tmp_path):
+    out = tmp_path / "genes.bed"
+    n = gff_to_bed_rows(os.path.join(ANCHOR_DIR, "test.gff3"), out)
+    assert n == 2
+    text = out.read_text()
+    assert "gene1" in text
+    assert "gene2" in text
 
 
 def test_normalize_gene_id_variants():

@@ -41,28 +41,9 @@ The remaining work for these two is on the **tool-wrapper side**, not in the lib
 | `parse_blocks`, `iter_maf_blocks`, `find_ref_index`, `reorder_block`, `emit_bed_record` | `galaxy_data_helpers.maf` | `tools/process_maf/process_maf.py`, `tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.py` |
 | `load_matrix`, `similarities_to_hinge`, `order_queries` | `galaxy_data_helpers.multiz` | `tools/multiz_fold/multiz_order.py` |
 
-## 0.6.0 — single-instance helpers that are good library candidates
+## 0.6.0 — already done
 
-These are not duplicated yet, but they isolate reusable logic from large scripts and should move into the library for testability.
-
-| Candidate | Type | Donor script | Suggested module |
-|---|---|---|---|
-| `collect_protein_coding_genes` + `filter_bed12` + `build_isoforms` | Functions | `tools/anchor_prep/build_anchor_inputs.py` | `galaxy_data_helpers.gff` |
-| `gff_to_bed` + `parse_id` | Functions | `tools/gene_bed/gene_bed.py` | `galaxy_data_helpers.gff` |
-| `load_ortho_table` | Function | `tools/group_cds_by_og/group_cds_by_og.py` | `galaxy_data_helpers.orthology` |
-| `read_manifest` | Function | `tools/group_cds_by_og/group_cds_by_og.py` | `galaxy_data_helpers.io` |
-| `safe_name` | Function | `tools/group_cds_by_og/group_cds_by_og.py` | `galaxy_data_helpers.ids` |
-| `open_maybe_gz` | Function | `tools/pansn_rename/pansn_rename.py` | `galaxy_data_helpers.io` |
-| `rename` (PanSN header) | Function | `tools/pansn_rename/pansn_rename.py` | `galaxy_data_helpers.pansn` |
-| `relabel_map` | Function | `tools/collection_relabel_map/relabel_map.py` | `galaxy_data_helpers.collections` |
-| `self_pairs` | Function | `tools/collection_self_pairs/self_pairs.py` | `galaxy_data_helpers.collections` |
-| `is_subtelomeric` | Function | `tools/phase_c2_triage/phase_c2_triage.py` | `galaxy_data_helpers.coordinates` |
-| `get_splice_sites` | Function | `tools/phase_c2_triage/phase_c2_triage.py` | `galaxy_data_helpers.sequence` |
-| `triage_gene` + rule engine | Function | `tools/phase_c2_triage/phase_c2_triage.py` | `galaxy_data_helpers.triage` (with R7/R8 as pluggable rules) |
-| `load_liftoff_clean` + `load_toga2_loss_summary` + `load_toga2_orthology` | Functions | `tools/phase_c4_merge/phase_c4_merge.py` | `galaxy_data_helpers.triage` |
-| `build_hub_bb` track logic | Functions | `tools/build_hub_bb/build_hub_bb.py` | `galaxy_data_helpers.hub` |
-| `build_trackdb` stanza builders | Functions | `tools/build_trackdb/build_trackdb.py` | `galaxy_data_helpers.hub` |
-| `chain_to_bigChain` | Function | `tools/chain_to_bigChain/chain_to_bigChain.py` | `galaxy_data_helpers.hub` or `galaxy_data_helpers.chains` |
+Single-instance helpers (anchor prep, gene BED, manifests, PanSN renaming, collection relabel/self pairs) now live across `galaxy_data_helpers.gff`, `.io`, `.pansn`, `.orthology`, and `.collections` modules.
 
 ## Deferred / probably not for the library
 

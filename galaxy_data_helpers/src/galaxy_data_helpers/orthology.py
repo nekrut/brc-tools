@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import csv
+import re
+from pathlib import Path
+from typing import Iterable
 
 
 WEIGHTS: dict[tuple[str, str], float] = {
@@ -103,3 +107,39 @@ def collapse_positions(gene_ids, strain: str, node_positions: dict[str, tuple[st
     for gid in dict.fromkeys(no_pos):
         clusters.append([gid])
     return clusters
+
+
+def safe_name(value: str) -> str:
+    """Make an orthogroup identifier filesystem and collection safe."""
+
+    return re.sub(r"[^A-Za-z0-9_.\-]", "_", value)
+
+
+def load_ortho_table(
+    ortho_path: str | Path,
+    strains: Iterable[str],
+    min_intact: int,
+    ref_strain: str,
+    normalize_fn=None,
+) -> list[tuple[str, str]]:
+    """Parse ortholog_table.tsv rows into (orthogroup_id, reference_gene_id)."""
+
+    norm = normalize_fn or (lambda x: x)
+    results: list[tuple[str, str]] = []
+    strains = list(strains)
+    with open(ortho_path) as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        for idx, row in enumerate(reader, start=1):
+            ref_val = row.get(ref_strain, "-")
+            if not ref_val or ref_val in {"-", ""}:
+                continue
+            n_present = sum(1 for strain in strains if row.get(strain, "-") not in {"-", "", None})
+            if n_present < min_intact:
+                continue
+            og_id = row.get("orthogroup_id") or row.get("og") or row.get("OG") or f"OG{idx:06d}"
+            candidates = [norm(part.strip()) for part in re.split(r"[,|]", ref_val) if part.strip()]
+            candidates = [cand for cand in candidates if cand]
+            if not candidates:
+                continue
+            results.append((og_id, candidates[0]))
+    return results

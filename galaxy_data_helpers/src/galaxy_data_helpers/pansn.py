@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from pathlib import Path
+from typing import TextIO
 
 
 def parse_pansn(name: str) -> tuple[str, str]:
@@ -30,3 +31,19 @@ def load_graph_paths(paths_tsv: str | Path) -> dict[str, set[str]]:
             strain, contig = parse_pansn(parts[0])
             contig_members[contig].add(strain)
     return contig_members
+
+
+def rename_headers(in_fh: TextIO, out_fh: TextIO, sample: str, haplotype: int = 1, delimiter: str = "#") -> int:
+    """Prefix FASTA headers with PanSN SAMPLE/HAP/CONTIG fields."""
+
+    prefix = f"{sample}{delimiter}{haplotype}{delimiter}"
+    n = 0
+    for line in in_fh:
+        if line.startswith(">"):
+            n += 1
+            contig = line[1:].split(None, 1)[0]
+            rest = line[1 + len(contig) :]
+            out_fh.write(f">{prefix}{contig}{rest}")
+        else:
+            out_fh.write(line)
+    return n
