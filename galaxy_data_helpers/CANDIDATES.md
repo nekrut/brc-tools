@@ -34,14 +34,12 @@ The remaining work for these two is on the **tool-wrapper side**, not in the lib
 | `index_by_chrom`, `best_query_gene` | `galaxy_data_helpers.intervals` | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` |
 | `parse_pansn`, `load_graph_paths` | `galaxy_data_helpers.pansn` | `tools/phase_e_graph_edges/phase_e_graph_edges.py` |
 
-## 0.5.0 — MAF and multiz helpers
+## 0.5.0 — already done
 
-| Candidate | Type | Donor scripts | Notes |
-|---|---|---|---|
-| `parse_blocks` | Function | `tools/process_maf/process_maf.py` | Parse MAF file into blocks. Suggested module: `galaxy_data_helpers.maf`. |
-| `iter_maf_blocks` | Generator | `tools/process_maf/process_maf.py`, `tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.py` | Both scripts walk MAF `a` blocks. A shared generator would deduplicate the loop. |
-| `emit_block` | Function | `tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.py` | Convert one MAF block to bigMaf BED3+1. Suggested module: `galaxy_data_helpers.maf`. |
-| `load_matrix` + `similarities_to_hinge` + `order_queries` | Functions | `tools/multiz_fold/multiz_order.py` | Sourmash `compare.csv` → fold order. Suggested module: `galaxy_data_helpers.multiz` or `galaxy_data_helpers.matrix`. |
+| Function | Module | Donor scripts |
+|---|---|---|
+| `parse_blocks`, `iter_maf_blocks`, `find_ref_index`, `reorder_block`, `emit_bed_record` | `galaxy_data_helpers.maf` | `tools/process_maf/process_maf.py`, `tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.py` |
+| `load_matrix`, `similarities_to_hinge`, `order_queries` | `galaxy_data_helpers.multiz` | `tools/multiz_fold/multiz_order.py` |
 
 ## 0.6.0 — single-instance helpers that are good library candidates
 

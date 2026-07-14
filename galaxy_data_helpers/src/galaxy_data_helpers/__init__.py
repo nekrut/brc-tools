@@ -8,7 +8,18 @@ from .gff import (
     parse_gff_cds,
 )
 from .intervals import best_query_gene, index_by_chrom
-from .maf import species_of
+from .maf import (
+    emit_bed_record,
+    find_ref_index,
+    iter_maf_blocks,
+    parse_blocks,
+    species_of,
+)
+from .multiz import (
+    load_matrix as load_multiz_matrix,
+    order_queries as order_multiz_queries,
+    similarities_to_hinge,
+)
 from .orthology import (
     UnionFind,
     collapse_positions,
@@ -36,17 +47,24 @@ __all__ = [
     "extract_cds",
     "extract_sequence",
     "edge_weight",
+    "emit_bed_record",
     "has_internal_stop",
     "index_by_chrom",
     "load_bed_genes_by_source",
     "load_fasta_as_dict",
+    "load_graph_paths",
+    "load_multiz_matrix",
     "normalize_gene_id",
+    "order_multiz_queries",
     "parse_chain_header",
     "parse_gff_attributes_to_dict",
     "parse_gff_cds",
+    "parse_blocks",
     "parse_pansn",
     "project_gene",
-    "load_graph_paths",
+    "find_ref_index",
+    "iter_maf_blocks",
+    "similarities_to_hinge",
     "revcomp",
     "species_of",
     "strip_internal_stops",

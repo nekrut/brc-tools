@@ -1,0 +1,11 @@
+##maf version=1 scoring=none
+# comment
+
+a score=0
+s GCA_000001.1.chr1 0 4 + 100 ACCT
+s sampleB.chr1 0 4 + 100 AC-T
+
+a score=1
+s GCA_000001.1.chr2 10 3 + 200 GGG
+s sampleB.chr2 20 3 + 200 G-T
+
