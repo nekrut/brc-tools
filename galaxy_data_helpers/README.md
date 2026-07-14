@@ -1,17 +1,20 @@
 # galaxy-data-helpers
 
-A small Python helper library shared by the Galaxy tool wrappers in the
-`brc-tools` repository for handling common data formats (BED, GFF3).
+Utility functions shared by the Galaxy tool wrappers in the `brc-tools`
+repository. The goal is to keep frequently copied parsing logic (BED/GFF/FASTA)
+and small algorithms (repeat classifiers, MAF helpers) in one importable place.
 
-## Scope
+## What it provides today
 
-Version 0.1.0 is intentionally minimal. It extracts only the two functions
-confirmed to be duplicated across tool wrappers:
+| Module | What it covers | Typical use cases |
+| --- | --- | --- |
+| `galaxy_data_helpers.bed` | Load per-sample BED files keyed by filename stem. | Phase E reciprocal-best overlap + graph-edges tools. |
+| `galaxy_data_helpers.gff` | Parse column 9 `key=value` pairs into a dict. | Liftoff triage, TOGA merge, anchor-prep filters. |
+| `galaxy_data_helpers.sequence` | FASTA-to-dict loader plus mono/tandem repeat classifier and BED interval helper. | Dustmasker, tantan, Windowmasker `lc_classify` scripts. |
+| `galaxy_data_helpers.maf` | Extract species/accession prefix from an MAF `s`-line sequence name. | `process_maf.py`, `maf_to_bigmaf_bed.py`. |
 
-- `galaxy_data_helpers.bed.load_bed_genes_by_source` — shared by the reciprocal-best-chain
-  overlap tool and the PGGB graph-path edge tool.
-- `galaxy_data_helpers.gff.parse_gff_attributes_to_dict` — shared by the Liftoff triage
-  tool and the TOGA2/CESAR2 merge tool.
+Each helper is intentionally small (“do one thing”) so tool wrappers can compose
+them without inheriting pipeline-specific behavior.
 
 ## Install
 
