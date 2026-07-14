@@ -25,19 +25,14 @@ The remaining work for these two is on the **tool-wrapper side**, not in the lib
 | `normalize_gene_id`, `parse_gff_cds` | `galaxy_data_helpers.gff` | `tools/phase_e_consensus/phase_e_consensus.py`, `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py`, `tools/phase_c4_merge/phase_c4_merge.py` |
 | `revcomp`, `translate`, `strip_internal_stops`, `has_internal_stop`, `extract_cds`, `extract_sequence` | `galaxy_data_helpers.sequence` | `tools/group_cds_by_og/group_cds_by_og.py`, `tools/phase_c2_triage/phase_c2_triage.py` |
 
-## 0.4.0 — orthology / graph / chain algorithms
+## 0.4.0 — already done
 
-| Candidate | Type | Donor scripts | Notes |
-|---|---|---|---|
-| `UnionFind` | Class | `tools/phase_e_consensus/phase_e_consensus.py` | Generic union-find with path compression. Suggested module: `galaxy_data_helpers.orthology`. |
-| `reciprocal_overlap` | Function | `tools/phase_e_consensus/phase_e_consensus.py` | Generic interval overlap ratio. Suggested module: `galaxy_data_helpers.orthology` or `galaxy_data_helpers.interval`. |
-| `collapse_positions` | Function | `tools/phase_e_consensus/phase_e_consensus.py` | Group overlapping gene positions by strain. Suggested module: `galaxy_data_helpers.orthology`. |
-| `parse_chain_header` + `iter_chains` | Functions | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` | UCSC chain parsing primitives. Suggested module: `galaxy_data_helpers.chains` or `galaxy_data_helpers.orthology`. |
-| `project_gene` | Function | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` | Project a target gene interval through chain blocks. Suggested module: `galaxy_data_helpers.chains`. |
-| `index_by_chrom` + `best_query_gene` | Functions | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` | Sorted interval index and best-overlap lookup. Suggested module: `galaxy_data_helpers.interval`. |
-| `parse_pansn` | Function | `tools/phase_e_graph_edges/phase_e_graph_edges.py` | Parse SAMPLE#HAP#CONTIG PanSN names. Suggested module: `galaxy_data_helpers.pansn` or `galaxy_data_helpers.sequence`. |
-| `load_graph_paths` | Function | `tools/phase_e_graph_edges/phase_e_graph_edges.py` | Parse `odgi paths --haplotypes` output. Suggested module: `galaxy_data_helpers.orthology` or `galaxy_data_helpers.graph`. |
-| `edge_weight` + `WEIGHTS` | Function/constant | `tools/phase_e_consensus/phase_e_consensus.py` | Maps source/intactness to edge weight. Suggested module: `galaxy_data_helpers.orthology`. |
+| Function | Module | Donor scripts |
+|---|---|---|
+| `UnionFind`, `edge_weight`, `reciprocal_overlap`, `collapse_positions` | `galaxy_data_helpers.orthology` | `tools/phase_e_consensus/phase_e_consensus.py` |
+| `parse_chain_header`, `iter_chains`, `project_gene` | `galaxy_data_helpers.chains` | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` |
+| `index_by_chrom`, `best_query_gene` | `galaxy_data_helpers.intervals` | `tools/phase_e_rbest_overlap/phase_e_rbest_overlap.py` |
+| `parse_pansn`, `load_graph_paths` | `galaxy_data_helpers.pansn` | `tools/phase_e_graph_edges/phase_e_graph_edges.py` |
 
 ## 0.5.0 — MAF and multiz helpers
 
