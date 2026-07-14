@@ -1,4 +1,4 @@
-from galaxy_data_helpers.orthology import (
+from genome_io.orthology import (
     UnionFind,
     collapse_positions,
     edge_weight,

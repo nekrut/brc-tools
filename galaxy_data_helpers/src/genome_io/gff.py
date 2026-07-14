@@ -1,4 +1,4 @@
-"""GFF3 helpers for Galaxy tool wrappers."""
+"""GFF3 helpers for genomics workflow wrappers."""
 
 from __future__ import annotations
 

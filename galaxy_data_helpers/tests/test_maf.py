@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from galaxy_data_helpers.maf import (
+from genome_io.maf import (
     emit_bed_record,
     find_ref_index,
     iter_maf_blocks,

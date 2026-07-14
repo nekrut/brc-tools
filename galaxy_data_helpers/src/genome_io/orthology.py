@@ -1,4 +1,4 @@
-"""Orthology helpers shared by Galaxy tool wrappers."""
+"""Orthology helpers shared by genomics workflow wrappers."""
 
 from __future__ import annotations
 

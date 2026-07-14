@@ -1,4 +1,4 @@
-from galaxy_data_helpers.intervals import best_query_gene, index_by_chrom
+from genome_io.intervals import best_query_gene, index_by_chrom
 
 
 def test_index_by_chrom_builds_sorted_lists():

@@ -1,4 +1,4 @@
-"""Collection relabeling helpers for Galaxy wrapper workflows."""
+"""Collection relabeling helpers for workflow wrapper cross-products."""
 
 from __future__ import annotations
 

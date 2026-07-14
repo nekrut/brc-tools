@@ -1,4 +1,4 @@
-from galaxy_data_helpers.multiz import load_matrix, order_queries, similarities_to_hinge
+from genome_io.multiz import load_matrix, order_queries, similarities_to_hinge
 
 
 def test_load_matrix_and_similarities(tmp_path):

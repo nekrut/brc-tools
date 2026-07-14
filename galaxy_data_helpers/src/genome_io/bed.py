@@ -1,4 +1,4 @@
-"""BED-format helpers for Galaxy tool wrappers."""
+"""BED-format helpers for genomics-focused workflow wrappers."""
 
 import glob
 from collections import defaultdict

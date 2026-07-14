@@ -1,6 +1,6 @@
 import os
 
-from galaxy_data_helpers.bed import load_bed_genes_by_source
+from genome_io.bed import load_bed_genes_by_source
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "bed")
 

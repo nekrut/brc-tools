@@ -1,4 +1,4 @@
-"""MAF-format helpers for Galaxy tool wrappers."""
+"""MAF-format helpers for genomics workflow wrappers."""
 
 from __future__ import annotations
 

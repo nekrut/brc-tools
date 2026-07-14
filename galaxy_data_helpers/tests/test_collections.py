@@ -1,4 +1,4 @@
-from galaxy_data_helpers.collections import relabel_pairs, self_pairs
+from genome_io.collections import relabel_pairs, self_pairs
 
 
 def test_relabel_pairs_cross_product():

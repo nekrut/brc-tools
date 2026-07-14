@@ -1,7 +1,7 @@
 from io import StringIO
 import os
 
-from galaxy_data_helpers.pansn import load_graph_paths, parse_pansn, rename_headers
+from genome_io.pansn import load_graph_paths, parse_pansn, rename_headers
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "pansn")
 

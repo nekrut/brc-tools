@@ -1,6 +1,6 @@
 import os
 
-from galaxy_data_helpers.gff import (
+from genome_io.gff import (
     build_isoforms,
     collect_protein_coding_genes,
     filter_bed12,

@@ -1,4 +1,4 @@
-"""Sequence helpers for Galaxy tool wrappers."""
+"""Sequence helpers for genomics workflow wrappers."""
 
 from pathlib import Path
 
@@ -156,7 +156,7 @@ def extract_cds(segments, fasta, transcript: str | None = None) -> str:
     """Assemble CDS sequence from parsed segments.
 
     ``segments`` should be a list of ``(chrom, start, end, strand, phase, parent)``
-    tuples such as those returned by :func:`galaxy_data_helpers.gff.parse_gff_cds`.
+    tuples such as those returned by :func:`genome_io.gff.parse_gff_cds`.
     When ``transcript`` is given only segments for that Parent are used; otherwise
     segments belonging to the first entry's parent are preferred.
     """

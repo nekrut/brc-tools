@@ -3,16 +3,16 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "galaxy-data-helpers"
-version = "0.6.0"
-description = "Small helper library for Galaxy data parsing in tool wrappers"
+name = "genome-io"
+version = "0.1.0"
+description = "Lightweight genomic IO helpers for workflow tool wrappers"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "BRC Analytics"},
 ]
-keywords = ["galaxy", "genomics", "gff3", "bed"]
+keywords = ["genomics", "io", "gff3", "bed"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",

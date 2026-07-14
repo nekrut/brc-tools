@@ -1,6 +1,6 @@
 import gzip
 
-from galaxy_data_helpers.io import open_maybe_gz, read_manifest
+from genome_io.io import open_maybe_gz, read_manifest
 
 
 def test_read_manifest(tmp_path):

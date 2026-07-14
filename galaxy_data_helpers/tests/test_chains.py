@@ -1,4 +1,4 @@
-from galaxy_data_helpers.chains import iter_chains, parse_chain_header, project_gene
+from genome_io.chains import iter_chains, parse_chain_header, project_gene
 
 
 def test_parse_chain_header_valid_line():

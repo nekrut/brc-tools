@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from galaxy_data_helpers.sequence import (
+from genome_io.sequence import (
     classify_bed_interval,
     classify_repeat_signature,
     extract_cds,

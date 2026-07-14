@@ -1,4 +1,4 @@
-"""Helper utilities for Galaxy tool wrapper data parsing."""
+"""Helper utilities for genomics-focused workflow tool wrappers."""
 
 from .bed import load_bed_genes_by_source
 from .chains import iter_chains, parse_chain_header, project_gene
@@ -21,13 +21,6 @@ from .maf import (
     species_of,
 )
 from .io import open_maybe_gz, read_manifest
-from .maf import (
-    emit_bed_record,
-    find_ref_index,
-    iter_maf_blocks,
-    parse_blocks,
-    species_of,
-)
 from .multiz import (
     load_matrix as load_multiz_matrix,
     order_queries as order_multiz_queries,
