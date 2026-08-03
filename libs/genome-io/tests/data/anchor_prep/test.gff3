@@ -1,0 +1,9 @@
+##gff-version 3
+chr1	src	protein_coding_gene	100	500	.	+	.	ID=gene1
+chr1	src	mRNA	100	500	.	+	.	ID=gene1.t1;Parent=gene1
+chr1	src	exon	100	200	.	+	.	ID=gene1.t1.e1;Parent=gene1.t1
+chr1	src	CDS	100	200	.	+	0	ID=gene1.t1.cds1;Parent=gene1.t1
+chr1	src	protein_coding_gene	600	900	.	-	.	ID=gene2
+chr1	src	mRNA	600	900	.	-	.	ID=gene2.t1;Parent=gene2
+chr1	src	exon	600	700	.	-	.	ID=gene2.t1.e1;Parent=gene2.t1
+chr1	src	CDS	600	700	.	-	0	ID=gene2.t1.cds1;Parent=gene2.t1
