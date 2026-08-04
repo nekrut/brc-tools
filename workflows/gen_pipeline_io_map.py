@@ -76,6 +76,66 @@ WHAT = {
           "strain with Liftoff, then triaged and merged into a per-pair classification.",
 }
 
+# Plain-language description of each workflow for a reader who knows the biology
+# but not this pipeline: what it is for, what goes in, what comes out.
+WHY = {
+    "A": "Before aligning anything, you want to know what is actually in the panel: how similar "
+         "the genomes are to each other, and whether any of them is missing a chunk of its gene "
+         "content. This workflow answers both. It takes the genome sequences and their protein "
+         "sets. It compares every genome against every other with sourmash, which comes to a "
+         "similarity score from shared k-mers without doing an alignment, so it is fast even on "
+         "whole genomes. Separately it runs BUSCO, which asks how many of the several hundred "
+         "genes expected to be present in exactly one copy in this clade can be found in each "
+         "strain. What comes out is an all-against-all similarity matrix with a clustered heatmap "
+         "and a tree, a completeness score per strain, and one QC report holding both. It also "
+         "writes the small bookkeeping files the alignment step needs later (chromosome lengths, "
+         "the list of genome pairs), so nobody has to make those by hand. The point is to catch a "
+         "bad assembly or an unexpected outlier here, before spending days of compute on it. On "
+         "the Pv4 panel it did exactly that: PvSY56 sits at about 0.24 similarity to everything "
+         "else while the rest sit at 0.63 to 0.70, and MHC087 came back only 87% complete.",
+    "B": "Genomes are full of repetitive and low-complexity sequence: homopolymer runs, short "
+         "tandem repeats, satellite arrays. Align without handling it and those regions generate "
+         "enormous numbers of meaningless matches, because a stretch of AT repeats matches every "
+         "other stretch of AT repeats in the genome. This workflow finds that sequence and "
+         "lowercases it. Lowercasing rather than cutting is deliberate: the bases stay where they "
+         "are, so every coordinate downstream is unchanged and nothing is lost, while alignment "
+         "tools that honour soft-masking can avoid seeding matches inside them. It takes the raw "
+         "genomes and runs four independent "
+         "repeat finders over each one, then merges everything any of them flagged and lowercases "
+         "the union. Four tools rather than one because they disagree with each other, and taking "
+         "the union is the conservative choice. What comes out is the soft-masked genome set that "
+         "every later step uses, one browser track per tool showing what it flagged and what kind "
+         "of repeat it is, and a table of how much of each genome each tool masked.",
+    "C": "To compare two genomes you first have to establish which piece of one corresponds to "
+         "which piece of the other. This workflow aligns every genome against every other, all 56 "
+         "ordered pairs for 8 genomes, and then assembles the thousands of short local alignments "
+         "into chains and nets. A chain is a run of alignments in consistent order and "
+         "orientation; the netting step picks the best chain for each region and discards the "
+         "rest. That turns a haystack of local hits into a statement about large-scale "
+         "correspondence, so a real inversion or translocation shows up as structure rather than "
+         "disappearing into noise. It takes the soft-masked genomes and their chromosome lengths. "
+         "What comes out is, for each ordered pair, the cleaned chains, the raw pairwise "
+         "alignments, and a reciprocal-best set, which keeps only the cases where two regions are "
+         "each other's best match. That reciprocal condition matters: it is the difference "
+         "between two regions being genuinely the same locus in two strains, and one of them "
+         "being a paralog elsewhere in the genome. This is by far the most expensive step, and "
+         "the alignment runs on a GPU.",
+    "C2": "Most genomes in a panel have no gene annotation worth trusting. This workflow borrows "
+          "one. Each anchor genome comes with a curated set of gene models, and those genes are "
+          "carried across the alignment onto every other genome: wherever the alignment says a "
+          "stretch of anchor sequence corresponds to a stretch of query sequence, the gene is "
+          "placed there. It takes the anchor genomes with their gene models, the genomes being "
+          "annotated, and the soft-masked sequence. Every projected gene is then examined, because "
+          "a gene landing somewhere is not the same as a gene surviving: the check asks whether it "
+          "still has an intact reading frame, or whether it is interrupted by a premature stop, "
+          "shifted out of frame, or missing exons. What comes out, for each anchor and query "
+          "combination, is a GFF3 of the projected genes and a table classifying each one as "
+          "intact or lost. That classification is the raw evidence the orthology step downstream "
+          "uses to decide which genes are shared across the whole panel. One limitation to be "
+          "clear about: this is projection, not gene finding. A gene present in a query genome but "
+          "absent from every anchor cannot be discovered this way.",
+}
+
 EXTERNAL = {
     ("A", "assemblies"): "Staged panel genomes — $PV4_SSD/pv4_full/inputs/assemblies/{strain}.fa",
     ("A", "proteomes"): "gffread-derived protein FASTAs; PvP01 + Sal-I use PlasmoDB curated sets",
@@ -576,10 +636,21 @@ def main():
     A('</section></div>')
 
     # ---- graph -----------------------------------------------------------
-    A('<div class="wrap"><section id="graph"><h2>Workflow graph</h2>'
-      '<p class="note">Every step of the four workflows verified in the clean re-run, wired '
-      'input&rarr;output straight from the workflow files. Flow runs top to bottom; dashed grey '
-      'edges in the right-hand lane cross workflow boundaries.</p></section></div>')
+    A('<div class="wrap"><section id="graph"><h2>What each workflow does</h2>'
+      '<p class="note">Four workflows have been run and verified end to end. Here is what each one '
+      'is for, in plain terms, before the step-by-step diagram below.</p><div class="why-grid">')
+    for wid in VETTED:
+        g = graphs[wid]
+        A(f'<div class="why" style="--c:{WFCOL[wid]}">'
+          f'<div class="whyhdr"><span class="badge">{esc(g["ph"])}</span>'
+          f'<b>{esc(g["title"])}</b>'
+          f'<span class="ok">&#10003; {esc(STATUS[wid]["jobs"])}</span></div>'
+          f'<p>{WHY[wid]}</p></div>')
+    A('</div>'
+      '<h3>The diagram</h3>'
+      '<p class="note">Every step of those four workflows, wired input&rarr;output straight from '
+      'the workflow files. Flow runs top to bottom; dashed grey edges in the right-hand lane '
+      'cross workflow boundaries.</p></section></div>')
 
     A('<div class="legend"><span><i class="sw in"></i>workflow input</span>'
       '<span><i class="sw st"></i>tool step</span>'
@@ -785,6 +856,11 @@ code.path{background:none;border:0;color:var(--mut);margin-left:auto;font-size:1
 .n.dim rect,.n.dim text{opacity:.3}
 .hot rect{stroke:var(--primary);stroke-width:2.4}
 .e.hot{opacity:1;stroke-width:2.6}
+.why-grid{display:grid;gap:14px;margin:14px 0 4px}
+.why{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:0 8px 8px 0;padding:14px 18px;box-shadow:0 1px 2px rgba(33,43,54,.04)}
+.whyhdr{display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap}
+.whyhdr b{font-size:15px}
+.why p{margin:0;font-size:13.5px;color:var(--ink);max-width:95ch;line-height:1.65}
 .wf{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 18px 18px;box-shadow:0 1px 2px rgba(33,43,54,.04)}
 .wfhdr{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
 .wfhdr h2{margin:0;font-size:17px}
