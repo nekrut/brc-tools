@@ -25,6 +25,7 @@ Run:  python workflows/gen_pipeline_io_map.py   (needs PyYAML)
 import html
 import json
 import os
+import re
 import sys
 
 import yaml
@@ -33,6 +34,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gen_pipeline_dataflow import EDGES, WF_META  # single source of truth for wiring
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Prose lives here, not in this file -- see load_descriptions().
+DESCRIPTIONS = "workflows/workflow_descriptions.md"
 
 # ---- palette -------------------------------------------------------------
 # Taken from BRC Analytics: site-config/brc-analytics/local/theme/constants.ts
@@ -63,18 +67,7 @@ WFCOL = {"A": BRC["primary"], "B": BRC["info"], "C": BRC["warning"], "C2": BRC["
 # Producers must precede consumers so every cross-workflow edge points down.
 VETTED = ["A", "B", "C", "C2"]
 
-WHAT = {
-    "A": "Panel inventory: sourmash sketch/compare for pairwise similarity, BUSCO for "
-         "per-strain completeness, and the derived panel bookkeeping (sizes, self-pairs, "
-         "relabel map) that WF-C needs — generated in-workflow rather than hand-authored.",
-    "B": "Soft-masking: four maintained low-complexity maskers run in parallel, each "
-         "emitting a content-annotated BED6 hub track; their union soft-masks the assembly.",
-    "C": "Pairwise alignment and chaining across the full ordered strain grid: "
-         "KegAlign/LASTZ → axtChain → chainNet → netChainSubset → reciprocal-best, "
-         "one-click via native collection operations.",
-    "C2": "Annotation projection: each anchor's curated genes are lifted onto every other "
-          "strain with Liftoff, then triaged and merged into a per-pair classification.",
-}
+
 
 EXTERNAL = {
     ("A", "assemblies"): "Staged panel genomes — $PV4_SSD/pv4_full/inputs/assemblies/{strain}.fa",
@@ -266,6 +259,54 @@ def esc(s):
     return html.escape(str(s or ""))
 
 
+def md_inline(s):
+    """Escape, then apply the inline markdown the descriptions file allows."""
+    s = html.escape(s)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+    s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<i>\1</i>", s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', s)
+    return s
+
+
+def md_block(text, tag="p"):
+    """Blank-line-separated paragraphs -> <p>...</p>."""
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+    return "".join(f"<{tag}>{md_inline(' '.join(p.split()))}</{tag}>" for p in paras)
+
+
+def load_descriptions(path=DESCRIPTIONS):
+    """Parse workflow_descriptions.md -> {wf_id: {"summary": .., "description": ..}}.
+
+    The prose lives in markdown rather than in this file so it can be edited
+    without touching Python. Missing or empty sections are a hard error: a
+    silently blank description would publish to the live site unnoticed.
+    """
+    raw = open(os.path.join(ROOT, path)).read()
+    raw = re.sub(r"<!--.*?-->", "", raw, flags=re.S)      # strip comments
+    out, wid, field = {}, None, None
+    for line in raw.split("\n"):
+        m2, m3 = re.match(r"##\s+(\S+)\s*$", line), re.match(r"###\s+(\S+)\s*$", line)
+        if m2 and not m3:
+            wid, field = m2.group(1), None
+            out.setdefault(wid, {})
+        elif m3 and wid:
+            field = m3.group(1).lower()
+            out[wid][field] = ""
+        elif wid and field is not None:
+            out[wid][field] += line + "\n"
+
+    missing = []
+    for w in VETTED:
+        for f in ("summary", "description"):
+            if not (out.get(w, {}).get(f) or "").strip():
+                missing.append(f"{w}.{f}")
+    if missing:
+        raise SystemExit(f"{path}: missing or empty section(s): {', '.join(missing)}\n"
+                         f"every workflow in VETTED needs '### summary' and '### description'.")
+    return out
+
+
 def short_tool(tid):
     if not tid:
         return ""
@@ -396,6 +437,7 @@ def layout(nodes, edges):
 
 
 def main():
+    desc = load_descriptions()
     graphs = {}
     for wid in VETTED:
         path = WF_META[wid][0]
@@ -576,10 +618,21 @@ def main():
     A('</section></div>')
 
     # ---- graph -----------------------------------------------------------
-    A('<div class="wrap"><section id="graph"><h2>Workflow graph</h2>'
-      '<p class="note">Every step of the four workflows verified in the clean re-run, wired '
-      'input&rarr;output straight from the workflow files. Flow runs top to bottom; dashed grey '
-      'edges in the right-hand lane cross workflow boundaries.</p></section></div>')
+    A('<div class="wrap"><section id="graph"><h2>What each workflow does</h2>'
+      '<p class="note">Four workflows have been run and verified end to end. Here is what each one '
+      'is for, in plain terms, before the step-by-step diagram below.</p><div class="why-grid">')
+    for wid in VETTED:
+        g = graphs[wid]
+        A(f'<div class="why" style="--c:{WFCOL[wid]}">'
+          f'<div class="whyhdr"><span class="badge">{esc(g["ph"])}</span>'
+          f'<b>{esc(g["title"])}</b>'
+          f'<span class="ok">&#10003; {esc(STATUS[wid]["jobs"])}</span></div>'
+          f'{md_block(desc[wid]["description"])}</div>')
+    A('</div>'
+      '<h3>The diagram</h3>'
+      '<p class="note">Every step of those four workflows, wired input&rarr;output straight from '
+      'the workflow files. Flow runs top to bottom; dashed grey edges in the right-hand lane '
+      'cross workflow boundaries.</p></section></div>')
 
     A('<div class="legend"><span><i class="sw in"></i>workflow input</span>'
       '<span><i class="sw st"></i>tool step</span>'
@@ -617,7 +670,7 @@ def main():
           f'<span class="badge">{esc(g["ph"])}</span><h2>{esc(g["title"])}</h2>'
           f'<span class="ok">&#10003; {esc(st["jobs"])}</span>'
           f'<code class="path">{esc(g["path"])}</code></div>')
-        A(f'<p class="what">{WHAT[wid]}</p>')
+        A(f'<div class="what">{md_block(desc[wid]["summary"])}</div>')
         ev = (f'History <code>{esc(st["history"])}</code>'
               + (f' &middot; invocation <code>{esc(st["invocation"])}</code>' if st.get("invocation") else "")
               + f' &middot; {esc(st["when"])}')
@@ -785,12 +838,19 @@ code.path{background:none;border:0;color:var(--mut);margin-left:auto;font-size:1
 .n.dim rect,.n.dim text{opacity:.3}
 .hot rect{stroke:var(--primary);stroke-width:2.4}
 .e.hot{opacity:1;stroke-width:2.6}
+.why-grid{display:grid;gap:14px;margin:14px 0 4px}
+.why{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:0 8px 8px 0;padding:14px 18px;box-shadow:0 1px 2px rgba(33,43,54,.04)}
+.whyhdr{display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap}
+.whyhdr b{font-size:15px}
+.why p{margin:0;font-size:13.5px;color:var(--ink);max-width:95ch;line-height:1.65}
 .wf{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 18px 18px;box-shadow:0 1px 2px rgba(33,43,54,.04)}
 .wfhdr{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
 .wfhdr h2{margin:0;font-size:17px}
 .badge{background:var(--c);color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700}
 .ok{color:var(--ok);font-size:11.5px;font-weight:600;background:var(--ok-lt);border:1px solid var(--ok-l);border-radius:6px;padding:2px 9px}
 .what{color:var(--mut);font-size:13.5px;margin:0 0 12px;max-width:94ch}
+.what p{margin:0 0 6px}
+.what p:last-child{margin-bottom:0}
 .evidence{background:var(--ok-lt);border:1px solid var(--ok-l);border-left:3px solid var(--ok);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12.5px}
 .gap{color:var(--alert);background:var(--alert-lt);border:1px solid var(--alert);border-radius:4px;padding:0 5px;font-size:10px;white-space:nowrap}
 .caveats{display:grid;gap:11px}
