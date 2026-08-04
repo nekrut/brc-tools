@@ -1,0 +1,68 @@
+<tool id="collection_anchor_grid" name="Collection anchor grid" version="1.0+galaxy0" profile="23.0">
+    <description>anchor x query chain selection + relabel map for the TOGA2 pass</description>
+    <requirements>
+        <requirement type="package" version="3.12">python</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python '$__tool_directory__/anchor_grid.py'
+    --anchors '#echo " ".join([str($el.element_identifier) for $el in $anchors])#'
+    --strains '#echo " ".join([str($el.element_identifier) for $el in $strains])#'
+    --keep '$keep'
+    --relabel '$relabel'
+    ]]></command>
+    <inputs>
+        <param name="anchors" type="data_collection" collection_type="list"
+               label="Anchor collection"
+               help="Genomes that donate annotation. Their element identifiers form the target side of the wanted chains."/>
+        <param name="strains" type="data_collection" collection_type="list"
+               label="Strain (query) collection"
+               help="The full panel. Anchors must also appear here, since WF-C only produced chains for panel members."/>
+    </inputs>
+    <outputs>
+        <data name="keep" format="txt" label="${tool.name} on ${on_string}: chain ids to keep"/>
+        <data name="relabel" format="tabular" label="${tool.name} on ${on_string}: chain relabel map"/>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="2">
+            <param name="anchors">
+                <collection type="list">
+                    <element name="A" value="empty.txt"/>
+                    <element name="B" value="empty.txt"/>
+                </collection>
+            </param>
+            <param name="strains">
+                <collection type="list">
+                    <element name="A" value="empty.txt"/>
+                    <element name="B" value="empty.txt"/>
+                    <element name="C" value="empty.txt"/>
+                </collection>
+            </param>
+            <!-- 2 anchors x 3 strains = 6 cells, minus the 2 self-cells = 4 -->
+            <output name="keep" value="keep.txt" ftype="txt"/>
+            <output name="relabel" value="relabel.tsv" ftype="tabular"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+Bridges WF-C's chain collection onto WF-C2's projection grid.
+
+WF-C emits one cleaned chain per ordered strain pair, keyed ``{target}.{query}``
+(56 cells for 8 strains). WF-C2's grid is anchors x strains with the anchor
+self-cells dropped, keyed ``{anchor}_{query}`` (21 cells for 3 anchors x 8
+strains). TOGA2's ``--chain_file`` is the reference-to-query chain and its
+reference is the anchor, so cell ``{anchor}_{query}`` needs the chain whose
+**target** is the anchor, i.e. ``{anchor}.{query}``.
+
+This emits the two files that bridge them:
+
+- **chain ids to keep** — one ``{anchor}.{query}`` per line, for
+  ``__FILTER_FROM_FILE__`` with ``remove_if_absent``.
+- **chain relabel map** — ``{anchor}.{query}<TAB>{anchor}_{query}``, for
+  ``__RELABEL_FROM_FILE__``, so the chains line up element-for-element with the
+  rest of the grid.
+
+Both are derived from the two collections' element identifiers, so a new panel
+needs no hand-authored config. Fails loudly if an anchor is not also a member of
+the strain collection, since WF-C would never have produced its chains.
+    ]]></help>
+    <citations/>
+</tool>
