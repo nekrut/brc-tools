@@ -25,6 +25,7 @@ Run:  python workflows/gen_pipeline_io_map.py   (needs PyYAML)
 import html
 import json
 import os
+import re
 import sys
 
 import yaml
@@ -33,6 +34,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gen_pipeline_dataflow import EDGES, WF_META  # single source of truth for wiring
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Prose lives here, not in this file -- see load_descriptions().
+DESCRIPTIONS = "workflows/workflow_descriptions.md"
 
 # ---- palette -------------------------------------------------------------
 # Taken from BRC Analytics: site-config/brc-analytics/local/theme/constants.ts
@@ -63,78 +67,7 @@ WFCOL = {"A": BRC["primary"], "B": BRC["info"], "C": BRC["warning"], "C2": BRC["
 # Producers must precede consumers so every cross-workflow edge points down.
 VETTED = ["A", "B", "C", "C2"]
 
-WHAT = {
-    "A": "Panel inventory: sourmash sketch/compare for pairwise similarity, BUSCO for "
-         "per-strain completeness, and the derived panel bookkeeping (sizes, self-pairs, "
-         "relabel map) that WF-C needs — generated in-workflow rather than hand-authored.",
-    "B": "Soft-masking: four maintained low-complexity maskers run in parallel, each "
-         "emitting a content-annotated BED6 hub track; their union soft-masks the assembly.",
-    "C": "Pairwise alignment and chaining across the full ordered strain grid: "
-         "KegAlign/LASTZ → axtChain → chainNet → netChainSubset → reciprocal-best, "
-         "one-click via native collection operations.",
-    "C2": "Annotation projection: each anchor's curated genes are lifted onto every other "
-          "strain with Liftoff, then triaged and merged into a per-pair classification.",
-}
 
-# Plain-language description of each workflow for a reader who knows the biology
-# but not this pipeline: what it is for, what goes in, what comes out.
-WHY = {
-    "A": "Before aligning anything, you want to know what is actually in the panel: how similar "
-         "the genomes are to each other, and whether any of them is missing a chunk of its gene "
-         "content. This workflow answers both. It takes the genome sequences and their protein "
-         "sets. It compares every genome against every other with sourmash, which comes to a "
-         "similarity score from shared k-mers without doing an alignment, so it is fast even on "
-         "whole genomes. Separately it runs BUSCO, which asks how many of the several hundred "
-         "genes expected to be present in exactly one copy in this clade can be found in each "
-         "strain. What comes out is an all-against-all similarity matrix with a clustered heatmap "
-         "and a tree, a completeness score per strain, and one QC report holding both. It also "
-         "writes the small bookkeeping files the alignment step needs later (chromosome lengths, "
-         "the list of genome pairs), so nobody has to make those by hand. The point is to catch a "
-         "bad assembly or an unexpected outlier here, before spending days of compute on it. On "
-         "the Pv4 panel it did exactly that: PvSY56 sits at about 0.24 similarity to everything "
-         "else while the rest sit at 0.63 to 0.70, and MHC087 came back only 87% complete.",
-    "B": "Genomes are full of repetitive and low-complexity sequence: homopolymer runs, short "
-         "tandem repeats, satellite arrays. Align without handling it and those regions generate "
-         "enormous numbers of meaningless matches, because a stretch of AT repeats matches every "
-         "other stretch of AT repeats in the genome. This workflow finds that sequence and "
-         "lowercases it. Lowercasing rather than cutting is deliberate: the bases stay where they "
-         "are, so every coordinate downstream is unchanged and nothing is lost, while alignment "
-         "tools that honour soft-masking can avoid seeding matches inside them. It takes the raw "
-         "genomes and runs four independent "
-         "repeat finders over each one, then merges everything any of them flagged and lowercases "
-         "the union. Four tools rather than one because they disagree with each other, and taking "
-         "the union is the conservative choice. What comes out is the soft-masked genome set that "
-         "every later step uses, one browser track per tool showing what it flagged and what kind "
-         "of repeat it is, and a table of how much of each genome each tool masked.",
-    "C": "To compare two genomes you first have to establish which piece of one corresponds to "
-         "which piece of the other. This workflow aligns every genome against every other, all 56 "
-         "ordered pairs for 8 genomes, and then assembles the thousands of short local alignments "
-         "into chains and nets. A chain is a run of alignments in consistent order and "
-         "orientation; the netting step picks the best chain for each region and discards the "
-         "rest. That turns a haystack of local hits into a statement about large-scale "
-         "correspondence, so a real inversion or translocation shows up as structure rather than "
-         "disappearing into noise. It takes the soft-masked genomes and their chromosome lengths. "
-         "What comes out is, for each ordered pair, the cleaned chains, the raw pairwise "
-         "alignments, and a reciprocal-best set, which keeps only the cases where two regions are "
-         "each other's best match. That reciprocal condition matters: it is the difference "
-         "between two regions being genuinely the same locus in two strains, and one of them "
-         "being a paralog elsewhere in the genome. This is by far the most expensive step, and "
-         "the alignment runs on a GPU.",
-    "C2": "Most genomes in a panel have no gene annotation worth trusting. This workflow borrows "
-          "one. Each anchor genome comes with a curated set of gene models, and those genes are "
-          "carried across the alignment onto every other genome: wherever the alignment says a "
-          "stretch of anchor sequence corresponds to a stretch of query sequence, the gene is "
-          "placed there. It takes the anchor genomes with their gene models, the genomes being "
-          "annotated, and the soft-masked sequence. Every projected gene is then examined, because "
-          "a gene landing somewhere is not the same as a gene surviving: the check asks whether it "
-          "still has an intact reading frame, or whether it is interrupted by a premature stop, "
-          "shifted out of frame, or missing exons. What comes out, for each anchor and query "
-          "combination, is a GFF3 of the projected genes and a table classifying each one as "
-          "intact or lost. That classification is the raw evidence the orthology step downstream "
-          "uses to decide which genes are shared across the whole panel. One limitation to be "
-          "clear about: this is projection, not gene finding. A gene present in a query genome but "
-          "absent from every anchor cannot be discovered this way.",
-}
 
 EXTERNAL = {
     ("A", "assemblies"): "Staged panel genomes — $PV4_SSD/pv4_full/inputs/assemblies/{strain}.fa",
@@ -326,6 +259,54 @@ def esc(s):
     return html.escape(str(s or ""))
 
 
+def md_inline(s):
+    """Escape, then apply the inline markdown the descriptions file allows."""
+    s = html.escape(s)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+    s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<i>\1</i>", s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', s)
+    return s
+
+
+def md_block(text, tag="p"):
+    """Blank-line-separated paragraphs -> <p>...</p>."""
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+    return "".join(f"<{tag}>{md_inline(' '.join(p.split()))}</{tag}>" for p in paras)
+
+
+def load_descriptions(path=DESCRIPTIONS):
+    """Parse workflow_descriptions.md -> {wf_id: {"summary": .., "description": ..}}.
+
+    The prose lives in markdown rather than in this file so it can be edited
+    without touching Python. Missing or empty sections are a hard error: a
+    silently blank description would publish to the live site unnoticed.
+    """
+    raw = open(os.path.join(ROOT, path)).read()
+    raw = re.sub(r"<!--.*?-->", "", raw, flags=re.S)      # strip comments
+    out, wid, field = {}, None, None
+    for line in raw.split("\n"):
+        m2, m3 = re.match(r"##\s+(\S+)\s*$", line), re.match(r"###\s+(\S+)\s*$", line)
+        if m2 and not m3:
+            wid, field = m2.group(1), None
+            out.setdefault(wid, {})
+        elif m3 and wid:
+            field = m3.group(1).lower()
+            out[wid][field] = ""
+        elif wid and field is not None:
+            out[wid][field] += line + "\n"
+
+    missing = []
+    for w in VETTED:
+        for f in ("summary", "description"):
+            if not (out.get(w, {}).get(f) or "").strip():
+                missing.append(f"{w}.{f}")
+    if missing:
+        raise SystemExit(f"{path}: missing or empty section(s): {', '.join(missing)}\n"
+                         f"every workflow in VETTED needs '### summary' and '### description'.")
+    return out
+
+
 def short_tool(tid):
     if not tid:
         return ""
@@ -456,6 +437,7 @@ def layout(nodes, edges):
 
 
 def main():
+    desc = load_descriptions()
     graphs = {}
     for wid in VETTED:
         path = WF_META[wid][0]
@@ -645,7 +627,7 @@ def main():
           f'<div class="whyhdr"><span class="badge">{esc(g["ph"])}</span>'
           f'<b>{esc(g["title"])}</b>'
           f'<span class="ok">&#10003; {esc(STATUS[wid]["jobs"])}</span></div>'
-          f'<p>{WHY[wid]}</p></div>')
+          f'{md_block(desc[wid]["description"])}</div>')
     A('</div>'
       '<h3>The diagram</h3>'
       '<p class="note">Every step of those four workflows, wired input&rarr;output straight from '
@@ -688,7 +670,7 @@ def main():
           f'<span class="badge">{esc(g["ph"])}</span><h2>{esc(g["title"])}</h2>'
           f'<span class="ok">&#10003; {esc(st["jobs"])}</span>'
           f'<code class="path">{esc(g["path"])}</code></div>')
-        A(f'<p class="what">{WHAT[wid]}</p>')
+        A(f'<div class="what">{md_block(desc[wid]["summary"])}</div>')
         ev = (f'History <code>{esc(st["history"])}</code>'
               + (f' &middot; invocation <code>{esc(st["invocation"])}</code>' if st.get("invocation") else "")
               + f' &middot; {esc(st["when"])}')
@@ -867,6 +849,8 @@ code.path{background:none;border:0;color:var(--mut);margin-left:auto;font-size:1
 .badge{background:var(--c);color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700}
 .ok{color:var(--ok);font-size:11.5px;font-weight:600;background:var(--ok-lt);border:1px solid var(--ok-l);border-radius:6px;padding:2px 9px}
 .what{color:var(--mut);font-size:13.5px;margin:0 0 12px;max-width:94ch}
+.what p{margin:0 0 6px}
+.what p:last-child{margin-bottom:0}
 .evidence{background:var(--ok-lt);border:1px solid var(--ok-l);border-left:3px solid var(--ok);border-radius:0 6px 6px 0;padding:10px 14px;font-size:12.5px}
 .gap{color:var(--alert);background:var(--alert-lt);border:1px solid var(--alert);border-radius:4px;padding:0 5px;font-size:10px;white-space:nowrap}
 .caveats{display:grid;gap:11px}
