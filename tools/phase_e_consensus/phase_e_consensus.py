@@ -24,14 +24,21 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 
+# TOGA2 loss symbols, ranked best-to-worst by TOGA2 itself in
+# cesar_wrapper_constants.NUM_TO_CLASS: FI(8) > I(7) > PI(6) > UL(5) > L(4) >
+# M(3) > PM(2) > PG(1) > PP(0). FI is "Fully Intact" and is TOGA2's STRONGEST
+# call, not a weak one -- these weights were originally written against TOGA1,
+# which has no FI, and it was previously scored 0.20. On the first verified
+# TOGA2 pair FI accounted for 3906 of 6092 rescues, so under-scoring it
+# discarded most of the evidence the rescue pass exists to produce.
 WEIGHTS = {
+    ('cesar2', 'FI'): 1.00,
     ('cesar2', 'I'):  1.00,
     ('cesar2', 'PI'): 0.70,
     ('cesar2', 'UL'): 0.40,
     ('cesar2', 'PG'): 0.40,
     ('cesar2', 'L'):  0.00,
     ('cesar2', 'M'):  0.00,
-    ('cesar2', 'FI'): 0.20,
     ('liftoff', 'I'): 0.95,
 }
 

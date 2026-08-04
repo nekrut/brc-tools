@@ -58,8 +58,10 @@ tools:
   (.*toga2.*):
     cores: 16
     mem: 100
-    scheduling:
-      require: [avx2]
+    # NOT pinned to the avx2 nodes: the verified PvW1->PvP01 run executed on
+    # node01 (Ivy Bridge, no AVX2) with ~800 CESAR tasks all exiting 0 and no
+    # SIGILL, so CESAR2 does not need AVX2 and pinning would halve throughput
+    # for the 21-cell grid. hyphy still requires it -- that SIGILL is real.
     params:
       singularity_enabled: true
       # Galaxy's dataset, job-working and tmp dirs all live under /data.
