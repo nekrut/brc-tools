@@ -111,11 +111,21 @@ with Liftoff, then triaged and merged into a per-pair classification.
 ### description
 
 Most genomes in a panel have no gene annotation worth trusting. This workflow borrows
-one. Each anchor genome comes with a curated set of gene models, and those genes are
-carried across the alignment onto every other genome: wherever the alignment says a
-stretch of anchor sequence corresponds to a stretch of query sequence, the gene is
-placed there. It takes the anchor genomes with their gene models, the genomes being
-annotated, and the soft-masked sequence. Every projected gene is then examined, because
+one. Each anchor genome comes with a curated set of gene models, and Liftoff carries
+those genes onto every other genome: it takes the sequence of each annotated gene out of
+the anchor, aligns that sequence against the target genome, and places the gene wherever
+it finds the best match, keeping the exon structure intact.
+
+Note what this does **not** use, because the pipeline order suggests otherwise: it does
+not touch the whole-genome alignments that WF-C produces. Liftoff does its own
+gene-by-gene alignment internally, so the two halves of Phase C are independent of each
+other. WF-C's chains would only come into play through the TOGA2 path, which is wired up
+but switched off in this run.
+
+It takes the anchor genomes with their gene models, the genomes being annotated, and the
+soft-masked genomes. The unmasked sequence is what Liftoff aligns against; the
+soft-masked sequence is used by the intactness check that follows. Every projected gene
+is then examined, because
 a gene landing somewhere is not the same as a gene surviving: the check asks whether it
 still has an intact reading frame, or whether it is interrupted by a premature stop,
 shifted out of frame, or missing exons. What comes out, for each anchor and query
