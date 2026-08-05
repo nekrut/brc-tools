@@ -513,6 +513,80 @@ def layout(nodes, edges):
 
 
 
+
+def figure_cross_product():
+    """Explain __CROSS_PRODUCT_FLAT__: it emits TWO aligned collections, not pairs.
+
+    Drawn with a 3-genome panel so the whole 3x3 grid fits, and the diagonal that
+    the self-pairs filter removes is marked.
+    """
+    G = ["PvW1", "PAM", "Sal-I"]
+    cw, ch, gap = 74, 26, 6
+    x0, y0 = 14, 40
+    ROW = 52                      # rank pitch: box height plus room for the caption
+    S = []
+    W = x0 + 9 * (cw + gap) + x0
+    H = 372
+    S.append(f'<svg class="fig" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+             f'xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet">')
+
+    def box(x, y, w, label, cls=""):
+        S.append(f'<g class="fb {cls}"><rect x="{x}" y="{y}" width="{w}" height="{ch}" rx="5"/>'
+                 f'<text x="{x + w/2:.0f}" y="{y + 17}" text-anchor="middle">{esc(label)}</text></g>')
+
+    def cap(x, y, t, anchor="start"):   # y is the baseline
+        S.append(f'<text class="fcap" x="{x}" y="{y}" text-anchor="{anchor}">{esc(t)}</text>')
+
+    # the two input collections
+    cap(x0, y0 - 12, "one input collection, shown here with 3 genomes instead of 8")
+    for i, g in enumerate(G):
+        box(x0 + i * (cw + gap), y0, cw, g, "in")
+    cap(x0 + 4 * (cw + gap), y0 - 12, "\u2026 crossed with itself")
+    for i, g in enumerate(G):
+        box(x0 + (4 + i) * (cw + gap), y0, cw, g, "in")
+
+    # the flattened outputs: every ordered combination, as two aligned lists
+    ya, yb, yid = 140, 140 + ROW, 140 + 2 * ROW
+    cap(x0, ya - 12, "output_a  \u2192  tgt_fa      each genome repeated, 9 elements")
+    cap(x0, yb - 12, "output_b  \u2192  qry_fa      all genomes cycled, 9 elements")
+    cap(x0, yid - 12, "identifier \u2014 the SAME on both collections; it names the cell, "
+                       "not the genome in it")
+    k = 0
+    for a in G:
+        for b in G:
+            x = x0 + k * (cw + gap)
+            diag = "diag" if a == b else ""
+            box(x, ya, cw, a, "out " + diag)
+            box(x, yb, cw, b, "out " + diag)
+            box(x, yid, cw, f"{a}_{b}", "id " + diag)
+            k += 1
+
+    # arrows from inputs down into the flattened rows
+    for cx, ylow in ((x0 + 1.5*(cw+gap), ya), (x0 + 5.5*(cw+gap), ya)):
+        S.append(f'<path class="farrow" d="M{cx:.0f},{y0+ch+4} L{cx:.0f},{ylow-20}"/>')
+
+    ytext = yid + ch + 26
+    cap(x0, ytext, "Read a column, not a row: the third column is output_a=PvW1 against "
+                   "output_b=Sal-I, identifier PvW1_Sal-I.")
+    cap(x0, ytext + 19, "Shaded = a genome paired with itself. __FILTER_FROM_FILE__ drops those "
+                        "from both collections, leaving 6 of 9 (56 of 64 for the real panel).")
+    cap(x0, ytext + 38, "The pairing is carried by POSITION alone. Reorder either collection and "
+                        "every cell silently gets the wrong partner.")
+    S.append("</svg>")
+    return "".join(S)
+
+
+FIGURES = {"cross_product": figure_cross_product}
+
+
+def expand_figures(html_text):
+    """Replace {{figure:name}} tokens left by md_block with generated SVG."""
+    def sub(m):
+        fn = FIGURES.get(m.group(1))
+        return fn() if fn else m.group(0)
+    return re.sub(r"\{\{figure:([a-z_]+)\}\}", sub, html_text)
+
+
 EX_KEYS = {}   # {wf_id: set(node names with an example)}; filled in main()
 
 
@@ -538,7 +612,8 @@ def solo_svg(wid, g, allnodes):
         x1 += NW / 2; y1 += NH
         x2 += NW / 2
         dy = max(16, (y2 - y1) * 0.5)
-        S.append(f'<path class="e" stroke="{c}" marker-end="url(#sar{wid})" fill="none" '
+        S.append(f'<path class="e" data-a="{esc(a)}" data-b="{esc(b)}" stroke="{c}" '
+                 f'marker-end="url(#sar{wid})" fill="none" '
                  f'd="M{x1:.0f},{y1:.0f} C{x1:.0f},{y1+dy:.0f} {x2:.0f},{y2-dy:.0f} {x2:.0f},{y2:.0f}"/>')
 
     for n, d in g["nodes"].items():
@@ -548,7 +623,8 @@ def solo_svg(wid, g, allnodes):
         has = ' has-ex' if d["name"] in EX_KEYS.get(wid, ()) else ''
         S.append(
             f'<g class="n {d["kind"]}{has}" data-wf="{wid}" data-node="{esc(d["name"])}" '
-            f'data-kind="{d["kind"]}" style="--c:{c}" transform="translate({x:.0f},{y:.0f})">'
+            f'data-id="{esc(n)}" data-kind="{d["kind"]}" style="--c:{c}" '
+            f'transform="translate({x:.0f},{y:.0f})">'
             f'<title>{esc(d["name"])}</title>'
             f'<rect width="{NW}" height="{NH}" rx="7"/>'
             f'<text class="nn" x="9" y="14">{esc(nm)}</text>'
@@ -694,7 +770,7 @@ def main():
                 # prose for this step, if workflow_descriptions.md carries one
                 prose = (desc.get(wid, {}).get(f"step:{step}") or "").strip()
                 ex_payload[node] = {"step": step, "outputs": outs,
-                                    "why": md_block(prose) if prose else ""}
+                                    "why": expand_figures(md_block(prose)) if prose else ""}
 
     # ---- HTML body ------------------------------------------------------
     P = []
@@ -974,6 +1050,10 @@ svg.solo .n.has-ex rect{stroke-width:2.2;stroke-dasharray:none}
 svg.solo .n:not(.has-ex){opacity:.55}
 svg.solo .n.has-ex:hover rect{stroke:var(--primary);stroke-width:2.8}
 svg.solo .n.sel rect{stroke:var(--primary);stroke-width:3}
+svg.solo .n.hot rect{stroke:var(--primary);stroke-width:2.2}
+svg.solo .n.dim{opacity:.18}
+svg.solo .e.hot{opacity:1;stroke-width:2.6}
+svg.solo .e.dim{opacity:.08}
 svg.solo .nn{fill:var(--ink);font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace}
 svg.solo .ns{fill:var(--mut);font:9.5px -apple-system,Segoe UI,Roboto,sans-serif}
 svg.solo .e{stroke-width:1.5;opacity:.5}
@@ -983,6 +1063,16 @@ svg.solo .e{stroke-width:1.5;opacity:.5}
   background:var(--info-lt);border-radius:0 6px 6px 0;padding:11px 15px;margin-bottom:14px}
 .exwhy p{margin:0 0 8px}
 .exwhy p:last-child{margin-bottom:0}
+svg.fig{display:block;max-width:100%;height:auto;margin:10px 0 4px;background:var(--surface);
+  border:1px solid var(--line);border-radius:6px}
+svg.fig .fb rect{fill:var(--surface);stroke:var(--line2);stroke-width:1}
+svg.fig .fb text{font:10.5px ui-monospace,Menlo,monospace;fill:var(--ink)}
+svg.fig .fb.in rect{fill:var(--info-lt);stroke:var(--info)}
+svg.fig .fb.out rect{fill:var(--smoke)}
+svg.fig .fb.id rect{fill:var(--surface);stroke-dasharray:3 2}
+svg.fig .fb.diag rect{fill:var(--warn-lt);stroke:var(--warn)}
+svg.fig .fcap{font:10.5px -apple-system,Segoe UI,Roboto,sans-serif;fill:var(--mut)}
+svg.fig .farrow{stroke:var(--line2);stroke-width:1.4;fill:none;marker-end:none}
 .exwhy pre{background:var(--surface);border:1px solid var(--line);border-radius:5px;
   padding:8px 10px;font:11.5px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre}
 .exhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}
@@ -1144,11 +1234,30 @@ function renderExample(wf,node){
   });
   panel.innerHTML=h;
 }
-document.querySelectorAll('svg.solo .n.has-ex').forEach(n=>n.addEventListener('click',()=>{
-  const wf=n.dataset.wf;
-  document.querySelectorAll('#solo-'+wf+' .n').forEach(x=>x.classList.remove('sel'));
-  n.classList.add('sel');
-  renderExample(wf,n.dataset.node);
+// clicking any node in a per-workflow diagram traces the path through it and,
+// when a sample was captured for that step, shows the sample too
+document.querySelectorAll('svg.solo .n').forEach(n=>n.addEventListener('click',()=>{
+  const wf=n.dataset.wf, svg=document.getElementById('solo-'+wf);
+  const id=n.dataset.id;
+  const keep=new Set([id,...walk(id,ADJ),...walk(id,REV)]);
+  svg.querySelectorAll('.n').forEach(x=>{
+    x.classList.remove('sel','dim','hot');
+    if(x.dataset.id===id) x.classList.add('sel');
+    else if(!keep.has(x.dataset.id)) x.classList.add('dim');
+    else x.classList.add('hot');
+  });
+  svg.querySelectorAll('.e').forEach(e=>{
+    const on=keep.has(e.dataset.a)&&keep.has(e.dataset.b);
+    e.classList.toggle('dim',!on); e.classList.toggle('hot',on);
+  });
+  if(n.classList.contains('has-ex')) renderExample(wf,n.dataset.node);
+  else document.getElementById('ex-'+wf).innerHTML=
+    '<div class="exempty">Path highlighted. This step produced no output of its own.</div>';
+}));
+// click the background of a diagram to clear the trace
+document.querySelectorAll('svg.solo').forEach(svg=>svg.addEventListener('click',ev=>{
+  if(ev.target.closest('.n')) return;
+  svg.querySelectorAll('.n,.e').forEach(x=>x.classList.remove('sel','dim','hot'));
 }));
 </script>
 </body></html>'''

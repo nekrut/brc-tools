@@ -328,10 +328,40 @@ lengths of both genomes in a pair and will not run without them.
 
 ### step:xprod_fa
 
-Builds the alignment grid by taking the cross-product of the genome collection with itself:
-8 strains give **64 cells**, named `A_B`. It emits two aligned collections — the `A` side and
-the `B` side of every pair — so that each downstream tool receives a target and a query that
-correspond cell for cell.
+Builds the alignment grid. Step by step:
+
+**What goes in.** One collection, `masked_fastas`, with 8 elements — `PvP01`, `PvW1`, `PAM`,
+`PvSY56`, `Sal-I`, `PvT01`, `PvC01`, `MHC087`.
+
+**What comes out.** Not one collection of pairs, but **two collections of 64 elements each**,
+`output_a` and `output_b`.
+
+**They share their identifiers.** Both are keyed `PvP01_PvP01`, `PvP01_PvW1`, `PvP01_PAM`, …
+The identifier names the *cell of the grid*, not the genome inside it.
+
+**The contents differ.** In cell `PvP01_PvW1`, `output_a` holds PvP01's sequence and
+`output_b` holds PvW1's. So `output_a` repeats each genome 8 times in a row, while `output_b`
+cycles through all 8 — which is exactly how you enumerate every ordered pair.
+
+{{figure:cross_product}}
+
+**Then the diagonal goes.** `tgt_fa` filters `output_a` and `qry_fa` filters `output_b`,
+both against the same `self_pairs` list, so both drop the same 8 cells:
+`PvP01_PvP01`, `PvW1_PvW1`, `PAM_PAM`, `PvSY56_PvSY56`, `Sal-I_Sal-I`, `PvT01_PvT01`,
+`PvC01_PvC01`, `MHC087_MHC087`. **64 in, 56 out, 8 discarded** — and you can see both
+collections in the discarded output, identical.
+
+**How it is consumed.** `kegalign` maps over `tgt_fa` and `qry_fa` together. For element *i*
+it takes the target from one and the query from the other. Cell `PvP01_PvW1` therefore
+aligns PvP01 against PvW1, and the name of the cell tells you which way round it is.
+
+**Why this is worth understanding.** The pairing is carried entirely by *position*. Nothing
+in the data says these two collections belong together — Galaxy simply hands a tool the *i*-th
+element of each. If some later step introduces a collection whose order differs, every cell is
+silently handed another cell's data, with correct-looking identifiers throughout. That is not
+hypothetical: it happened in WF-C2, where chains filtered out of this workflow arrived in
+alphabetical order while the grid was in panel order, and every projection got the wrong
+chain.
 
 ### step:xprod_sz
 
