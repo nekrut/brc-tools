@@ -61,14 +61,15 @@ BRC = {
 # Per-workflow accent, drawn from the same palette rather than the brighter set
 # gen_pipeline_dataflow.py uses for the A->K overview. success/alert are kept
 # out of it: they mean "verified" and "gap" everywhere else in this page.
-WFCOL = {"A": BRC["primary"], "B": BRC["info"], "C": BRC["warning"], "C2": BRC["caution"]}
+WFCOL = {"A": BRC["primary"], "B": BRC["info"], "C": BRC["warning"],
+         "C2": BRC["caution"], "I": BRC["success"]}
 
 # Workflows that have passed the clean re-run, in pipeline order. They are
 # stacked top-to-bottom in this order and each one's own graph also flows
 # downward, so the canvas grows vertically as phases are added rather than
 # sideways — the page scrolls the way a long pipeline actually reads.
 # Producers must precede consumers so every cross-workflow edge points down.
-VETTED = ["A", "B", "C", "C2"]
+VETTED = ["A", "B", "C", "C2", "I"]
 
 
 
@@ -154,6 +155,14 @@ STATUS = {
                    "committed file exactly. Full ordered grid: 56 pairs from 8 strains, "
                    "KegAlign on GPU plus batched LASTZ. Previously recorded as 500 jobs -- "
                    "that was /api/jobs returning its default page of 500."),
+    "I": dict(jobs="64 / 64 ok", when="2026-08-05", history="cb183a1d519b63a2",
+              invocation="e37f25bfb58457fb",
+              note="The first WF-I run to produce output at all. The two earlier "
+                   "invocations (2026-06-13) report state 'completed', which is misleading: "
+                   "every one of their 8 MAFs was in error. Two bugs, both fixed here -- the "
+                   "hinge name reached multiz_fold as the repr of a collection element rather "
+                   "than a string, and the MAF src names carried bare contig accessions, which "
+                   "multiz reads as one species per contig."),
     "C2": dict(jobs="15 / 21 cells", when="2026-08-05", history="5fadef28a25ac561",
                invocation="301fbf6783f66c6e",
                note="Workflow version 2 in the editor (API version 1), 29 steps. Full grid with "
