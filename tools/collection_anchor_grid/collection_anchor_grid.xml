@@ -9,6 +9,7 @@ python '$__tool_directory__/anchor_grid.py'
     --strains '#echo " ".join([str($el.element_identifier) for $el in $strains])#'
     --keep '$keep'
     --relabel '$relabel'
+    --order '$order'
     ]]></command>
     <inputs>
         <param name="anchors" type="data_collection" collection_type="list"
@@ -21,9 +22,10 @@ python '$__tool_directory__/anchor_grid.py'
     <outputs>
         <data name="keep" format="txt" label="${tool.name} on ${on_string}: chain ids to keep"/>
         <data name="relabel" format="tabular" label="${tool.name} on ${on_string}: chain relabel map"/>
+        <data name="order" format="txt" label="${tool.name} on ${on_string}: grid order"/>
     </outputs>
     <tests>
-        <test expect_num_outputs="2">
+        <test expect_num_outputs="3">
             <param name="anchors">
                 <collection type="list">
                     <element name="A" value="empty.txt"/>
@@ -40,6 +42,7 @@ python '$__tool_directory__/anchor_grid.py'
             <!-- 2 anchors x 3 strains = 6 cells, minus the 2 self-cells = 4 -->
             <output name="keep" value="keep.txt" ftype="txt"/>
             <output name="relabel" value="relabel.tsv" ftype="tabular"/>
+            <output name="order" value="order.txt" ftype="txt"/>
         </test>
     </tests>
     <help><![CDATA[
@@ -57,8 +60,12 @@ This emits the two files that bridge them:
 - **chain ids to keep** — one ``{anchor}.{query}`` per line, for
   ``__FILTER_FROM_FILE__`` with ``remove_if_absent``.
 - **chain relabel map** — ``{anchor}.{query}<TAB>{anchor}_{query}``, for
-  ``__RELABEL_FROM_FILE__``, so the chains line up element-for-element with the
-  rest of the grid.
+  ``__RELABEL_FROM_FILE__``.
+- **grid order** — ``{anchor}_{query}`` in cross-product order, for
+  ``__SORTLIST__`` with ``sort_type: file``. Galaxy pairs collections in a
+  map-over by **position**, not by identifier: the other grids are in
+  anchor-collection order while chains filtered out of WF-C keep WF-C's
+  alphabetical order, so without this every cell receives another cell's chain.
 
 Both are derived from the two collections' element identifiers, so a new panel
 needs no hand-authored config. Fails loudly if an anchor is not also a member of

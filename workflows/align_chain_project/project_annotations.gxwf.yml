@@ -241,6 +241,7 @@ steps:
     out:
       keep: {}
       relabel: {}
+      order: {}
     position: {top: 210, left: 210}
   p_chain_keep:
     tool_id: __FILTER_FROM_FILE__
@@ -268,12 +269,29 @@ steps:
     out:
       output: {}
     position: {top: 230, left: 230}
+  # Galaxy pairs collections in a map-over by POSITION, not by element
+  # identifier. Every other grid here comes from __CROSS_PRODUCT_FLAT__ and is
+  # in anchor-collection order; a chain collection filtered out of WF-C keeps
+  # WF-C's alphabetical order. Without this sort each cell is handed another
+  # cell's chain, TOGA2 reports "Processed 0 chains" and exits -- and since the
+  # identifiers are all correct, nothing looks wrong.
+  p_chain_sort:
+    tool_id: __SORTLIST__
+    in:
+      input: p_chain/output
+      sort_type|sort_file: gen_chain_grid/order
+    state:
+      sort_type:
+        sort_type: file
+    out:
+      output: {}
+    position: {top: 235, left: 235}
 
   p_toga2:
     tool_id: toga2
     in:
       ref_bed12: p_anc_bed/output_filtered
-      chain: p_chain/output
+      chain: p_chain_sort/output
       ref_fasta: p_anc_masked/output_filtered
       query_fasta: p_qry_masked/output_filtered
       isoforms: p_anc_iso/output_filtered
