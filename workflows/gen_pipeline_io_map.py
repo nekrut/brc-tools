@@ -138,11 +138,20 @@ STATUS = {
               invocation="3c9d8677020e7fdd",
               note="That history holds four invocations -- three of them WF-B softmask reruns -- "
                    "so the WF-A numbers must be read per invocation, not per history."),
-    "B": dict(jobs="72 / 72 ok", when="2026-06-16", history="feb4114d4f866b50",
-              note="8 / 8 genomes soft-masked after the rewrite to four maintained maskers "
-                   "(sdust and longdust were dropped)."),
-    "C": dict(jobs="500 / 500 ok", when="2026-06-19", history="11862b69df84527c",
-              note="Full ordered grid: 56 pairs from 8 strains, KegAlign on GPU plus batched LASTZ."),
+    "B": dict(jobs="122 / 122 ok", when="2026-06-17", history="f4af09719299d4f6",
+              invocation="75ed0631e40c6c7b",
+              note="Workflow version 11 in the editor (the API reports version 10, "
+                   "zero-indexed), 18 steps. 8 / 8 genomes soft-masked after the rewrite to "
+                   "four maintained maskers; sdust and longdust were dropped. This is the only "
+                   "invocation whose steps match the committed workflow -- an earlier 72-job "
+                   "run in history feb4114d4f866b50 was a 10-step version with neither the "
+                   "coverage nor the masking-table steps."),
+    "C": dict(jobs="848 / 848 ok", when="2026-06-18", history="11862b69df84527c",
+              invocation="b38588d5a72103c1",
+              note="Workflow version 7 in the editor (API version 6), 27 steps, matching the "
+                   "committed file exactly. Full ordered grid: 56 pairs from 8 strains, "
+                   "KegAlign on GPU plus batched LASTZ. Previously recorded as 500 jobs -- "
+                   "that was /api/jobs returning its default page of 500, not the total."),
     "C2": dict(jobs="20 / 20 ok", when="2026-08-04", history="c0c37ae0d73bec21",
                invocation="fb7104b5587eadcb",
                note="Pass 1 verified on the full 21-cell grid (72/72 jobs, under 3 minutes, history "

@@ -174,6 +174,117 @@ showing what it flagged and what kind of repeat it is, and a table of how much o
 genome each tool masked.
 
 
+
+### step:assemblies
+
+The raw panel genomes, same collection WF-A takes. Every step here maps over it, so all
+eight strains are masked independently and in parallel.
+
+### step:dustmasker
+
+NCBI's low-complexity finder, the one BLAST uses. It looks for stretches whose composition
+is skewed enough to align to almost anything. Our wrapper adds the fourth and fifth BED
+columns: instead of just "this region is low-complexity", each interval is labelled with the
+repeat unit it is made of — `polyA`, `(AT)n`, `lc` for anything without a clean period — and
+scored by how pure that repeat is, out of 1000. That is what makes these usable as a browser
+track rather than an anonymous mask.
+
+### step:windowmasker
+
+Counts how often each k-mer occurs across the whole genome and masks the ones that are
+over-represented. Unlike dustmasker it needs no prior repeat library: it learns what is
+repetitive in *this* genome. It is consistently the most aggressive of the four here,
+masking around 29 % of a *P. vivax* genome against dustmasker's 13 %.
+
+### step:tantan
+
+Finds tandem repeats using a probabilistic model, so it catches decaying repeats that a
+strict periodicity test misses. Sits between dustmasker and windowmasker in aggressiveness.
+
+### step:fastan
+
+Finds tandem arrays and reports the size of the repeating unit. The most conservative of the
+four, typically masking under 5 %, and the only one that reports a strand.
+
+### step:union_cat
+
+Concatenates the four BED files into one. No merging happens yet, so the intervals overlap
+heavily — for one genome this is roughly 520,000 rows built from four sets of about 110,000
+each. The four callers disagree, and taking the union rather than an intersection is the
+conservative choice: anything any tool considers repetitive gets masked.
+
+### step:sort_bed
+
+Sorts the concatenated intervals by chromosome and start. `bedtools merge` requires sorted
+input and will produce silently wrong output otherwise, so this is a correctness step, not
+tidiness.
+
+### step:merge_bed
+
+Collapses the overlapping intervals into disjoint ones. The 520,000 concatenated rows become
+about 249,000 merged regions. Note the output is plain BED3 — the repeat-unit labels and
+scores are dropped here, because once four callers' intervals are fused the label no longer
+belongs to any single call. The labelled per-tool files are kept separately for the browser.
+
+### step:maskfasta
+
+The actual masking. `bedtools maskfasta -soft` lowercases every base inside a merged interval
+and leaves everything else untouched. Nothing is deleted and no coordinate moves, which is
+why every downstream phase can use these genomes interchangeably with the raw ones.
+
+### step:faidx
+
+Indexes the soft-masked genomes. Downstream tools that read a region out of a FASTA need
+this, and Phase C needs the sequence lengths it records.
+
+### step:sizes_cut
+
+Cuts the name and length columns from each `.fai` into a `chromosome<TAB>length` table.
+Masking does not change any length, so these match the values WF-A derived from the raw
+assemblies.
+
+### step:gcov_dust
+
+`bedtools genomecov` over the dustmasker intervals, reporting what fraction of each sequence
+is covered. The columns are chromosome, depth, bases at that depth, sequence length, and the
+fraction — so the `depth 1` row is the masked fraction and `depth 0` is the untouched
+remainder. There is one of these per masker plus one for the union, and they are what the
+summary table is built from.
+
+### step:gcov_window
+
+Coverage for windowmasker, same shape as the others.
+
+### step:gcov_tantan
+
+Coverage for tantan.
+
+### step:gcov_fastan
+
+Coverage for fastan.
+
+### step:gcov_union
+
+Coverage for the merged union — the number that actually matters, since it is the fraction of
+the genome that ends up lowercased.
+
+### step:masking_table
+
+Reduces all of that to one row per strain and one column per masker, as a percentage:
+
+    Sample  dustmasker  windowmasker  tantan  fastan  union
+    PvP01        13.63         28.63   15.64    4.18   39.01
+
+Read across a row to compare the callers, down a column to compare strains. The union is
+always the largest and is not the sum, because the callers overlap heavily. This is the
+table to check when a genome behaves oddly downstream: an unusually high union means an
+assembly full of repeats, and an unusually low one can mean masking silently failed.
+
+### step:masking_multiqc
+
+Wraps the table into a MultiQC report so the masking can be reviewed alongside the other QC
+without reading a TSV.
+
 ## C
 
 <!-- WF-C align_chain -->
@@ -202,6 +313,144 @@ two regions being genuinely the same locus in two strains, and one of them being
 paralog elsewhere in the genome. This is by far the most expensive step, and the
 alignment runs on a GPU.
 
+
+
+### step:masked_fastas
+
+The soft-masked genomes from WF-B. Masking matters here: the aligner is meant to skip the
+lowercased repeat regions when seeding, which is what stops a stretch of AT repeats matching
+every other stretch of AT repeats in the genome.
+
+### step:sizes
+
+Per-strain `chromosome<TAB>length` tables from WF-A. The UCSC chain and net tools need the
+lengths of both genomes in a pair and will not run without them.
+
+### step:xprod_fa
+
+Builds the alignment grid by taking the cross-product of the genome collection with itself:
+8 strains give **64 cells**, named `A_B`. It emits two aligned collections — the `A` side and
+the `B` side of every pair — so that each downstream tool receives a target and a query that
+correspond cell for cell.
+
+### step:xprod_sz
+
+The same cross-product over the `sizes` collection, so every cell also has the two size files
+its pair needs, in the same order.
+
+### step:tgt_fa
+
+Drops the diagonal. The cross-product includes each genome paired with itself, which is
+meaningless to align, so `__FILTER_FROM_FILE__` removes the 8 self-cells using the
+`self_pairs` list from WF-A: **64 cells in, 56 out, 8 discarded**. This is the target side.
+
+### step:qry_fa
+
+The query side of the same filtered grid, kept aligned with the target side.
+
+### step:tgt_sz
+
+Target-side chromosome sizes, filtered identically so the sizes stay in step with the FASTAs.
+
+### step:qry_sz
+
+Query-side chromosome sizes.
+
+### step:kegalign
+
+The GPU aligner. It finds the seed matches between the two genomes of a pair — the expensive
+part of the whole phase, and the reason Phase C is GPU-gated.
+
+### step:batched_lastz
+
+Turns the seeds into actual gapped local alignments and writes them as **axt**, one file per
+pair, tens to hundreds of megabytes each. These are raw local alignments: many of them,
+unordered, and overlapping. Everything that follows is about imposing structure on them.
+
+### step:axtchain
+
+Assembles the local alignments into **chains**: runs of alignments in consistent order and
+orientation, allowing for gaps. A chain is the claim that this stretch of the target and that
+stretch of the query are the same locus, read the same way. The header preserves the scoring
+matrix and gap penalties used, so a chain file is self-documenting.
+
+### step:chainsort_clean
+
+Sorts chains by score, highest first, which is what the netting step expects.
+
+### step:chainprenet
+
+Removes chains that are already fully covered by something better, so the netting step is not
+wasting work on redundant candidates.
+
+### step:chainnet
+
+Builds the **net**: for every region of the target, picks the single best chain, then fills the
+gaps inside it with the next best, recursively. This is what turns a pile of overlapping
+chains into one coherent statement about correspondence, where an inversion or a translocation
+shows up as structure rather than disappearing into noise. It emits a net for each direction.
+
+### step:netchainsubset
+
+Pulls back out the subset of chains that the net actually kept. The output is a chain file
+again, but now non-redundant.
+
+### step:chainstitchid
+
+Joins chain fragments that belong together but were broken apart, giving each surviving chain
+a stable id.
+
+### step:chainstitchid_clean
+
+Joins chain fragments that belong together but were broken apart by the netting, and gives
+each surviving chain a stable id. This is the cleaned chain set for the pair.
+
+### step:relabel_cleaned
+
+Renames the cells from `A_B` to `A.B` using the map from WF-A, because Phase E expects the
+dotted form. Compare the element identifier here (`PvP01.PvW1`) with the one two steps
+earlier (`PvP01_PvW1`) — the data is unchanged, only the label.
+
+### step:rb_swap1
+
+Starts the **reciprocal-best** branch. It transposes the chain so the roles of target and
+query are exchanged: look at the first line of the output against the same line in
+`relabel_cleaned` and the two coordinate blocks have swapped places. Running the whole netting
+procedure again from the query's point of view is what makes the result reciprocal.
+
+### step:rb_sort1
+
+Sorts the swapped chains for the second netting pass.
+
+### step:rb_net
+
+Nets again, now from the query side.
+
+### step:rb_subset
+
+Takes the chains that survived the second net.
+
+### step:rb_stitch
+
+Stitches the surviving fragments, as on the forward pass.
+
+### step:rb_swap2
+
+Swaps target and query back, so the result is expressed in the original orientation again.
+
+### step:rb_sort2
+
+Final sort of the reciprocal-best chains.
+
+### step:relabel_rbest
+
+Renames to the dotted form, as for the cleaned chains.
+
+**What reciprocal-best buys.** A plain net says "this is the best match for this target
+region". Reciprocal-best says the two regions are each other's best match, in both directions.
+That is the difference between two regions genuinely being the same locus in two strains, and
+one of them being a paralogue somewhere else in the genome — which is why Phase E builds its
+orthology graph from these rather than from the cleaned chains.
 
 ## C2
 
