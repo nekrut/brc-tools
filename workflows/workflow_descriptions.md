@@ -109,6 +109,10 @@ It is a file because Galaxy's collection operations filter by
 matching element identifiers against file contents, and the identifiers are only known once
 the panel is chosen.
 
+
+
+
+
 ### step:anchor_prep
 
 Reads each anchor's curated GFF3 and writes the two annotation files the projection
@@ -803,6 +807,7 @@ The prefix parameters are left empty here, so the rows come out carrying bare co
 accessions such as `QMFC01000014.1`. `multiz_fold` fixes the names on the way in; see below
 for why that matters.
 
+
 ### step:multiz_fold
 
 Takes one hinge's seven pairwise MAFs and merges them into a single multi-way MAF, folding
@@ -898,6 +903,37 @@ The result is close to a one-to-one matching — on the run captured here every 
 exactly one partner per strain bar a couple of dozen exceptions — which is what makes the
 grouping step defensible.
 
+### columns:consensus.ortholog_table
+
+orthogroup_id -- Identifier for this group, assigned in this run. It is not stable across runs: regroup the panel and OG000123 will be a different set of genes.
+label -- How the group is distributed across the panel. CORE-1:1 = present exactly once in every strain. CORE-VAR = present in every strain, more than once somewhere. FAMILY = three or more copies in some strain. LINEAGE-SPECIFIC = confined to two strains or fewer. PARTIAL = anything else, i.e. present in some strains and absent from others.
+n_strains -- How many strains have at least one gene in this group.
+max_copies -- The largest number of genes any single strain contributes. This is what the label is computed from, so a bug that double-counts genes shows up here first.
+clique -- How much of the mutual agreement this group could have does it actually have, from 0 to 1. In a real orthogroup every member should have found every other member independently. Scored against what the evidence can provide rather than against every possible pair, because the alignment evidence is one-to-one and each gene can link to at most one gene per other strain. A low value means the group is held together by a few links rather than by consensus -- sort ascending to find groups that were chained together and may be two families spliced into one.
+density -- The raw fraction of member pairs that are linked, from 0 to 1. Unlike clique this is not comparable between groups of different copy number, which is why it is not the number to threshold on, but it is what exposes a group that has swollen: OG000001 in this run holds 822 copies in one strain and scores 0.629 clique against 0.0007 density. Sort ascending to find swollen groups.
+{strain} -- One column per strain, holding that strain's gene ids in this group, comma-separated, or `-` when the strain has no gene here. Where several genes at the same position collapsed into one entry they are joined with `|`.
+
+### columns:rbest_overlap.rbest_edges
+
+strain_a -- The strain the gene was projected FROM.
+gene_a -- Its gene id in that strain.
+strain_b -- The strain the gene was projected ONTO.
+gene_b -- The gene found there.
+overlap_a -- The fraction of gene_a covered by the alignment, 0 to 1.
+overlap_b -- The fraction of gene_b covered, 0 to 1. Both must clear the threshold for the row to exist, which is what makes these links reciprocal rather than one-sided.
+
+### columns:cls_ok, cls_nested, c4_classifications
+
+reference_gene_id -- The gene in the reference (anchor) strain that was projected.
+query_gene_id -- What it was called in the target strain. For a transferred annotation this is the REFERENCE gene's name, not the target's own -- which is why the consensus step has to match it back onto the native gene by position.
+source -- Which tool produced the call. `liftoff` = a whole-gene lift. `cesar2` = TOGA2's exon-aware placement, used to rescue genes Liftoff could not place. `none` = the reference gene was not found in this target at all.
+intactness -- The state of the projected gene. `I` = intact. For TOGA2 calls the finer grades apply, best to worst: FI (fully intact), I, PI (partially intact), UL (uncertain loss), L (lost), M (missing), PM, PG, PP. `M` accompanies source=none.
+query_chrom -- Contig in the target genome where the gene was placed.
+query_start -- Start coordinate there.
+query_end -- End coordinate there.
+query_strand -- Strand, + or -.
+orthology_class -- TOGA2's own orthology call for the projection: one2one, one2many, many2one or many2many. Liftoff rows carry `liftoff_clean`, and unplaced genes `unprojected`.
+
 ### step:consensus
 
 Merges all the evidence into orthogroups and labels them.
@@ -918,3 +954,39 @@ member pairs that are linked, which is what exposes a group that has swollen to 
 genes. Both are reported rather than acted on, because groups are only ever merged and never
 split, so a wrong link cannot be undone after the fact — sort by `density` to find swollen
 groups and by `clique` to find thin ones.
+
+## COMMON
+
+<!-- column meanings shared by more than one workflow -->
+
+### columns:classifications, p_merge.classification_tsv, c4_classifications, cls_ok, cls_nested
+
+reference_gene_id -- The gene in the anchor strain that was projected.
+query_gene_id -- What it is called in the query strain. For a transferred annotation this is the ANCHOR gene's name, since the projection carries its source's identifier.
+source -- `liftoff` for a whole-gene lift, `cesar2` for TOGA2's exon-aware placement, `none` if the gene was not found in this query at all.
+intactness -- The state of the projected gene: `I` intact, or for TOGA2 calls the finer grades FI, I, PI, UL, L, M, PM, PG, PP from best to worst. `M` accompanies source=none.
+query_chrom -- Contig in the query genome where the gene was placed.
+query_start -- Start coordinate.
+query_end -- End coordinate.
+query_strand -- Strand, + or -.
+orthology_class -- TOGA2's own orthology call: one2one, one2many, many2one, many2many. Liftoff rows carry `liftoff_clean` and unplaced genes `unprojected`.
+
+### columns:panel_sizes, sizes, target_sizes, query_sizes
+
+chrom -- Contig or chromosome name, exactly as it appears in that strain's assembly FASTA. If an annotation for the same strain uses different names, nothing will intersect -- that is why Sal-I contributes no orthology evidence.
+length -- Its length in bases. Alignment tools need this to write coordinates that other tools can interpret.
+
+### columns:panel_relabel_map, relabel_map
+
+pair_underscore -- An ordered strain pair written `A_B`, which is how alignment outputs are keyed.
+pair_dot -- The same pair written `A.B`, which is what the orthology step expects. The file exists only to rename one convention into the other.
+
+### columns:panel_self_pairs, self_pairs
+
+self_pair -- One `X_X` per strain. These are the diagonal of the all-against-all grid -- a genome aligned to itself -- and the list exists so those cells can be dropped before any alignment runs.
+
+### columns:anchor_prep.isoforms, anchor_isoforms
+
+gene -- Gene identifier.
+transcript -- One transcript of that gene. A gene with several transcripts gets several rows. TOGA2 classifies transcripts individually and needs this table to decide the fate of the gene they belong to.
+
