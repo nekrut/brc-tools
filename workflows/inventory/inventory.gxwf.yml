@@ -63,7 +63,7 @@ outputs:
     doc: MultiQC HTML — per-strain BUSCO completeness + the sourmash clustered heatmap & dendrogram.
   sizes:
     outputSource: panel_sizes/out_file1
-    doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; reused by C/D/I/J.
+    doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; consumed by WF-C.
   self_pairs:
     outputSource: panel_self_pairs/output
     doc: One X_X per strain (WF-C alignment-grid diagonal to exclude).

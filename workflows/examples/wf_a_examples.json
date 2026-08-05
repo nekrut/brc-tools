@@ -1,8 +1,66 @@
 {
- "history": "f4af09719299d4f6",
- "invocation": "3c9d8677020e7fdd",
+ "history": "9a7c6ce629ee1eba",
+ "invocation": "2f5c1a0fa13e5b9d",
  "state": "completed",
  "steps": {
+  "anchor_gene_gff3s": {
+   "order": 3,
+   "outputs": [
+    {
+     "bytes": 6622337,
+     "element_ids": [
+      "PvW1",
+      "PAM",
+      "PvSY56"
+     ],
+     "elements": 3,
+     "ext": "gff3",
+     "kind": "collection",
+     "name": "output",
+     "shown": "PvW1",
+     "text": "##gff-version 3\n##species http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9000000309\n##sequence-region CAJZCX010000001 1 34526\n##sequence-region CAJZCX010000002 1 5994\n##sequence-region CAJZCX010000003 1 3726833\n##sequence-region CAJZCX010000004 1 3659351\n##sequence-region CAJZCX010000005 1 2525149\n##sequence-region CAJZCX010000006 1 2251416\n##sequence-region CAJZCX010000007 1 2236137\n##sequence-region CAJZCX010000008 1 2117118\n##sequence-region CAJZCX010000009 1 1871636\n##sequence-region CAJZCX010000010 1 1817621",
+     "total_lines": 44522,
+     "truncated": true
+    }
+   ]
+  },
+  "anchor_prep": {
+   "order": 9,
+   "outputs": [
+    {
+     "bytes": 606087,
+     "element_ids": [
+      "PvW1",
+      "PAM",
+      "PvSY56"
+     ],
+     "elements": 3,
+     "ext": "bed12",
+     "kind": "collection",
+     "name": "bed12",
+     "shown": "PvW1",
+     "text": "CAJZCX010000017.1\t0\t755\tPVW1_000005000\t100\t+\t2\t755\t0,0,0\t2\t482,162,\t0,593,\nCAJZCX010000017.1\t9761\t11234\tPVW1_000005200\t100\t+\t9761\t11234\t0,0,0\t3\t6,1095,159,\t0,110,1314,\nCAJZCX010000017.1\t18945\t20223\tPVW1_000005300\t100\t+\t18945\t20223\t0,0,0\t3\t12,858,162,\t0,143,1116,\nCAJZCX010000017.1\t35103\t37117\tPVW1_000005600\t100\t+\t35103\t37117\t0,0,0\t3\t15,1581,162,\t0,149,1852,\nCAJZCX010000017.1\t39218\t40418\tPVW1_000005700\t100\t+\t39218\t40418\t0,0,0\t3\t12,780,150,\t0,144,1050,\nCAJZCX010000017.1\t43608\t45061\tPVW1_000005800\t100\t+\t43608\t45061\t0,0,0\t3\t42,1020,159,\t0,182,1294,\nCAJZCX010000017.1\t49541\t50921\tPVW1_000005900\t100\t+\t49541\t50921\t0,0,0\t1\t1380,\t0,\nCAJZCX010000017.1\t51006\t52137\tPVW1_000006000\t100\t+\t51006\t52137\t0,0,0\t1\t1131,\t0,\nCAJZCX010000017.1\t54935\t57177\tPVW1_000006100\t100\t-\t54935\t57177\t0,0,0\t3\t162,1785,27,\t0,287,2215,\nCAJZCX010000017.1\t60726\t62084\tPVW1_000006200\t100\t+\t60726\t62084\t0,0,0\t3\t48,873,168,\t0,194,1190,\nCAJZCX010000017.1\t65988\t67587\tPVW1_000006300\t100\t+\t65988\t67587\t0,0,0\t3\t33,1176,129,\t0,174,1470,\nCAJZCX010000017.1\t76264\t77904\tPVW1_000006500\t100\t+\t76264\t77904\t0,0,0\t3\t27,1197,162,\t0,172,1478,",
+     "total_lines": 6175,
+     "truncated": true
+    },
+    {
+     "bytes": 200475,
+     "element_ids": [
+      "PvW1",
+      "PAM",
+      "PvSY56"
+     ],
+     "elements": 3,
+     "ext": "tabular",
+     "kind": "collection",
+     "name": "isoforms",
+     "shown": "PvW1",
+     "text": "PVW1_000005000\tPVW1_000005000_t1\nPVW1_000005200\tPVW1_000005200_t1\nPVW1_000005300\tPVW1_000005300_t1\nPVW1_000005600\tPVW1_000005600_t1\nPVW1_000005700\tPVW1_000005700_t1\nPVW1_000005800\tPVW1_000005800_t1\nPVW1_000005900\tPVW1_000005900_t1\nPVW1_000006000\tPVW1_000006000_t1\nPVW1_000006100\tPVW1_000006100_t1\nPVW1_000006200\tPVW1_000006200_t1\nPVW1_000006300\tPVW1_000006300_t1\nPVW1_000006500\tPVW1_000006500_t1",
+     "total_lines": 6075,
+     "truncated": true
+    }
+   ]
+  },
   "assemblies": {
    "order": 0,
    "outputs": [
@@ -30,7 +88,7 @@
    ]
   },
   "busco": {
-   "order": 7,
+   "order": 8,
    "outputs": [
     {
      "bytes": 705,
@@ -49,7 +107,7 @@
      "kind": "collection",
      "name": "busco_sum",
      "shown": "PvP01",
-     "text": "# BUSCO version is: 5.8.0 \n# The lineage dataset is: apicomplexa_odb10 (Creation date: 2024-01-08, number of genomes: 54, number of BUSCOs: 446)\n# Summarized benchmarking in BUSCO notation for file /data/jobs/032/32991/working/input.fa\n# BUSCO was run in mode: proteins\n\n\t***** Results: *****\n\n\tC:100.0%[S:100.0%,D:0.0%],F:0.0%,M:0.0%,n:446\t   \n\t446\tComplete BUSCOs (C)\t\t\t   \n\t446\tComplete and single-copy BUSCOs (S)\t   \n\t0\tComplete and duplicated BUSCOs (D)\t   \n\t0\tFragmented BUSCOs (F)\t\t\t   ",
+     "text": "# BUSCO version is: 5.8.0 \n# The lineage dataset is: apicomplexa_odb10 (Creation date: 2024-01-08, number of genomes: 54, number of BUSCOs: 446)\n# Summarized benchmarking in BUSCO notation for file /data/jobs/034/34899/working/input.fa\n# BUSCO was run in mode: proteins\n\n\t***** Results: *****\n\n\tC:100.0%[S:100.0%,D:0.0%],F:0.0%,M:0.0%,n:446\t   \n\t446\tComplete BUSCOs (C)\t\t\t   \n\t446\tComplete and single-copy BUSCOs (S)\t   \n\t0\tComplete and duplicated BUSCOs (D)\t   \n\t0\tFragmented BUSCOs (F)\t\t\t   ",
      "total_lines": 19,
      "truncated": true
     },
@@ -77,14 +135,14 @@
    ]
   },
   "multiqc_report": {
-   "order": 10,
+   "order": 12,
    "outputs": [
     {
-     "bytes": 2270925,
+     "bytes": 2270181,
      "ext": "html",
      "kind": "dataset",
      "name": "html_report",
-     "note": "Self-contained HTML report, 2,270,925 bytes -- too large to inline here. It is produced as a workflow output; retrieve it from the run rather than from this page."
+     "note": "Self-contained HTML report, 2,270,181 bytes -- too large to inline here. It is produced as a workflow output; retrieve it from the run rather than from this page."
     },
     {
      "bytes": 349,
@@ -98,7 +156,7 @@
    ]
   },
   "panel_faidx": {
-   "order": 4,
+   "order": 5,
    "outputs": [
     {
      "bytes": 8510,
@@ -124,7 +182,7 @@
    ]
   },
   "panel_relabel_map": {
-   "order": 5,
+   "order": 6,
    "outputs": [
     {
      "bytes": 1504,
@@ -138,7 +196,7 @@
    ]
   },
   "panel_self_pairs": {
-   "order": 3,
+   "order": 4,
    "outputs": [
     {
      "bytes": 94,
@@ -152,7 +210,7 @@
    ]
   },
   "panel_sizes": {
-   "order": 8,
+   "order": 10,
    "outputs": [
     {
      "bytes": 4899,
@@ -204,7 +262,7 @@
    ]
   },
   "sourmash_compare": {
-   "order": 9,
+   "order": 11,
    "outputs": [
     {
      "bytes": 1160,
@@ -250,7 +308,7 @@
    ]
   },
   "sourmash_sketch": {
-   "order": 6,
+   "order": 7,
    "outputs": [
     {
      "bytes": 481744,
@@ -276,6 +334,6 @@
    ]
   }
  },
- "when": "2026-06-17",
+ "when": "2026-08-05",
  "workflow": "A"
 }

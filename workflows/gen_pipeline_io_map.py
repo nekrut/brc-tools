@@ -134,10 +134,12 @@ FALLBACK_DOC = {
 }
 
 STATUS = {
-    "A": dict(jobs="36 / 36 ok", when="2026-06-17", history="f4af09719299d4f6",
-              invocation="3c9d8677020e7fdd",
-              note="That history holds four invocations -- three of them WF-B softmask reruns -- "
-                   "so the WF-A numbers must be read per invocation."),
+    "A": dict(jobs="39 / 39 ok", when="2026-08-05", history="9a7c6ce629ee1eba",
+              invocation="2f5c1a0fa13e5b9d",
+              note="Workflow version 6 in the editor (the API reports version 5, "
+                   "zero-indexed), 13 steps. This run is the first to include anchor_prep, "
+                   "which derives the anchor BED12 and isoforms table in-workflow; its three "
+                   "isoforms tables are identical to the files previously staged by hand."),
     "B": dict(jobs="122 / 122 ok", when="2026-06-17", history="f4af09719299d4f6",
               invocation="75ed0631e40c6c7b",
               note="Workflow version 11 in the editor (the API reports version 10, "
