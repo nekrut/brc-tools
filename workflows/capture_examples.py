@@ -20,6 +20,7 @@ Nothing here should make the committed JSON large.
 import base64
 import json
 import os
+import shlex
 import subprocess
 import sys
 
@@ -27,6 +28,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PREVIEW_LINES = 12          # lines of text to keep per output
 PREVIEW_CHARS = 1400        # hard cap on a text preview
 IMAGE_MAX = 120_000         # embed images below this; above it, describe only
+TEXT_MAX = 50_000_000       # above this, read only the head. `maf` and `chain` are
+                            # text formats and WF-I's MAFs run to gigabytes, so an
+                            # unguarded capture would pull whole files over the API.
+                            # Set high enough that tens-of-MB datasets are still read
+                            # in full and keep an accurate total_lines.
 
 TEXTY = {"txt", "tabular", "csv", "tsv", "bed", "bed12", "gff3", "gff", "fasta",
          "fastqsanger", "json", "yaml", "interval", "chain", "maf", "data"}
@@ -39,10 +45,16 @@ def api(path):
     return json.loads(out)
 
 
-def fetch(path, binary=False):
+def fetch(path, binary=False, head_bytes=None):
     key = os.environ["GALAXY_API_KEY"]; url = os.environ["GALAXY_URL"]
-    out = subprocess.check_output(
-        ["curl", "-s", "--max-time", "120", "-H", f"x-api-key: {key}", f"{url}{path}"])
+    cmd = ["curl", "-s", "--max-time", "120", "-H", f"x-api-key: {key}", f"{url}{path}"]
+    if head_bytes:
+        # stop reading once we have enough for a preview rather than transferring
+        # the whole dataset; curl exits non-zero when head closes the pipe
+        out = subprocess.run(" ".join(shlex.quote(c) for c in cmd) + f" | head -c {head_bytes}",
+                             shell=True, capture_output=True).stdout
+    else:
+        out = subprocess.check_output(cmd)
     return out if binary else out.decode("utf-8", "replace")
 
 
@@ -51,6 +63,14 @@ def preview(ds):
     ext = (ds.get("file_ext") or "").lower()
     size = ds.get("file_size") or 0
     info = {"ext": ext, "bytes": size}
+
+    # A purged dataset still reports state=ok and a file_size, and the display
+    # endpoint answers 200 with an error document. Without this check that
+    # document gets captured and published as if it were the data.
+    if ds.get("purged") or ds.get("deleted"):
+        info["note"] = (f"{size:,} bytes when the run completed; the dataset has since been "
+                        f"purged, so no sample can be shown.")
+        return info
 
     if ext in ("png", "jpg", "jpeg", "gif"):
         if size and size <= IMAGE_MAX:
@@ -74,13 +94,23 @@ def preview(ds):
         return info
 
     if ext in TEXTY or size < 200_000:
+        big = size > TEXT_MAX
         try:
-            txt = fetch(f"/api/datasets/{ds['id']}/display?to_ext={ext or 'txt'}")
+            txt = fetch(f"/api/datasets/{ds['id']}/display?to_ext={ext or 'txt'}",
+                        head_bytes=200_000 if big else None)
         except Exception as e:
             info["note"] = f"could not read: {e}"
             return info
+        if txt.lstrip().startswith('{"err_msg"'):
+            info["note"] = "Galaxy declined to serve this dataset: " + txt.strip()[:200]
+            return info
         lines = txt.splitlines()
-        info["total_lines"] = len(lines)
+        if big:
+            # the line count would be a lie -- we only read the head
+            info["note"] = f"{size:,} bytes; showing the first lines only"
+            lines = lines[:-1]          # the last line of a head read is usually cut
+        else:
+            info["total_lines"] = len(lines)
         body = "\n".join(lines[:PREVIEW_LINES])
         if len(body) > PREVIEW_CHARS:
             body = body[:PREVIEW_CHARS] + "\n..."
@@ -90,6 +120,37 @@ def preview(ds):
 
     info["note"] = f"{ext or 'binary'}, {size:,} bytes"
     return info
+
+
+def descend(elements, path=()):
+    """Walk down to one leaf dataset, preferring a branch that still has data.
+
+    A list:list element's `object` is a COLLECTION, not a dataset. Passing its id
+    to /api/datasets returns an unrelated dataset that happens to share the id --
+    Galaxy answers 200 with plausible-looking metadata -- so the nested case has
+    to recurse instead of assuming the first level is already a leaf.
+    """
+    fallback = None
+    for el in elements:
+        obj = el.get("object") or {}
+        here = path + (el["element_identifier"],)
+        if el.get("element_type") == "dataset_collection" or "elements" in obj:
+            sub = obj.get("elements")
+            if sub is None:
+                sub = (api(f"/api/dataset_collections/{obj['id']}?instance_type=history")
+                       .get("elements") or [])
+            got_path, got = descend(sub, here)
+            if got is not None and not (got.get("purged") or got.get("deleted")):
+                return got_path, got
+            if fallback is None and got is not None:
+                fallback = (got_path, got)
+            continue
+        ds = api(f"/api/datasets/{obj['id']}")
+        if not (ds.get("purged") or ds.get("deleted")):
+            return here, ds
+        if fallback is None:
+            fallback = (here, ds)
+    return fallback if fallback else (path, None)
 
 
 def main(wf_id, invocation):
@@ -111,6 +172,14 @@ def main(wf_id, invocation):
             for name, o in (job.get("outputs") or {}).items():
                 ds = api(f"/api/datasets/{o['id']}")
                 entry["outputs"].append({"name": name, "kind": "dataset", **preview(ds)})
+        # a plain data input has no job and no collection -- its dataset hangs
+        # off `outputs`, which is how compare_csv / self_pairs / relabel_map were
+        # being skipped
+        if not d.get("job_id"):
+            for name, o in (d.get("outputs") or {}).items():
+                if o.get("src") == "hda":
+                    entry["outputs"].append({"name": name, "kind": "dataset",
+                                             **preview(api(f"/api/datasets/{o['id']}"))})
         for name, c in (d.get("output_collections") or {}).items():
             try:
                 cc = api(f"/api/dataset_collections/{c['id']}?instance_type=history")
@@ -119,13 +188,15 @@ def main(wf_id, invocation):
             els = cc.get("elements") or []
             if not els:
                 continue
-            first = els[0]
-            ds = api(f"/api/datasets/{first['object']['id']}")
+            path, ds = descend(els)
+            if ds is None:
+                continue
             entry["outputs"].append({
                 "name": name, "kind": "collection",
+                "collection_type": cc.get("collection_type"),
                 "elements": len(els),
                 "element_ids": [e["element_identifier"] for e in els],
-                "shown": first["element_identifier"],
+                "shown": " / ".join(path),
                 **preview(ds)})
         if entry["outputs"]:
             out["steps"][label] = entry

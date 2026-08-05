@@ -8,6 +8,7 @@
    "outputs": [
     {
      "bytes": 29367759,
+     "collection_type": "list",
      "element_ids": [
       "PvW1",
       "PAM",
@@ -29,6 +30,7 @@
    "outputs": [
     {
      "bytes": 616144,
+     "collection_type": "list",
      "element_ids": [
       "PvW1",
       "PAM",
@@ -50,6 +52,7 @@
    "outputs": [
     {
      "bytes": 6622337,
+     "collection_type": "list",
      "element_ids": [
       "PvW1",
       "PAM",
@@ -71,6 +74,7 @@
    "outputs": [
     {
      "bytes": 200475,
+     "collection_type": "list",
      "element_ids": [
       "PvW1",
       "PAM",
@@ -92,6 +96,7 @@
    "outputs": [
     {
      "bytes": 29365820,
+     "collection_type": "list",
      "element_ids": [
       "PvW1",
       "PAM",
@@ -113,6 +118,7 @@
    "outputs": [
     {
      "bytes": 29427244,
+     "collection_type": "list",
      "element_ids": [
       "PvP01",
       "PvW1",
@@ -139,6 +145,7 @@
    "outputs": [
     {
      "bytes": 1339190,
+     "collection_type": "list",
      "element_ids": [
       "MHC087.PAM",
       "MHC087.PvC01",
@@ -259,6 +266,7 @@
    "outputs": [
     {
      "bytes": 616144,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -293,6 +301,7 @@
     },
     {
      "bytes": 616144,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -314,6 +323,7 @@
    "outputs": [
     {
      "bytes": 29367759,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -348,6 +358,7 @@
     },
     {
      "bytes": 29367759,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -369,6 +380,7 @@
    "outputs": [
     {
      "bytes": 6622337,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -403,6 +415,7 @@
     },
     {
      "bytes": 6622337,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -424,6 +437,7 @@
    "outputs": [
     {
      "bytes": 200475,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -458,6 +472,7 @@
     },
     {
      "bytes": 200475,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -479,6 +494,7 @@
    "outputs": [
     {
      "bytes": 29365820,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -513,6 +529,7 @@
     },
     {
      "bytes": 29365820,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -534,6 +551,7 @@
    "outputs": [
     {
      "bytes": 1463646,
+     "collection_type": "list",
      "element_ids": [
       "PAM_MHC087",
       "PAM_PvC01",
@@ -573,6 +591,7 @@
    "outputs": [
     {
      "bytes": 1463646,
+     "collection_type": "list",
      "element_ids": [
       "PAM.MHC087",
       "PAM.PvC01",
@@ -607,6 +626,7 @@
     },
     {
      "bytes": 1339190,
+     "collection_type": "list",
      "element_ids": [
       "MHC087.PAM",
       "MHC087.PvC01",
@@ -660,6 +680,7 @@
    "outputs": [
     {
      "bytes": 1113050,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -699,6 +720,7 @@
    "outputs": [
     {
      "bytes": 29365820,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -736,6 +758,7 @@
     },
     {
      "bytes": 29407139,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -778,6 +801,7 @@
    "outputs": [
     {
      "bytes": 616144,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -815,6 +839,7 @@
     },
     {
      "bytes": 29407139,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -857,6 +882,7 @@
    "outputs": [
     {
      "bytes": 29367759,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -894,6 +920,7 @@
     },
     {
      "bytes": 29427244,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -936,6 +963,7 @@
    "outputs": [
     {
      "bytes": 6622337,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -973,6 +1001,7 @@
     },
     {
      "bytes": 29427244,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -1015,6 +1044,7 @@
    "outputs": [
     {
      "bytes": 200475,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -1052,6 +1082,7 @@
     },
     {
      "bytes": 29427244,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PvW1",
@@ -1094,6 +1125,7 @@
    "outputs": [
     {
      "bytes": 7497504,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1128,6 +1160,7 @@
     },
     {
      "bytes": 3285,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1167,6 +1200,7 @@
    "outputs": [
     {
      "bytes": 7751472,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1201,6 +1235,7 @@
     },
     {
      "bytes": 1055933,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1240,6 +1275,7 @@
    "outputs": [
     {
      "bytes": 29427244,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1274,6 +1310,7 @@
     },
     {
      "bytes": 29367759,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -1295,6 +1332,7 @@
    "outputs": [
     {
      "bytes": 29407139,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1329,6 +1367,7 @@
     },
     {
      "bytes": 29365820,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvW1",
       "PAM_PAM",
@@ -1350,6 +1389,7 @@
    "outputs": [
     {
      "bytes": 554663,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1384,6 +1424,7 @@
     },
     {
      "bytes": 253538,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1418,6 +1459,7 @@
     },
     {
      "bytes": 426771,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1452,6 +1494,7 @@
     },
     {
      "bytes": 534224,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1491,6 +1534,7 @@
    "outputs": [
     {
      "bytes": 595849,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1525,6 +1569,7 @@
     },
     {
      "bytes": 0,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1559,6 +1604,7 @@
     },
     {
      "bytes": 5963127,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1593,6 +1639,7 @@
     },
     {
      "bytes": 537,
+     "collection_type": "list",
      "element_ids": [
       "PvW1_PvP01",
       "PvW1_PAM",
@@ -1632,6 +1679,7 @@
    "outputs": [
     {
      "bytes": 29407139,
+     "collection_type": "list",
      "element_ids": [
       "PvP01",
       "PvW1",

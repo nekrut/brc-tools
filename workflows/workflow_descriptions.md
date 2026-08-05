@@ -756,3 +756,71 @@ TOGA2 v2.0.8 defect (hillerlab/TOGA2#41) triggered by a single anchor transcript
 Folds both passes into the final annotation, tagging each call `source=liftoff` or
 `source=cesar2` with its intactness class. The GFF3 is the deliverable; the classification
 table is the evidence Phase E consumes.
+
+## I
+
+<!-- WF-I multiz -->
+
+### summary
+
+Builds one multi-way alignment per hinge strain: convert each pairwise alignment to MAF,
+then fold every query onto the hinge's coordinates closest-first, so each hinge ends up
+with a single file holding all eight strains.
+
+### description
+
+Everything up to this point aligns genomes two at a time. That is enough to ask whether a
+region is shared between a particular pair, but not to ask what a region looks like across
+the whole panel at once — for that you need every strain laid out against a common
+coordinate system, one column per position. That is what this workflow produces.
+
+Pick one strain as the reference — the hinge. Take its alignment against each of the other
+seven, convert each to MAF, and then merge them one at a time so that every new strain is
+threaded through what is already aligned. The result is a single file for that hinge in
+which each block is a stack of rows, one per strain that could be aligned there. Repeat for
+every strain in turn, because a region missing from one strain's view may be present in
+another's, and there is no single correct reference.
+
+The order of the merge matters more than it looks. Each new strain has to thread through
+the alignment built so far, so folding a distant strain in early costs you blocks that
+never recover. The queries are therefore folded closest-first, using the sourmash
+similarities from WF-A — which is why the inventory step's similarity matrix is an input
+here and not just a QC figure.
+
+On the Pv4 panel the eight hinges come to 15.1 GB of alignment. Reading the PvW1 file: 94,948
+blocks and 195,329 rows, with all eight strains present. PvSY56 contributes the fewest rows
+of any strain, 6,186, which is what you would expect from a genome sitting at 0.24 similarity
+to the rest of the panel while they sit at 0.63 to 0.70 among themselves.
+
+### step:axt_to_maf
+
+Converts each pairwise alignment from AXT to MAF, which is the format multiz reads. This
+runs once per (hinge, query) pair — 56 jobs for eight strains — and the two `.sizes` inputs
+are what let it write the chromosome lengths into each block. The hinge is always the target
+(top) row, which is the property the fold depends on.
+
+The prefix parameters are left empty here, so the rows come out carrying bare contig
+accessions such as `QMFC01000014.1`. `multiz_fold` fixes the names on the way in; see below
+for why that matters.
+
+### step:multiz_fold
+
+Takes one hinge's seven pairwise MAFs and merges them into a single multi-way MAF, folding
+the closest query first. The fold is iterative — `multiz prev.maf next.maf 1` — starting
+from the closest query's alignment and threading each next-closest onto the running result.
+The header of the output records the order it used.
+
+Two things this step has to get right, both of which were broken until 2026-08-05:
+
+**It has to know which strain is the hinge**, because that is how it looks up the row of
+similarities in `compare.csv` that determines the fold order. The name arrives as the
+contents of a one-line dataset rather than as a text box: Galaxy cannot route a map-over
+element identifier into a text parameter, and connecting a collection to one silently
+substitutes the internal representation of the collection element instead of its name.
+
+**It has to give every row a strain-qualified name.** multiz decides which species a row
+belongs to by reading the text before the first `.` in the row's name, so rows named
+`QMFC01000014.1` read as one species per contig. This step therefore rewrites the names to
+`strain.contig` as it stages each pairwise MAF — the target row takes the hinge's name, the
+query row takes the collection element's. This failure was silent: multiz exits successfully
+and writes a structurally normal file whose rows simply cannot be told apart.
