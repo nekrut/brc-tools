@@ -323,9 +323,23 @@ def md_inline(s):
 
 
 def md_block(text, tag="p"):
-    """Blank-line-separated paragraphs -> <p>...</p>."""
-    paras = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
-    return "".join(f"<{tag}>{md_inline(' '.join(p.split()))}</{tag}>" for p in paras)
+    """Blank-line-separated paragraphs -> <p>...</p>.
+
+    A paragraph whose lines are all indented four spaces becomes a <pre> instead,
+    with its whitespace preserved -- these carry column-aligned samples (FASTA
+    headers, TSV rows) where the alignment is the point.
+    """
+    out = []
+    for para in re.split(r"\n\s*\n", text.strip()):
+        if not para.strip():
+            continue
+        lines = para.split("\n")
+        if all(l.startswith("    ") or not l.strip() for l in lines):
+            body = "\n".join(l[4:] for l in lines).rstrip()
+            out.append("<pre>" + html.escape(body) + "</pre>")
+        else:
+            out.append(f"<{tag}>{md_inline(' '.join(para.split()))}</{tag}>")
+    return "".join(out)
 
 
 def load_examples():

@@ -339,9 +339,30 @@ Builds the alignment grid. Step by step:
 **They share their identifiers.** Both are keyed `PvP01_PvP01`, `PvP01_PvW1`, `PvP01_PAM`, …
 The identifier names the *cell of the grid*, not the genome inside it.
 
-**The contents differ.** In cell `PvP01_PvW1`, `output_a` holds PvP01's sequence and
-`output_b` holds PvW1's. So `output_a` repeats each genome 8 times in a row, while `output_b`
-cycles through all 8 — which is exactly how you enumerate every ordered pair.
+**Each element is a whole genome.** Not a pair, not a reference — every one of the 64
+elements on each side is a complete soft-masked FASTA of about 29 MB. Each side of the grid
+is therefore ~1.84 GB.
+
+**The contents differ, and the FASTA headers show it.** The accession prefixes identify the
+genome unambiguously: PvP01 contigs start `LT6356…`, PvW1 `CAJZCX…`, PAM `CASCJQ…`.
+
+    cell PvP01_PvW1
+       output_a -> tgt_fa   >LT635626.1  >LT635627.1  >LT635612.2         PvP01
+       output_b -> qry_fa   >CAJZCX010000001.1  >CAJZCX010000002.1  …     PvW1
+
+    cell PvP01_PAM
+       output_a -> tgt_fa   >LT635626.1  >LT635627.1  >LT635612.2         PvP01 again
+       output_b -> qry_fa   >CASCJQ010000001.1  >CASCJQ010000002.1  …     PAM
+
+    cell PvW1_PvP01
+       output_a -> tgt_fa   >CAJZCX010000001.1  …                         now PvW1 is target
+       output_b -> qry_fa   >LT635626.1  …                                and PvP01 is query
+
+Two things are visible there. `output_a` is identical across the first two cells, because
+PvP01 is the target in all 8 of its cells — that is the "each genome repeated" pattern in the
+actual data. And `PvW1_PvP01` is `PvP01_PvW1` with the two sides exchanged, which is why both
+directions are kept as separate cells: chaining is not symmetric, since the net is built with
+respect to whichever genome is the target.
 
 {{figure:cross_product}}
 
