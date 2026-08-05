@@ -24,12 +24,25 @@ alone produce (scripts/rbest_baseline.py: 68.6%). The projections now add real
 linkage on top of the chains instead of inflating copy number: CORE-1:1 goes
 slightly UP versus rbest alone and PARTIAL goes down.
 
-The `clique` column is the over-merge warning. A group spanning k strains built
-from 1:1 evidence should carry k*(k-1)/2 undirected edges; well below that means
-the component was chained through a few links rather than mutually supported.
-It is measured and reported, NOT acted on -- union-find can only merge, never
-split, so a wrong edge is permanent. Treat FAMILY and CORE-VAR labels on
-low-clique groups with suspicion.
+Two columns warn about over-merging, and they catch different failures.
+
+`clique` scores a group against the mutual support 1:1 evidence can actually
+provide: sum over strain pairs of min(copies_a, copies_b). Scoring against every
+possible pair instead would be wrong, because each gene can link to at most one
+gene per other strain, so a group with m copies in each of k strains tops out at
+(k-1)/(m*k-1) -- 0.462 for m=2, k=7, which is exactly where the multi-copy median
+sat before this was corrected. Low `clique` means chained: the component hangs
+together through a few links rather than mutual agreement.
+
+`density` is the raw edge fraction over all member pairs. It is not comparable
+across copy numbers, which is why it is not the threshold, but it is what exposes
+a blob: OG000001 on the 2026-06-12 data holds 3,110 genes with 625 copies in one
+strain and scores 0.525 clique against 0.0008 density. Sort by density to find
+blobs, by clique to find chains.
+
+Both are reported, NOT acted on -- union-find can only merge, never split, so a
+wrong edge is permanent and an automatic response would compound it. Treat
+FAMILY and CORE-VAR labels on low-scoring groups with suspicion.
 
 Output: work/03_consensus/ortholog_table.tsv
   orthogroup_id, label, n_strains, max_copies, clique, {strain columns...}
@@ -446,8 +459,29 @@ def main():
         present_strains = [s for s in all_strains if s in per_strain]
         n_strains = len(present_strains)
         max_copies = max(len(c) for c in strain_clusters.values())
-        expected_edges = n_strains * (n_strains - 1) // 2
-        clique = round(comp_edges.get(cid, 0) / expected_edges, 3) if expected_edges else 1.0
+        # How much of the mutual support this group COULD have does it actually
+        # have? Raw density (edges / n*(n-1)/2) is not comparable across copy
+        # numbers: the evidence is 1:1, so each gene can link to at most one gene
+        # per other strain, and a group with m copies in each of k strains tops
+        # out at (k-1)/(m*k-1) -- 0.462 for m=2, k=7. Scoring against n*(n-1)/2
+        # would therefore flag every multi-copy group as chained, which is a false
+        # alarm on exactly the FAMILY and CORE-VAR groups the number exists for.
+        #
+        # The achievable maximum is sum over strain pairs of min(copies_a,
+        # copies_b). For single-copy groups that is k*(k-1)/2 and this reduces to
+        # plain density; above that it stays a real 0..1 score.
+        counts = sorted(len(c) for c in strain_clusters.values())
+        expected_edges = sum(min(counts[i], counts[j])
+                             for i in range(len(counts)) for j in range(i + 1, len(counts)))
+        observed = comp_edges.get(cid, 0)
+        clique = round(min(observed / expected_edges, 1.0), 3) if expected_edges else 1.0
+        # Raw density too: the normalised score is comparable across groups, which
+        # is what makes a threshold usable, but it flatters a blob. OG000001 --
+        # 3,110 genes, 625 copies in one strain -- scores 0.525 normalised and
+        # 0.001 raw. Both are true; only the pair tells the whole story.
+        n_nodes = len(nodes)
+        pairs = n_nodes * (n_nodes - 1) // 2
+        density = round(observed / pairs, 4) if pairs else 1.0
         if n_strains == N_ALL and max_copies == 1:
             label = 'CORE-1:1'
         elif n_strains == N_ALL and max_copies >= 2:
@@ -464,6 +498,7 @@ def main():
             'n_strains': n_strains,
             'max_copies': max_copies,
             'clique': clique,
+            'density': density,
         }
         for s in all_strains:
             if s in strain_clusters:
@@ -484,12 +519,16 @@ def main():
               f'{ragged:,} groups ({100.0 * ragged / len(cl):.1f}%) below 0.9')
         print('    Those were chained together rather than mutually supported. '
               'They are reported, not split -- union-find cannot undo a merge.')
+        print('    `clique` is scored against the support 1:1 evidence can actually '
+              'provide; `density` is the raw edge fraction. Sort by density to find '
+              'blobs, by clique to find chains.')
         print('  Compare against scripts/rbest_baseline.py on the same rbest edges: '
               'a healthy run should land near it, not far above on CORE-VAR.')
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    fields = ['orthogroup_id', 'label', 'n_strains', 'max_copies', 'clique'] + all_strains
+    fields = ['orthogroup_id', 'label', 'n_strains', 'max_copies', 'clique', 'density'] \
+        + all_strains
     with open(out, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=fields, delimiter='\t')
         w.writeheader()
