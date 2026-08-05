@@ -545,3 +545,182 @@ Liftoff one because it is better evidenced.
 
 One limitation to be clear about: this is projection. A gene present in a query genome but
 absent from every anchor cannot be discovered by either pass.
+
+
+### step:anchor_assemblies
+
+The three genomes with curated annotation — PvW1, PAM, PvSY56 — unmasked. Liftoff uses these
+as its reference coordinate system.
+
+### step:anchor_gene_gff3s
+
+The curated gene models for each anchor. Two hard requirements: the seqids must match the
+anchor FASTA headers, and gene-level types must be renamed to `gene`, because Liftoff's
+default mode finds zero `gene` features in a native `protein_coding_gene` / `ncRNA_gene` /
+`pseudogene` GFF3 and silently projects nothing.
+
+### step:anchor_bed12s
+
+BED12 transcript models per anchor, used as the reference bed by triage, merge and TOGA2.
+Column 4 holds **transcript** ids (`PVW1_000005000_t1`), matching `anchor_isoforms`.
+
+### step:assemblies
+
+The whole panel, unmasked. These are Liftoff's targets — the genomes receiving genes.
+
+### step:query_masked
+
+The soft-masked panel from WF-B. The intactness check and CESAR2 read these; Liftoff aligns
+against the unmasked copies.
+
+### step:anchor_masked
+
+Soft-masked versions of the three anchors. TOGA2 wants soft-masked sequence on both sides,
+so the anchor side is needed here even though Liftoff uses the unmasked copy.
+
+### step:anchor_isoforms
+
+A gene-to-transcript table per anchor, grouping the BED12 transcripts into genes. TOGA2 needs
+it to tie projections back to genes; the transcript ids must match column 4 of the BED12
+exactly.
+
+### step:cleaned_chains
+
+WF-C's cleaned chains for all 56 ordered strain pairs, keyed `target.query`. Only the TOGA2
+pass reads these — Liftoff does its own gene-level alignment — so this input exists solely
+for pass 2.
+
+### step:gen_anchor_self_pairs
+
+Emits `A_A` for each anchor. The projection grid is anchors × strains, so it contains three
+cells where an anchor would project onto itself. This list is what removes them, and it is
+derived from the anchor element identifiers rather than supplied as a file.
+
+### step:p_grid_fa
+
+Crosses the three anchors with all eight strains: **24 cells**, keyed `anchor_query`. Same
+mechanics as WF-C's grid, except the two inputs are different collections, so the diagonal
+appears only where an anchor is also a panel member — which is why the self-pair list is
+generated from the anchors rather than assumed.
+
+{{figure:cross_product}}
+
+### step:p_grid_gff
+
+The same 24-cell grid over the anchor GFF3s, so each cell carries the annotation matching its
+anchor.
+
+### step:p_grid_bed
+
+The same grid over the anchor BED12s.
+
+### step:p_grid_ancmask
+
+The same grid over the soft-masked anchors, for TOGA2's reference side.
+
+### step:p_grid_iso
+
+The same grid over the isoforms tables.
+
+### step:p_anc_fa
+
+Drops the three anchor self-cells: **24 in, 21 out, 3 discarded**. Every parallel grid is
+filtered against the same list, so all of them stay aligned cell for cell.
+
+### step:p_qry_fa
+
+Query-side genomes for the 21 cells.
+
+### step:p_anc_gff
+
+Anchor annotations for the 21 cells.
+
+### step:p_anc_bed
+
+Anchor BED12s for the 21 cells.
+
+### step:p_qry_masked
+
+Soft-masked query genomes for the 21 cells.
+
+### step:p_anc_masked
+
+Soft-masked anchor genomes for the 21 cells.
+
+### step:p_anc_iso
+
+Anchor isoforms tables for the 21 cells.
+
+### step:gen_chain_grid
+
+Bridges WF-C's chain collection onto this grid. WF-C emits one chain per ordered strain pair
+keyed `{target}.{query}`; this grid is keyed `{anchor}_{query}`. TOGA2's `--chain_file` is
+reference-to-query with the anchor as reference, so cell `{anchor}_{query}` needs chain
+`{anchor}.{query}`.
+
+It emits three small files, all derived from the two collections' element identifiers:
+
+- **keep** — the 21 `{anchor}.{query}` ids to select
+- **relabel** — `{anchor}.{query}` → `{anchor}_{query}`
+- **order** — the same 21 ids in cross-product order
+
+### step:p_chain_keep
+
+Selects the 21 chains this grid needs out of WF-C's 56: **21 kept, 35 discarded**. The
+discarded ones are the pairs whose target is not an anchor.
+
+### step:p_chain
+
+Renames the selected chains from the dotted form to the underscore form, so their identifiers
+match the rest of the grid.
+
+### step:p_chain_sort
+
+Re-sorts the chains into cross-product order, and it is not optional.
+
+Galaxy pairs collections in a map-over by **position**. Every other grid here comes from
+`__CROSS_PRODUCT_FLAT__` and is in anchor-collection order; a collection filtered out of
+WF-C's 56 keeps WF-C's own alphabetical order. Before this step existed the two disagreed,
+and every cell was handed another cell's chain:
+
+    ref_bed12   position 0   PvW1_PvP01
+    chain       position 0   PAM_MHC087     <- wrong cell
+
+TOGA2 then reported `Processed 0 chains` and exited in a minute or two instead of eighty.
+Nothing looked wrong: the identifiers were all correct and the interface showed the right
+names throughout. Only the positions were mismatched. A single-cell test cannot catch this,
+because with one element position 0 is trivially correct.
+
+### step:p_liftoff
+
+Pass 1. Pulls each annotated gene's sequence out of the anchor, aligns it against the target
+genome, and places the gene at the best match, preserving exon structure. It emits the lifted
+annotation and a list of features it could not map.
+
+### step:p_triage
+
+Examines every projected gene, because a gene landing somewhere is not the same as a gene
+surviving. Eight rules check the reading frame, sequence identity, reference coverage, copy
+number, partial mappings, splice sites, subtelomeric position, and known variant-antigen
+families. Genes that pass go forward as clean; the rest are flagged.
+
+`needs_cesar2.bed` is **empty in every cell**, and that is a known defect rather than a
+result: triage looks the flagged genes up in the anchor BED12 by gene id, but that file is
+transcript-keyed as TOGA2 requires, so nothing ever matches. It is harmless here, because the
+C.4 redesign has TOGA2 classify the full anchor annotation instead of a triage subset, so
+nothing reads the file.
+
+### step:p_toga2
+
+Pass 2. Re-projects with CESAR2 over WF-C's chains, and grades every gene rather than passing
+or failing it: `FI` fully intact, `I` intact, `PI` partially intact, `UL` uncertain loss,
+`L` lost. This is where genes Liftoff could not place cleanly are recovered.
+
+Expensive — 47 to 178 minutes per cell — and 6 of the 21 cells failed here on an upstream
+TOGA2 v2.0.8 defect (hillerlab/TOGA2#41) triggered by a single anchor transcript.
+
+### step:p_merge
+
+Folds both passes into the final annotation, tagging each call `source=liftoff` or
+`source=cesar2` with its intactness class. The GFF3 is the deliverable; the classification
+table is the evidence Phase E consumes.
