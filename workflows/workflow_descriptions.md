@@ -42,6 +42,111 @@ the Pv4 panel it did exactly that: PvSY56 sits at about 0.24 similarity to every
 else while the rest sit at 0.63 to 0.70, and MHC087 came back only 87% complete.
 
 
+
+### step:assemblies
+
+The genomes themselves, one per strain. Everything downstream is keyed by these element
+identifiers, so the names chosen here become collection ids, pair ids (`A_B`) and eventually
+track names in the genome browser.
+
+### step:proteomes
+
+One protein FASTA per strain, in the same order as the assemblies. BUSCO is run in protein
+mode rather than genome mode, which is faster and avoids BUSCO doing its own gene prediction.
+Normally these come from `gffread` on each strain's own annotation.
+
+### step:sourmash_sketch
+
+Reduces each genome to a **signature**: a small, fixed-size sample of the k-mers it contains,
+chosen by hashing. Two genomes that share a lot of sequence share a lot of hashes, so
+signatures can be compared instead of the genomes themselves. A 29 Mb genome collapses to a
+few hundred kB, which is what makes the all-against-all comparison cheap.
+
+### step:sourmash_compare
+
+Compares every signature against every other and writes the similarity matrix, plus a
+clustered heatmap and a dendrogram. Values are similarity, not distance: 1.0 is identical.
+This is where an outlier becomes obvious — on the Pv4 panel PvSY56 sits near 0.24 against
+everything while the rest sit at 0.63 to 0.70.
+
+### step:busco
+
+Asks how many of the single-copy genes expected across this clade can actually be found in
+each strain's proteome. It is a completeness check on the **annotation**, not the assembly:
+a low score means genes are missing or unannotated, which matters because a strain that is
+short on genes will also be short on orthologues later.
+
+### step:panel_faidx
+
+Indexes each assembly with `samtools faidx`. The index is wanted for its second column,
+the length of every sequence — the actual sequence retrieval it normally enables is not
+used here.
+
+### step:panel_sizes
+
+Cuts the name and length columns out of each `.fai` to produce a plain
+`chromosome<TAB>length` table. The UCSC chain and net tools in Phase C require this for
+both genomes of every pair, and they will not run without it. Lengths are unaffected by
+soft-masking, so this can be built from the raw assemblies.
+
+### step:panel_self_pairs
+
+Writes one `X_X` line per strain, e.g. `PvW1_PvW1`.
+
+Phase C aligns every genome against every other by taking the cross-product of the genome
+collection with itself. That grid includes the diagonal — each genome paired with itself —
+which is meaningless to align. This file is the list of cells to drop, fed to Galaxy's
+`__FILTER_FROM_FILE__`. For 8 strains it removes 8 of the 64 cells, leaving 56.
+
+It exists as a file rather than a setting because Galaxy's collection operations filter by
+matching element identifiers against file contents, and the identifiers are only known once
+the panel is chosen.
+
+### step:panel_relabel_map
+
+Writes a two-column table mapping `A_B` to `A.B` for every ordered pair, 64 rows for 8
+strains:
+
+    PvW1_PvP01<TAB>PvW1.PvP01
+    PvW1_PAM<TAB>PvW1.PAM
+
+**Why it is needed.** When Galaxy builds the all-against-all grid, it names each cell by
+joining the two element identifiers with an underscore: `PvW1_PvP01`. It cannot use a dot,
+because the dot is reserved as a separator in collection identifiers. But Phase E — the
+orthology step much further downstream — expects pair ids in the dotted form `PvW1.PvP01`,
+which is the convention the reciprocal-best chain files use.
+
+So this is a rename table, applied by `__RELABEL_FROM_FILE__` after the alignment grid is
+built. Without it the chains come out named in a form Phase E does not recognise, and the
+orthology step silently finds nothing to join on.
+
+It is generated here, from the panel's own element identifiers, rather than hand-written,
+so that a new panel needs no manual bookkeeping.
+
+### step:multiqc_report
+
+Folds the per-strain BUSCO summaries and the sourmash heatmap into a single HTML report, so
+the panel can be reviewed in one place instead of opening a dozen datasets. This is the
+artefact to look at before committing compute to Phase B and C.
+
+Two outputs. The **report** is a self-contained interactive HTML page, a couple of megabytes,
+so it is not reproduced here. The **stats table** carries the numbers behind it, and is worth
+reading directly:
+
+    Sample   busco-complete  ..._single_copy  ..._duplicated  fragmented  missing
+
+The denominator is the size of the BUSCO lineage set — 446 genes for `apicomplexa_odb10` —
+so `complete` divided by 446 is the completeness percentage. `single_copy` versus
+`duplicated` splits the complete genes by copy number; a high duplicated count can mean a
+genuine expansion or an assembly that has not collapsed its haplotypes. `fragmented` genes
+were found only in part, and `missing` ones not at all.
+
+On the Pv4 panel this is where two strains stand out: MHC087 at 388/446 (87.0 %) with 18
+fragmented and 40 missing, and PvSY56 at 401/446 (89.9 %) with 17 fragmented and 28 missing.
+Everything else sits at 443–446. Those two are the strains to be careful with downstream, and
+PvSY56 is the same genome the sourmash matrix flags as a similarity outlier — two independent
+measurements agreeing that it is the odd one out.
+
 ## B
 
 <!-- WF-B softmask -->

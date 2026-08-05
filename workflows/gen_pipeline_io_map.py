@@ -37,6 +37,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Prose lives here, not in this file -- see load_descriptions().
 DESCRIPTIONS = "workflows/workflow_descriptions.md"
+# Per-step example data, frozen from real invocations by workflows/capture_examples.py.
+# The Pages build has no Galaxy access, so these must be committed, not fetched.
+EXAMPLES_DIR = "workflows/examples"
 
 # ---- palette -------------------------------------------------------------
 # Taken from BRC Analytics: site-config/brc-analytics/local/theme/constants.ts
@@ -131,9 +134,10 @@ FALLBACK_DOC = {
 }
 
 STATUS = {
-    "A": dict(jobs="122 / 122 ok", when="2026-06-17", history="f4af09719299d4f6",
-              note="Final invocation is clean; earlier attempts in the same history had a "
-                   "MultiQC and a Filter1 failure before the panel-sizes rework."),
+    "A": dict(jobs="36 / 36 ok", when="2026-06-17", history="f4af09719299d4f6",
+              invocation="3c9d8677020e7fdd",
+              note="That history holds four invocations -- three of them WF-B softmask reruns -- "
+                   "so the WF-A numbers must be read per invocation, not per history."),
     "B": dict(jobs="72 / 72 ok", when="2026-06-16", history="feb4114d4f866b50",
               note="8 / 8 genomes soft-masked after the rewrite to four maintained maskers "
                    "(sdust and longdust were dropped)."),
@@ -289,6 +293,8 @@ NW, NH = 152, 36           # node box
 GX, GY = 20, 40            # within-rank (x) and rank-to-rank (y) gaps
 PADX, PADY = 20, 42        # cluster padding (top pad leaves room for the header)
 CLUST_GAP_Y = 74           # vertical space between workflow clusters
+MAX_ROW = 5                # widest a rank may be drawn; longer ranks wrap onto
+                           # extra rows so the canvas never needs sideways scrolling
 GUTTER = 46                # right-hand lane where cross-workflow edges run
 LANE = 15                  # per-edge offset inside the gutter
 
@@ -313,6 +319,21 @@ def md_block(text, tag="p"):
     return "".join(f"<{tag}>{md_inline(' '.join(p.split()))}</{tag}>" for p in paras)
 
 
+def load_examples():
+    """{wf_id: captured-run dict} for every workflow with a committed example file."""
+    out = {}
+    d = os.path.join(ROOT, EXAMPLES_DIR)
+    if not os.path.isdir(d):
+        return out
+    for fn in sorted(os.listdir(d)):
+        if not fn.startswith("wf_") or not fn.endswith("_examples.json"):
+            continue
+        with open(os.path.join(d, fn)) as fh:
+            data = json.load(fh)
+        out[data["workflow"]] = data
+    return out
+
+
 def load_descriptions(path=DESCRIPTIONS):
     """Parse workflow_descriptions.md -> {wf_id: {"summary": .., "description": ..}}.
 
@@ -329,8 +350,8 @@ def load_descriptions(path=DESCRIPTIONS):
             wid, field = m2.group(1), None
             out.setdefault(wid, {})
         elif m3 and wid:
-            field = m3.group(1).lower()
-            out[wid][field] = ""
+            field = m3.group(1).lower()          # "summary", "description",
+            out[wid][field] = ""                 # or "step:<step-name>"
         elif wid and field is not None:
             out[wid][field] += line + "\n"
 
@@ -460,18 +481,71 @@ def layout(nodes, edges):
 
             order[r] = sorted(order[r], key=lambda n: (bary(n), nodes[n]["name"]))
 
-    # widest rank sets the cluster width; each rank is a row, centred in it
-    wide = max((len(v) for v in order.values()), default=1)
-    for r, row in order.items():
-        off = (wide - len(row)) * (NW + GX) / 2
-        for i, n in enumerate(row):
+    # A rank wider than MAX_ROW is drawn as several stacked rows. Ranks stay
+    # logical (edges are unaffected); only the drawing wraps, which keeps the
+    # canvas narrow enough to read without scrolling sideways.
+    rows = []                       # [(rank, [nodes]), ...] in draw order
+    for r in sorted(order):
+        row = order[r]
+        for i in range(0, len(row), MAX_ROW):
+            rows.append((r, row[i:i + MAX_ROW]))
+
+    wide = max((len(chunk) for _, chunk in rows), default=1)
+    for ri, (r, chunk) in enumerate(rows):
+        off = (wide - len(chunk)) * (NW + GX) / 2
+        for i, n in enumerate(chunk):
             nodes[n]["rank"] = r
             nodes[n]["x"] = PADX + off + i * (NW + GX)
-            nodes[n]["y"] = PADY + r * (NH + GY)
+            nodes[n]["y"] = PADY + ri * (NH + GY)
 
     w = PADX * 2 + wide * NW + (wide - 1) * GX
-    h = PADY + PADY // 2 + (maxr + 1) * NH + maxr * GY
+    h = PADY + PADY // 2 + len(rows) * NH + (len(rows) - 1) * GY
     return w, h
+
+
+
+EX_KEYS = {}   # {wf_id: set(node names with an example)}; filled in main()
+
+
+def solo_svg(wid, g, allnodes):
+    """Render one workflow's DAG on its own, for its detail tab."""
+    W = g["w"] + 2 * PADX
+    H = g["h"] + 2 * PADY
+    c = WFCOL[wid]
+    S = [f'<svg class="solo" id="solo-{wid}" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+         f'preserveAspectRatio="xMidYMin meet" '
+         f'xmlns="http://www.w3.org/2000/svg">',
+         f'<defs><marker id="sar{wid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" '
+         f'markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="{c}"/></marker></defs>']
+
+    def xy(n):
+        d = g["nodes"][n]
+        return d["x"] + PADX, d["y"] + PADY
+
+    for a, b in g["edges"]:
+        if a not in g["nodes"] or b not in g["nodes"]:
+            continue
+        x1, y1 = xy(a); x2, y2 = xy(b)
+        x1 += NW / 2; y1 += NH
+        x2 += NW / 2
+        dy = max(16, (y2 - y1) * 0.5)
+        S.append(f'<path class="e" stroke="{c}" marker-end="url(#sar{wid})" fill="none" '
+                 f'd="M{x1:.0f},{y1:.0f} C{x1:.0f},{y1+dy:.0f} {x2:.0f},{y2-dy:.0f} {x2:.0f},{y2:.0f}"/>')
+
+    for n, d in g["nodes"].items():
+        x, y = xy(n)
+        nm = d["name"] if len(d["name"]) <= 21 else d["name"][:20] + "\u2026"
+        sub = d["sub"] if len(d["sub"]) <= 24 else d["sub"][:23] + "\u2026"
+        has = ' has-ex' if d["name"] in EX_KEYS.get(wid, ()) else ''
+        S.append(
+            f'<g class="n {d["kind"]}{has}" data-wf="{wid}" data-node="{esc(d["name"])}" '
+            f'data-kind="{d["kind"]}" style="--c:{c}" transform="translate({x:.0f},{y:.0f})">'
+            f'<title>{esc(d["name"])}</title>'
+            f'<rect width="{NW}" height="{NH}" rx="7"/>'
+            f'<text class="nn" x="9" y="14">{esc(nm)}</text>'
+            f'<text class="ns" x="9" y="26">{esc(sub)}</text></g>')
+    S.append("</svg>")
+    return "".join(S)
 
 
 def main():
@@ -580,6 +654,39 @@ def main():
             f'<text class="ns" x="9" y="26">{esc(sub)}</text></g>')
     S.append("</svg>")
 
+    # ---- examples ---------------------------------------------------------
+    examples = load_examples()
+    # resolve which node each captured example belongs to, and pre-render the
+    # payload the detail panel shows when that node is clicked
+    ex_payload = {}
+    for wid, cap in examples.items():
+        if wid not in graphs:
+            continue
+        EX_KEYS[wid] = set(cap["steps"])
+        outsrc = {}   # workflow output name -> (step, output name)
+        d = yaml.safe_load(open(os.path.join(ROOT, WF_META[wid][0])))
+        for oname, o in (d.get("outputs") or {}).items():
+            src = str((o or {}).get("outputSource", ""))
+            if "/" in src:
+                st, on = src.split("/", 1)
+                outsrc[oname] = (st, on)
+                if st in cap["steps"]:
+                    EX_KEYS[wid].add(oname)
+        for node, dd in graphs[wid]["nodes"].items():
+            name, kind = dd["name"], dd["kind"]
+            step, want = (name, None)
+            if kind == "out" and name in outsrc:
+                step, want = outsrc[name]
+            entry = cap["steps"].get(step)
+            if not entry:
+                continue
+            outs = [o for o in entry["outputs"] if want is None or o["name"] == want]
+            if outs:
+                # prose for this step, if workflow_descriptions.md carries one
+                prose = (desc.get(wid, {}).get(f"step:{step}") or "").strip()
+                ex_payload[node] = {"step": step, "outputs": outs,
+                                    "why": md_block(prose) if prose else ""}
+
     # ---- HTML body ------------------------------------------------------
     P = []
     A = P.append
@@ -588,9 +695,12 @@ def main():
       'does with them. Worked throughout on the 8-strain <i>Plasmodium vivax</i> panel.</div></div>'
       f'<div class="score"><b>{len(VETTED)}</b> of 12 verified</div></header>')
 
-    A('<nav><a href="#start">Choosing your inputs</a><a href="#graph">Workflow graph</a>'
-      '<a href="#ports">Port detail</a><a href="#downstream">Downstream contracts</a>'
-      '<a href="#gaps">Known gaps</a></nav>')
+    tabbed = [w for w in VETTED if w in examples]
+    A('<nav><button class="tab active" data-tab="overview">Overview</button>'
+      + "".join(f'<button class="tab" data-tab="wf-{w}" style="--c:{WFCOL[w]}">'
+                f'WF-{w}</button>' for w in tabbed)
+      + '</nav>')
+    A('<div class="tabpane active" id="tab-overview">')
 
     # ---- getting started -------------------------------------------------
     A('<div class="wrap"><section id="start"><h2>Choosing your inputs</h2>'
@@ -759,6 +869,27 @@ def main():
         A(f'<div class="cav"><b>{title}</b><div class="mut">{body}</div></div>')
     A('</div></section></div>')
 
+    A('</div>')   # end overview pane
+
+    for wid in tabbed:
+        g = graphs[wid]; cap = examples[wid]; c = WFCOL[wid]
+        st = STATUS[wid]
+        A(f'<div class="tabpane" id="tab-wf-{wid}"><div class="wrap">')
+        A(f'<section><div class="wfhdr" style="--c:{c}">'
+          f'<span class="badge">{esc(g["ph"])}</span><h2>{esc(g["title"])}</h2>'
+          f'<span class="ok">&#10003; {esc(st["jobs"])}</span></div>')
+        A(md_block(desc[wid]["description"]))
+        A('</section>')
+
+        A(f'<section><h3>Steps</h3><p class="note">Click any step to see what it actually '
+          f'produced. The samples come from invocation <code>{esc(cap["invocation"])}</code> '
+          f'({esc(cap["when"])}, {esc(cap["state"])}) &mdash; a real run on the 8-strain panel, '
+          f'not synthetic data. Nodes with a sample are outlined; the rest carried no output '
+          f'of their own.</p>')
+        A(f'<div class="solowrap">{solo_svg(wid, g, allnodes)}</div>')
+        A(f'<div class="expanel" id="ex-{wid}"><div class="exempty">Select a step above.</div></div>')
+        A('</section></div></div>')
+
     A('<footer>Step graphs, ports and docs parsed from <code>workflows/*/*.gxwf.yml</code>; '
       'cross-workflow wiring imported from <code>gen_pipeline_dataflow.EDGES</code> so this and the '
       '<a href="pipeline_dataflow.html">A&rarr;K overview</a> cannot disagree. Run evidence read off '
@@ -785,7 +916,8 @@ def main():
                  .replace("__BODY__", "".join(P))
                  .replace("__ADJ__", json.dumps(adj))
                  .replace("__REV__", json.dumps(rev))
-                 .replace("__CLUSTERS__", json.dumps(clusters)))
+                 .replace("__CLUSTERS__", json.dumps(clusters))
+                 .replace("__EXAMPLES__", json.dumps(ex_payload)))
     n = sum(len(g["nodes"]) for g in graphs.values())
     e = sum(len(g["edges"]) for g in graphs.values())
     print(f"wrote workflows/pipeline_io_map.html — {len(VETTED)} workflows, {n} nodes, "
@@ -815,8 +947,44 @@ header .sub{color:rgba(255,255,255,.82);font-size:13.5px;max-width:80ch}
 .score{margin-left:auto;font-size:12.5px;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 14px;white-space:nowrap;color:rgba(255,255,255,.9)}
 .score b{color:#fff;font-size:17px}
 nav{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);padding:0 32px;display:flex;gap:4px;flex-wrap:wrap;box-shadow:0 1px 2px rgba(33,43,54,.05)}
-nav a{color:var(--mut);text-decoration:none;font-size:13px;padding:13px 14px;border-bottom:2px solid transparent}
-nav a:hover{color:var(--primary);border-bottom-color:var(--line2)}
+nav button.tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);font:inherit;font-size:13px;padding:13px 16px;cursor:pointer}
+nav button.tab:hover{color:var(--primary);border-bottom-color:var(--line2)}
+nav button.tab.active{color:var(--c,var(--primary));border-bottom-color:var(--c,var(--primary));font-weight:600}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.solowrap{overflow-x:hidden;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  background-image:radial-gradient(circle at 1px 1px,var(--line) 1px,transparent 0);background-size:22px 22px;
+  max-height:74vh;padding:4px}
+/* scale to the pane rather than scrolling sideways; the viewBox keeps it sharp */
+svg.solo{display:block;margin:8px auto;max-width:100%;height:auto}
+svg.solo .n rect{fill:var(--surface);stroke:var(--line2);stroke-width:1.2}
+svg.solo .n.in rect{fill:var(--info-lt);stroke:var(--info)}
+svg.solo .n.out rect{fill:var(--ok-lt);stroke:var(--ok)}
+svg.solo .n.has-ex{cursor:pointer}
+svg.solo .n.has-ex rect{stroke-width:2.2;stroke-dasharray:none}
+svg.solo .n:not(.has-ex){opacity:.55}
+svg.solo .n.has-ex:hover rect{stroke:var(--primary);stroke-width:2.8}
+svg.solo .n.sel rect{stroke:var(--primary);stroke-width:3}
+svg.solo .nn{fill:var(--ink);font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace}
+svg.solo .ns{fill:var(--mut);font:9.5px -apple-system,Segoe UI,Roboto,sans-serif}
+svg.solo .e{stroke-width:1.5;opacity:.5}
+.expanel{margin-top:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:14px 16px;min-height:90px}
+.exempty{color:var(--mut);font-size:13px;font-style:italic}
+.exwhy{font-size:13.5px;line-height:1.65;max-width:88ch;border-left:3px solid var(--info);
+  background:var(--info-lt);border-radius:0 6px 6px 0;padding:11px 15px;margin-bottom:14px}
+.exwhy p{margin:0 0 8px}
+.exwhy p:last-child{margin-bottom:0}
+.exwhy pre{background:var(--surface);border:1px solid var(--line);border-radius:5px;
+  padding:8px 10px;font:11.5px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre}
+.exhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}
+.exhead b{font-size:14px}
+.exmeta{color:var(--mut);font-size:11.5px}
+.exout{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.exout:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.expre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px;
+  font:11.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-x:auto;white-space:pre;margin:6px 0 0}
+.eximg{max-width:100%;border:1px solid var(--line);border-radius:6px;margin-top:6px;background:#fff}
+.exids{color:var(--mut);font-size:11.5px;margin-top:5px}
 .wrap{padding:26px 32px;max-width:1180px}
 section{margin:0 0 30px}
 h2{font-size:19px;margin:0 0 10px;font-weight:600;letter-spacing:-.01em}
@@ -932,6 +1100,47 @@ cv.addEventListener('mousedown',e=>{if(e.target.closest('.n'))return;down=true;s
 window.addEventListener('mouseup',()=>{down=false;cv.classList.remove('drag');});
 window.addEventListener('mousemove',e=>{if(!down)return;cv.scrollLeft=sl-(e.clientX-sx);cv.scrollTop=stp-(e.clientY-sy);});
 window.addEventListener('load',()=>document.getElementById('zf').click());
+
+// ---- tabs ----
+document.querySelectorAll('nav .tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav .tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  window.scrollTo({top:0});
+});
+
+// ---- per-step examples ----
+const EXAMPLES=__EXAMPLES__;
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function human(n){return n>=1e6?(n/1e6).toFixed(1)+' MB':n>=1e3?(n/1e3).toFixed(1)+' kB':n+' B';}
+function renderExample(wf,node){
+  const panel=document.getElementById('ex-'+wf); if(!panel) return;
+  const ex=EXAMPLES[wf+'|st|'+node]||EXAMPLES[wf+'|in|'+node]||EXAMPLES[wf+'|out|'+node];
+  if(!ex){panel.innerHTML='<div class="exempty">No output was captured for this step.</div>';return;}
+  let h='';
+  if(ex.why) h+='<div class="exwhy">'+ex.why+'</div>';
+  ex.outputs.forEach(o=>{
+    h+='<div class="exout"><div class="exhead"><b>'+esc(o.name)+'</b>';
+    h+='<span class="exmeta">'+esc(o.ext||'?')+' · '+human(o.bytes||0);
+    if(o.kind==='collection') h+=' · collection of '+o.elements+', showing <code>'+esc(o.shown)+'</code>';
+    if(o.total_lines!==undefined) h+=' · '+o.total_lines.toLocaleString()+' lines';
+    h+='</span></div>';
+    if(o.image) h+='<img class="eximg" src="'+o.image+'" alt="'+esc(o.name)+'">';
+    else if(o.text) h+='<pre class="expre">'+esc(o.text)+(o.truncated?'\n…':'')+'</pre>';
+    else if(o.note) h+='<div class="exmeta">'+esc(o.note)+'</div>';
+    if(o.element_ids&&o.element_ids.length>1)
+      h+='<div class="exids">elements: '+o.element_ids.map(esc).join(', ')+'</div>';
+    h+='</div>';
+  });
+  panel.innerHTML=h;
+}
+document.querySelectorAll('svg.solo .n.has-ex').forEach(n=>n.addEventListener('click',()=>{
+  const wf=n.dataset.wf;
+  document.querySelectorAll('#solo-'+wf+' .n').forEach(x=>x.classList.remove('sel'));
+  n.classList.add('sel');
+  renderExample(wf,n.dataset.node);
+}));
 </script>
 </body></html>'''
 
