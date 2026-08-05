@@ -824,3 +824,97 @@ belongs to by reading the text before the first `.` in the row's name, so rows n
 `strain.contig` as it stages each pairwise MAF — the target row takes the hinge's name, the
 query row takes the collection element's. This failure was silent: multiz exits successfully
 and writes a structurally normal file whose rows simply cannot be told apart.
+
+## E
+
+<!-- WF-E consensus orthology -->
+
+### summary
+
+Groups genes into orthologous families across the panel: reciprocal-best alignments say
+which loci correspond, the projections say which genes sit there, and connected components
+of that evidence become the orthogroups.
+
+### description
+
+Up to this point every comparison has been between two genomes at a time. This workflow
+turns those pairwise statements into panel-wide ones. If PvW1's gene X corresponds to
+PAM's gene Y, and PAM's Y corresponds to PvT01's Z, then X, Y and Z are the same gene seen
+in three strains — and the set of all such linked genes is an orthogroup.
+
+Two kinds of evidence go in. The reciprocal-best chains from the alignment step say that
+two stretches of two genomes are each other's best match, which is the classic way to
+call orthology from whole-genome alignment; intersected with each strain's gene
+annotation, that yields a gene-to-gene link. The projections add a second layer: where an
+annotation was transferred onto a strain, the transferred gene tells you a gene is present
+even when the alignment alone was ambiguous, and TOGA2 additionally says whether that gene
+is intact or degraded.
+
+The output is one row per orthogroup with a column per strain, labelled by how the group is
+distributed: present once in every strain, present everywhere but duplicated somewhere,
+a larger family, or restricted to a few strains. On the Pv4 panel 4,286 of 5,516 groups are
+single-copy in all seven usable strains, which is what you would expect from strains of the
+same species.
+
+Earlier versions of this workflow also took a pangenome graph as a third evidence source.
+It was removed: on the run that was checked, the graph contributed zero edges, and running
+without it produces the same groups gene for gene.
+
+### step:cls_ok
+
+Drops projection cells whose job failed. The projection grid is not always complete — 15 of
+21 cells on the run captured here — and a single failed element makes every downstream
+collection operation refuse to run.
+
+Note the distinction that matters in practice: this removes cells that *failed*. A cell
+still **paused**, waiting on a failure further upstream, leaves the whole collection
+unresolved and nothing after it can start at all. Those have to be cancelled, or the failing
+cells fixed and re-run, before this workflow can proceed.
+
+### step:cls_nested
+
+Regroups the projection tables. They arrive as one flat list with names like
+`PvW1_PvP01`, and the consensus step reads its tables from a directory tree that encodes the
+reference and the target strain as two separate levels. This step splits the name on the
+first underscore and uses the halves as those two levels, which is what lets the projection
+workflow's output be connected directly rather than rebuilt by hand.
+
+### step:gene_bed
+
+Reduces each strain's annotation to a plain list of gene positions — chromosome, start, end,
+gene id. Everything downstream works with these rather than the full annotation, and the
+same collection is used three times: to place the alignment evidence, and to tell a
+transferred gene apart from the native gene already annotated at that position.
+
+### step:rbest_overlap
+
+Intersects the reciprocal-best alignments with the gene positions. For each pair of strains
+it walks the alignment blocks, projects each gene of the first strain through them, and asks
+which gene of the second strain the projection lands on. A link is recorded when the two
+genes cover each other by at least the required fraction, so partial or spurious overlaps do
+not create one.
+
+The result is close to a one-to-one matching — on the run captured here every gene had
+exactly one partner per strain bar a couple of dozen exceptions — which is what makes the
+grouping step defensible.
+
+### step:consensus
+
+Merges all the evidence into orthogroups and labels them.
+
+The subtlety this step exists to handle is that a transferred gene keeps the *source*
+strain's name. Project PAM's gene onto PvC01 and the result is still called `PVPAM_…`,
+so it never matches the `PVC01_…` gene already annotated at that spot. Left alone, every
+gene enters the graph twice, every group looks like it has two copies per strain, and the
+labels — which are computed from copy number — become meaningless. Each transferred gene is
+therefore matched back onto the native gene at the same position; one that lands on nothing
+is a gene the annotation missed, and is dropped rather than counted as an extra copy.
+
+Two numbers come out alongside each group as a warning. `clique` asks how much of the
+mutual agreement the group could have does it actually have: in a real orthogroup every
+member should have found every other member independently, and a low value means the group
+is held together by a few links rather than by consensus. `density` is the raw fraction of
+member pairs that are linked, which is what exposes a group that has swollen to thousands of
+genes. Both are reported rather than acted on, because groups are only ever merged and never
+split, so a wrong link cannot be undone after the fact — sort by `density` to find swollen
+groups and by `clique` to find thin ones.

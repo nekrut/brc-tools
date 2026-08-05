@@ -62,14 +62,14 @@ BRC = {
 # gen_pipeline_dataflow.py uses for the A->K overview. success/alert are kept
 # out of it: they mean "verified" and "gap" everywhere else in this page.
 WFCOL = {"A": BRC["primary"], "B": BRC["info"], "C": BRC["warning"],
-         "C2": BRC["caution"], "I": BRC["success"]}
+         "C2": BRC["caution"], "E": BRC["ink"], "I": BRC["success"]}
 
 # Workflows that have passed the clean re-run, in pipeline order. They are
 # stacked top-to-bottom in this order and each one's own graph also flows
 # downward, so the canvas grows vertically as phases are added rather than
 # sideways — the page scrolls the way a long pipeline actually reads.
 # Producers must precede consumers so every cross-workflow edge points down.
-VETTED = ["A", "B", "C", "C2", "I"]
+VETTED = ["A", "B", "C", "C2", "E", "I"]
 
 
 
@@ -155,6 +155,13 @@ STATUS = {
                    "committed file exactly. Full ordered grid: 56 pairs from 8 strains, "
                    "KegAlign on GPU plus batched LASTZ. Previously recorded as 500 jobs -- "
                    "that was /api/jobs returning its default page of 500."),
+    "E": dict(jobs="12 / 12 ok", when="2026-08-05", history="6bba8e615983c09d",
+              invocation="feb4114d4f866b50",
+              note="The first WF-E run on TOGA2-era projections, and the first with the "
+                   "consensus tool resolving projected genes onto native ones. 4,286 of 5,516 "
+                   "orthogroups are CORE-1:1 (77.7%); the previous run, on Liftoff-only "
+                   "evidence and without that resolution, reported 21 of 5,817 (0.4%). This "
+                   "version no longer takes a pangenome graph."),
     "I": dict(jobs="64 / 64 ok", when="2026-08-05", history="cb183a1d519b63a2",
               invocation="e37f25bfb58457fb",
               note="The first WF-I run to produce output at all. The two earlier "
