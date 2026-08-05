@@ -152,13 +152,16 @@ STATUS = {
                    "committed file exactly. Full ordered grid: 56 pairs from 8 strains, "
                    "KegAlign on GPU plus batched LASTZ. Previously recorded as 500 jobs -- "
                    "that was /api/jobs returning its default page of 500."),
-    "C2": dict(jobs="20 / 20 ok", when="2026-08-04", history="c0c37ae0d73bec21",
-               invocation="fb7104b5587eadcb",
-               note="Pass 1 verified on the full 21-cell grid (72/72 jobs, under 3 minutes, history "
-                    "a03fa1145e6c2383). Pass 2 verified on one cell, PvW1->PvP01: TOGA2 82 min, "
-                    "16,874 classification rows against 10,782 for Liftoff alone -- 4,707 liftoff/I "
-                    "plus 6,092 cesar2 (FI 3,906, L 1,876, UL 170, I 135, PI 5). The full grid with "
-                    "TOGA2 on has not been run yet."),
+    "C2": dict(jobs="15 / 21 cells", when="2026-08-05", history="5fadef28a25ac561",
+               invocation="301fbf6783f66c6e",
+               note="Workflow version 2 in the editor (API version 1), 29 steps. Full grid with "
+                    "the TOGA2 rescue pass on: 15 of 21 cells complete -- PvW1 7/7, PvSY56 7/7, "
+                    "PAM 1/7. The six PAM failures are an upstream TOGA2 v2.0.8 defect "
+                    "(hillerlab/TOGA2#41), triggered by one transcript and reproducing on main. "
+                    "Two complete anchors is what Phase E needs. Across the completed cells, "
+                    "41,919 liftoff plus 86,400 cesar2 classifications; usable Phase E evidence "
+                    "goes from 41,919 to 101,435 edges. The grid ran on the Aug 4 version, whose "
+                    "steps are identical to version 2."),
 }
 
 CAVEATS = [
