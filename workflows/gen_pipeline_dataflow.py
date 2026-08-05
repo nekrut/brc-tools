@@ -58,6 +58,8 @@ EDGES = [
     ("A", "sizes", "C", "sizes"),
     ("A", "self_pairs", "C", "self_pairs"),
     ("A", "relabel_map", "C", "relabel_map"),
+    ("A", "anchor_bed12s", "C2", "anchor_bed12s"),
+    ("A", "anchor_isoforms", "C2", "anchor_isoforms"),
     ("B", "softmasked_fasta", "C", "masked_fastas"),
     ("B", "softmasked_fasta", "C2", "query_masked"),
     ("B", "softmasked_fasta", "C2", "anchor_masked"),

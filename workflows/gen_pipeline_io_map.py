@@ -761,12 +761,17 @@ def main():
     # resolve which node each captured example belongs to, and pre-render the
     # payload the detail panel shows when that node is clicked
     ex_payload = {}
+    stale = {}    # node id -> the invocation it is missing from (step added later)
     for wid, cap in examples.items():
         if wid not in graphs:
             continue
         EX_KEYS[wid] = set(cap["steps"])
         outsrc = {}   # workflow output name -> (step, output name)
         d = yaml.safe_load(open(os.path.join(ROOT, WF_META[wid][0])))
+        # parameter inputs never carry a dataset, so their absence from a capture
+        # says nothing; data/collection inputs are a different matter
+        datain = {n for n, i in (d.get("inputs") or {}).items()
+                  if str((i or {}).get("type", "data")) in ("data", "collection")}
         for oname, o in (d.get("outputs") or {}).items():
             src = str((o or {}).get("outputSource", ""))
             if "/" in src:
@@ -781,6 +786,11 @@ def main():
                 step, want = outsrc[name]
             entry = cap["steps"].get(step)
             if not entry:
+                if kind in ("st", "out") or (kind == "in" and name in datain):
+                    # in the .gxwf.yml but absent from the capture: either the step
+                    # postdates that run, or it produced nothing worth sampling.
+                    # The panel states the fact rather than guessing which.
+                    stale[node] = f'{cap["invocation"]} ({cap["when"]})'
                 continue
             outs = [o for o in entry["outputs"] if want is None or o["name"] == want]
             if outs:
@@ -1019,7 +1029,8 @@ def main():
                  .replace("__ADJ__", json.dumps(adj))
                  .replace("__REV__", json.dumps(rev))
                  .replace("__CLUSTERS__", json.dumps(clusters))
-                 .replace("__EXAMPLES__", json.dumps(ex_payload)))
+                 .replace("__EXAMPLES__", json.dumps(ex_payload))
+                 .replace("__STALE__", json.dumps(stale)))
     n = sum(len(g["nodes"]) for g in graphs.values())
     e = sum(len(g["edges"]) for g in graphs.values())
     print(f"wrote workflows/pipeline_io_map.html — {len(VETTED)} workflows, {n} nodes, "
@@ -1228,6 +1239,7 @@ document.querySelectorAll('nav .tab').forEach(b=>b.onclick=()=>{
 
 // ---- per-step examples ----
 const EXAMPLES=__EXAMPLES__;
+const STALE=__STALE__;
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function human(n){return n>=1e6?(n/1e6).toFixed(1)+' MB':n>=1e3?(n/1e3).toFixed(1)+' kB':n+' B';}
 function renderExample(wf,node){
@@ -1268,8 +1280,9 @@ document.querySelectorAll('svg.solo .n').forEach(n=>n.addEventListener('click',(
     e.classList.toggle('dim',!on); e.classList.toggle('hot',on);
   });
   if(n.classList.contains('has-ex')) renderExample(wf,n.dataset.node);
-  else document.getElementById('ex-'+wf).innerHTML=
-    '<div class="exempty">Path highlighted. This step produced no output of its own.</div>';
+  else document.getElementById('ex-'+wf).innerHTML='<div class="exempty">'+(STALE[id]
+    ? 'No sample for this node in invocation '+esc(STALE[id])+'. Re-run workflows/capture_examples.py against a newer invocation to add one.'
+    : 'Path highlighted. This step produced no output of its own.')+'</div>';
 }));
 // click the background of a diagram to clear the trace
 document.querySelectorAll('svg.solo').forEach(svg=>svg.addEventListener('click',ev=>{

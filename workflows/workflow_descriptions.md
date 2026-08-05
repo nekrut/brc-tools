@@ -41,6 +41,13 @@ bad assembly or an unexpected outlier here, before spending days of compute on i
 the Pv4 panel it did exactly that: PvSY56 sits at about 0.24 similarity to everything
 else while the rest sit at 0.63 to 0.70, and MHC087 came back only 87% complete.
 
+One more piece of bookkeeping happens here: for each anchor -- the few strains whose gene
+annotation you trust well enough to project onto the others -- it reads the curated GFF3
+and writes out the two files the annotation-transfer workflow will need, a BED12 of the
+protein-coding transcripts and a table saying which gene each transcript belongs to. These
+were previously built by hand outside Galaxy, which meant the panel's provenance had a gap
+in it right where the reference annotation entered the pipeline.
+
 
 
 ### step:assemblies
@@ -101,6 +108,31 @@ which is meaningless to align. This file is the list of cells to drop, fed to Ga
 It is a file because Galaxy's collection operations filter by
 matching element identifiers against file contents, and the identifiers are only known once
 the panel is chosen.
+
+### step:anchor_prep
+
+Reads each anchor's curated GFF3 and writes the two annotation files the projection
+workflow (WF-C2) consumes. `gffread --bed` turns the mRNA/CDS structure into BED12 --
+one line per transcript, with the exon block sizes and offsets packed into columns 11
+and 12 -- and the step keeps only protein-coding transcripts, keyed by transcript id in
+column 4. Alongside it, the isoforms table is built by walking every `mRNA` feature and
+reading two attributes out of column 9:
+
+    ID=PVW1_000005000_t1;Parent=PVW1_000005000;...
+
+`Parent` is the gene, `ID` is the transcript, so that line becomes:
+
+    PVW1_000005000<TAB>PVW1_000005000_t1
+
+TOGA2 wants this because it classifies each transcript separately, then has to decide the
+fate of the *gene* -- and the only way it knows which projections belong to the same gene
+is this table. For PvW1 that is 6,075 transcripts over 6,075 genes; PAM 6,462; PvSY56
+5,328 (this panel has one isoform per gene, so the counts match, but the format allows
+many transcripts per gene).
+
+The reason both files come from one step on one GFF3 is that their transcript ids have to
+agree exactly. Build the BED12 from one annotation release and the isoforms table from
+another and TOGA2 will project transcripts it cannot map back to any gene, and drop them.
 
 ### step:panel_relabel_map
 
