@@ -32,6 +32,7 @@ inputs:
       Directed per-(hinge,query) AXT alignments from Phase C.1, oriented so the
       hinge is the AXT target. Outer list element_identifier = hinge strain;
       inner list element_identifier = query strain.
+    position: {top: 0, left: 0}
   target_sizes:
     type: collection
     collection_type: "list:list"
@@ -39,16 +40,19 @@ inputs:
       Per-(hinge,query) target chrom .sizes (Phase B), paired with pairwise_axts
       by the same outer=hinge / inner=query identifiers. axtToMaf needs the
       target (hinge) and query .sizes for each pair.
+    position: {top: 120, left: 0}
   query_sizes:
     type: collection
     collection_type: "list:list"
     doc: >
       Per-(hinge,query) query chrom .sizes (Phase B), outer=hinge / inner=query.
+    position: {top: 240, left: 0}
   compare_csv:
     type: data
     doc: >
       Phase A sourmash compare.csv N x N similarity matrix. Whole-collection
       (non-mapped) input; multiz_fold orders the fold DESCENDING (closest first).
+    position: {top: 390, left: 300}
   hinge_names:
     type: collection
     collection_type: list
@@ -61,6 +65,7 @@ inputs:
       object, which is how every fold in the 2026-06-13 runs died -- so the name
       travels as data instead.
 
+    position: {top: 510, left: 300}
 steps:
   axt_to_maf:
     tool_id: ucsc_axtomaf
@@ -101,6 +106,7 @@ steps:
     out:
       - out
 
+    position: {top: 100, left: 300}
   multiz_fold:
     tool_id: multiz_fold
     doc: >
@@ -116,6 +122,7 @@ steps:
     out:
       - folded_maf
 
+    position: {top: 370, left: 600}
 outputs:
   multiz_mafs:
     outputSource: multiz_fold/folded_maf
