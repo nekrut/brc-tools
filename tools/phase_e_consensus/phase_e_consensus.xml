@@ -29,7 +29,9 @@ ln -s '$q' 'stage/${a.element_identifier}-as-ref/${q.element_identifier}.classif
 python '$__tool_directory__/phase_e_consensus.py'
     --liftoff_dir stage
     --rbest '$rbest'
+#if $graph#
     --graph '$graph'
+#end if#
     --anchors '$anchors'
     --strains '$strains'
     --ref '$ref'
@@ -49,8 +51,9 @@ python '$__tool_directory__/phase_e_consensus.py'
                help="How much a projected gene must overlap a native gene to be called the same gene. On the 2026-06-12 data 36.9% of projections sit at 1.0 and 16.0% overlap no native gene at all; the rest form a gradient, so this knob decides how much of it is merged. Lower values recover more single-copy orthologs but merge on weaker positional evidence."/>
         <param argument="--rbest" type="data" format="tabular,tsv" label="Reciprocal-best chain edges"
                help="rbest_edges.tsv (columns strain_a, gene_a, strain_b, gene_b, ...). Each row unions the two (strain, gene) nodes."/>
-        <param argument="--graph" type="data" format="tabular,tsv" label="Graph co-membership edges"
-               help="graph_edges.tsv (columns strain_a, gene_a, strain_b, gene_b, ...). Each row unions the two (strain, gene) nodes."/>
+        <param argument="--graph" type="data" format="tabular,tsv" optional="true"
+               label="Graph co-membership edges (optional)"
+               help="graph_edges.tsv from a pggb/odgi graph. Optional. On the 2026-06-12 data the graph contributed zero edges, and running with no graph at all yields the same 5,731 orthogroups gene for gene, so the pipeline no longer depends on WF-D."/>
         <param argument="--anchors" type="text" value="" label="Anchor strain list"
                help="Space-separated anchor strain names. Each must match an outer element identifier of the classification collection.">
             <validator type="regex" message="Space-separated names: letters, digits, underscore, hyphen, dot">[A-Za-z0-9_.\- ]+</validator>

@@ -80,7 +80,10 @@ EDGES = [
     ("C2", "classifications", "E", "c4_classifications"),
     ("C2", "merged_annotations", "F", "query_gff"),
     ("C2", "merged_annotations", "K", "annotation_gffs"),
-    ("D", "odgi_og", "E", "graph"),
+    # WF-D (pggb) has no consumers. WF-E used to take its odgi graph, but on the
+    # 2026-06-12 data that graph contributed zero edges, and running WF-E with no
+    # graph at all gives the same 5,731 orthogroups gene for gene -- so the input
+    # was dropped rather than kept as a dependency that does nothing.
     ("A", "similarity_matrix", "I", "compare_csv"),
     ("A", "sizes", "I", "target_sizes"),
     ("A", "sizes", "I", "query_sizes"),
