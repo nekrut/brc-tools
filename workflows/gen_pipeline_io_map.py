@@ -137,7 +137,7 @@ STATUS = {
     "A": dict(jobs="36 / 36 ok", when="2026-06-17", history="f4af09719299d4f6",
               invocation="3c9d8677020e7fdd",
               note="That history holds four invocations -- three of them WF-B softmask reruns -- "
-                   "so the WF-A numbers must be read per invocation, not per history."),
+                   "so the WF-A numbers must be read per invocation."),
     "B": dict(jobs="122 / 122 ok", when="2026-06-17", history="f4af09719299d4f6",
               invocation="75ed0631e40c6c7b",
               note="Workflow version 11 in the editor (the API reports version 10, "
@@ -151,7 +151,7 @@ STATUS = {
               note="Workflow version 7 in the editor (API version 6), 27 steps, matching the "
                    "committed file exactly. Full ordered grid: 56 pairs from 8 strains, "
                    "KegAlign on GPU plus batched LASTZ. Previously recorded as 500 jobs -- "
-                   "that was /api/jobs returning its default page of 500, not the total."),
+                   "that was /api/jobs returning its default page of 500."),
     "C2": dict(jobs="20 / 20 ok", when="2026-08-04", history="c0c37ae0d73bec21",
                invocation="fb7104b5587eadcb",
                note="Pass 1 verified on the full 21-cell grid (72/72 jobs, under 3 minutes, history "
@@ -529,7 +529,7 @@ def layout(nodes, edges):
 
 
 def figure_cross_product():
-    """Explain __CROSS_PRODUCT_FLAT__: it emits TWO aligned collections, not pairs.
+    """Explain __CROSS_PRODUCT_FLAT__: it emits two aligned collections.
 
     Drawn with a 3-genome panel so the whole 3x3 grid fits, and the diagonal that
     the self-pairs filter removes is marked.
@@ -580,7 +580,7 @@ def figure_cross_product():
         S.append(f'<path class="farrow" d="M{cx:.0f},{y0+ch+4} L{cx:.0f},{ylow-20}"/>')
 
     ytext = yid + ch + 26
-    cap(x0, ytext, "Read a column, not a row: the third column is output_a=PvW1 against "
+    cap(x0, ytext, "Read down a column: the third column is output_a=PvW1 against "
                    "output_b=Sal-I, identifier PvW1_Sal-I.")
     cap(x0, ytext + 19, "Shaded = a genome paired with itself. __FILTER_FROM_FILE__ drops those "
                         "from both collections, leaving 6 of 9 (56 of 64 for the real panel).")

@@ -65,16 +65,16 @@ few hundred kB, which is what makes the all-against-all comparison cheap.
 ### step:sourmash_compare
 
 Compares every signature against every other and writes the similarity matrix, plus a
-clustered heatmap and a dendrogram. Values are similarity, not distance: 1.0 is identical.
+clustered heatmap and a dendrogram. Values are similarity: 1.0 is identical.
 This is where an outlier becomes obvious — on the Pv4 panel PvSY56 sits near 0.24 against
 everything while the rest sit at 0.63 to 0.70.
 
 ### step:busco
 
 Asks how many of the single-copy genes expected across this clade can actually be found in
-each strain's proteome. It is a completeness check on the **annotation**, not the assembly:
-a low score means genes are missing or unannotated, which matters because a strain that is
-short on genes will also be short on orthologues later.
+each strain's proteome. It is a completeness check on the **annotation**: a low score means genes are missing or
+unannotated, which matters because a strain that is short on genes will also be short on
+orthologues later.
 
 ### step:panel_faidx
 
@@ -98,7 +98,7 @@ collection with itself. That grid includes the diagonal — each genome paired w
 which is meaningless to align. This file is the list of cells to drop, fed to Galaxy's
 `__FILTER_FROM_FILE__`. For 8 strains it removes 8 of the 64 cells, leaving 56.
 
-It exists as a file rather than a setting because Galaxy's collection operations filter by
+It is a file because Galaxy's collection operations filter by
 matching element identifiers against file contents, and the identifiers are only known once
 the panel is chosen.
 
@@ -186,8 +186,7 @@ NCBI's low-complexity finder, the one BLAST uses. It looks for stretches whose c
 is skewed enough to align to almost anything. Our wrapper adds the fourth and fifth BED
 columns: instead of just "this region is low-complexity", each interval is labelled with the
 repeat unit it is made of — `polyA`, `(AT)n`, `lc` for anything without a clean period — and
-scored by how pure that repeat is, out of 1000. That is what makes these usable as a browser
-track rather than an anonymous mask.
+scored by how pure that repeat is, out of 1000. That is what makes these usable as a browser track.
 
 ### step:windowmasker
 
@@ -336,7 +335,8 @@ Builds the alignment grid. Step by step:
 **What comes out.** **Two collections of 64 elements each**, `output_a` and `output_b`.
 
 **They share their identifiers.** Both are keyed `PvP01_PvP01`, `PvP01_PvW1`, `PvP01_PAM`, …
-The identifier names the *cell of the grid*, not the genome inside it.
+The identifier names the *cell of the grid*; which genome sits inside it depends on which of
+the two collections you look in.
 
 **Each element is a whole genome.** Every one of the 64 elements on each side is a complete
 soft-masked FASTA of about 29 MB, so each side of the grid is ~1.84 GB.
@@ -527,9 +527,8 @@ Genes that fail that check are not discarded. They go to a second pass, **TOGA2*
 re-projects them with CESAR2 using the whole-genome chain alignments from WF-C. This is
 the only reason WF-C feeds WF-C2 at all: Liftoff does its own gene-by-gene alignment
 internally and needs nothing from WF-C, so pass 1 alone would leave the two halves of
-Phase C independent. TOGA2 is worth the cost because it does not just re-try the
-projection, it grades the outcome: intact, partially intact, lost, or lost in a way the
-alignment cannot resolve. On the first verified pair that turned 4,707 usable gene calls
+Phase C independent. TOGA2 is worth the cost because it grades the outcome:
+intact, partially intact, lost, or lost in a way the alignment cannot resolve. On the first verified pair that turned 4,707 usable gene calls
 into roughly 8,900, and separated 1,876 genes that are genuinely absent from the far
 larger set that had simply never been looked at properly.
 
@@ -544,5 +543,5 @@ classification is the raw evidence the orthology step downstream uses to decide 
 genes are shared across the whole panel, and it weights a CESAR2 call slightly above a
 Liftoff one because it is better evidenced.
 
-One limitation to be clear about: this is projection, not gene finding. A gene present in
-a query genome but absent from every anchor cannot be discovered by either pass.
+One limitation to be clear about: this is projection. A gene present in a query genome but
+absent from every anchor cannot be discovered by either pass.
