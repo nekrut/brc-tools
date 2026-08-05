@@ -34,6 +34,14 @@ inputs:
     default: apicomplexa_odb10
     doc: BUSCO lineage dataset (species-configurable, e.g. <clade>_odb10).
     position: {top: 500, left: 300}
+  anchor_gene_gff3s:
+    type: collection
+    collection_type: list
+    doc: >-
+      Curated gene GFF3 for each anchor, keyed by anchor name. A subset of the
+      panel, so this collection is shorter than assemblies. anchor_prep derives
+      the BED12 and the isoforms table from it, which WF-C2 needs.
+    position: {top: 620, left: 300}
 outputs:
   similarity_matrix:
     outputSource: sourmash_compare/output
@@ -55,13 +63,24 @@ outputs:
     doc: MultiQC HTML — per-strain BUSCO completeness + the sourmash clustered heatmap & dendrogram.
   sizes:
     outputSource: panel_sizes/out_file1
-    doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; reused by C/D/I/J.
+    doc: Per-strain .sizes (chrom<TAB>length), derived from assemblies; consumed by WF-C.
   self_pairs:
     outputSource: panel_self_pairs/output
     doc: One X_X per strain (WF-C alignment-grid diagonal to exclude).
   relabel_map:
     outputSource: panel_relabel_map/output
     doc: A_B<TAB>A.B for every ordered pair (Phase E ids; WF-C relabel).
+  anchor_bed12s:
+    outputSource: anchor_prep/bed12
+    doc: >-
+      Per-anchor protein-coding BED12, transcript-keyed in column 4
+      (WF-C2 triage/merge reference bed and TOGA2 --ref_annotation).
+  anchor_isoforms:
+    outputSource: anchor_prep/isoforms
+    doc: >-
+      Per-anchor gene<TAB>transcript table (TOGA2 --isoform_file). Derived from
+      the same GFF3 as the BED12 in the same step, so the two cannot disagree
+      on transcript ids.
 
 steps:
   sourmash_sketch:
@@ -206,3 +225,40 @@ steps:
           tags: name:wfc_sizes
         action_type: TagDatasetAction
         output_name: out_file1
+  anchor_prep:
+    tool_id: anchor_prep
+    label: anchor_prep
+    doc: >-
+      Derives the two annotation artefacts WF-C2 needs from each anchor's GFF3:
+      a protein-coding BED12 (gffread --bed, filtered) and a gene<TAB>transcript
+      isoforms table (Parent/ID of every mRNA feature). Both come out of one
+      call on one GFF3, which is what guarantees their transcript ids agree --
+      TOGA2 cannot tie projections back to genes otherwise. Previously these
+      were built outside Galaxy and staged by hand.
+    in:
+      input: anchor_gene_gff3s
+    out:
+      bed12: {}
+      isoforms: {}
+    position: {top: 620, left: 600}
+    post_job_actions:
+      RenameDatasetActionbed12:
+        action_arguments:
+          newname: 'WF-C2 input: anchor_bed12s'
+        action_type: RenameDatasetAction
+        output_name: bed12
+      TagDatasetActionbed12:
+        action_arguments:
+          tags: name:wfc2_anchor_bed12
+        action_type: TagDatasetAction
+        output_name: bed12
+      RenameDatasetActionisoforms:
+        action_arguments:
+          newname: 'WF-C2 input: anchor_isoforms'
+        action_type: RenameDatasetAction
+        output_name: isoforms
+      TagDatasetActionisoforms:
+        action_arguments:
+          tags: name:wfc2_anchor_isoforms
+        action_type: TagDatasetAction
+        output_name: isoforms
