@@ -333,15 +333,13 @@ Builds the alignment grid. Step by step:
 **What goes in.** One collection, `masked_fastas`, with 8 elements — `PvP01`, `PvW1`, `PAM`,
 `PvSY56`, `Sal-I`, `PvT01`, `PvC01`, `MHC087`.
 
-**What comes out.** Not one collection of pairs, but **two collections of 64 elements each**,
-`output_a` and `output_b`.
+**What comes out.** **Two collections of 64 elements each**, `output_a` and `output_b`.
 
 **They share their identifiers.** Both are keyed `PvP01_PvP01`, `PvP01_PvW1`, `PvP01_PAM`, …
 The identifier names the *cell of the grid*, not the genome inside it.
 
-**Each element is a whole genome.** Not a pair, not a reference — every one of the 64
-elements on each side is a complete soft-masked FASTA of about 29 MB. Each side of the grid
-is therefore ~1.84 GB.
+**Each element is a whole genome.** Every one of the 64 elements on each side is a complete
+soft-masked FASTA of about 29 MB, so each side of the grid is ~1.84 GB.
 
 **The contents differ, and the FASTA headers show it.** The accession prefixes identify the
 genome unambiguously: PvP01 contigs start `LT6356…`, PvW1 `CAJZCX…`, PAM `CASCJQ…`.
