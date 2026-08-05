@@ -378,6 +378,22 @@ def load_examples():
     return out
 
 
+def parse_columns(block):
+    """`name -- meaning` lines -> [(name, meaning)]; a tabular sample is a wall of
+    text without them, and a header row alone does not say what a column means."""
+    cols = []
+    for line in (block or "").split("\n"):
+        line = line.strip().lstrip("-").strip()
+        if not line:
+            continue
+        m = re.match(r"^`?([A-Za-z0-9_.<>{} -]+?)`?\s+(?:--|\u2014)\s+(.+)$", line)
+        if m:
+            cols.append((m.group(1).strip(), m.group(2).strip()))
+        elif cols:
+            cols[-1] = (cols[-1][0], cols[-1][1] + " " + line)     # continuation
+    return cols
+
+
 def load_descriptions(path=DESCRIPTIONS):
     """Parse workflow_descriptions.md -> {wf_id: {"summary": .., "description": ..}}.
 
@@ -389,15 +405,23 @@ def load_descriptions(path=DESCRIPTIONS):
     raw = re.sub(r"<!--.*?-->", "", raw, flags=re.S)      # strip comments
     out, wid, field = {}, None, None
     for line in raw.split("\n"):
-        m2, m3 = re.match(r"##\s+(\S+)\s*$", line), re.match(r"###\s+(\S+)\s*$", line)
+        m2, m3 = re.match(r"##\s+(\S+)\s*$", line), re.match(r"###\s+(.+?)\s*$", line)
         if m2 and not m3:
             wid, field = m2.group(1), None
             out.setdefault(wid, {})
         elif m3 and wid:
-            field = m3.group(1).lower()          # "summary", "description",
-            out[wid][field] = ""                 # or "step:<step-name>"
+            # one heading may name several nodes: "### columns:cls_ok, cls_nested"
+            head = m3.group(1).lower()
+            if ":" in head:
+                kind, names = head.split(":", 1)
+                field = [f"{kind}:{n.strip()}" for n in names.split(",") if n.strip()]
+            else:
+                field = [head]                   # "summary", "description"
+            for f in field:
+                out[wid][f] = ""
         elif wid and field is not None:
-            out[wid][field] += line + "\n"
+            for f in field:
+                out[wid][f] += line + "\n"
 
     missing = []
     for w in VETTED:
@@ -814,6 +838,18 @@ def main():
             if outs:
                 # prose for this step, if workflow_descriptions.md carries one
                 prose = (desc.get(wid, {}).get(f"step:{step}") or "").strip()
+                dw = desc.get(wid, {})
+                for o in outs:
+                    common = desc.get("COMMON", {})
+                    blk = (dw.get(f"columns:{step}.{o['name']}")
+                           or dw.get(f"columns:{o['name']}")
+                           or dw.get(f"columns:{step}")
+                           or common.get(f"columns:{step}.{o['name']}")
+                           or common.get(f"columns:{o['name']}")
+                           or common.get(f"columns:{step}"))
+                    cols = parse_columns(blk)
+                    if cols:
+                        o["columns"] = cols
                 ex_payload[node] = {"step": step, "outputs": outs,
                                     "why": expand_figures(md_block(prose)) if prose else ""}
 
@@ -1105,6 +1141,12 @@ svg.solo .ns{fill:var(--mut);font:9.5px -apple-system,Segoe UI,Roboto,sans-serif
 svg.solo .e{stroke-width:1.5;opacity:.5}
 .expanel{margin-top:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:14px 16px;min-height:90px}
 .exempty{color:var(--mut);font-size:13px;font-style:italic}
+.excols{border-collapse:collapse;margin:10px 0 6px;font-size:12.5px;width:100%}
+.excols th{text-align:left;font-weight:600;color:var(--mut);border-bottom:1px solid var(--line);
+  padding:4px 8px 4px 0;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.excols td{padding:4px 8px 4px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+.excols td:first-child{color:var(--mut);width:1.6em;text-align:right}
+.excols code{font-size:12px;white-space:nowrap}
 .exwhy{font-size:13.5px;line-height:1.65;max-width:88ch;border-left:3px solid var(--info);
   background:var(--info-lt);border-radius:0 6px 6px 0;padding:11px 15px;margin-bottom:14px}
 .exwhy p{margin:0 0 8px}
@@ -1272,6 +1314,11 @@ function renderExample(wf,node){
     if(o.kind==='collection') h+=' · collection of '+o.elements+', showing <code>'+esc(o.shown)+'</code>';
     if(o.total_lines!==undefined) h+=' · '+o.total_lines.toLocaleString()+' lines';
     h+='</span></div>';
+    if(o.columns){
+      h+='<table class="excols"><thead><tr><th>#</th><th>column</th><th>meaning</th></tr></thead><tbody>';
+      o.columns.forEach((c,i)=>{h+='<tr><td>'+(i+1)+'</td><td><code>'+esc(c[0])+'</code></td><td>'+esc(c[1])+'</td></tr>';});
+      h+='</tbody></table>';
+    }
     if(o.image) h+='<img class="eximg" src="'+o.image+'" alt="'+esc(o.name)+'">';
     else if(o.text) h+='<pre class="expre">'+esc(o.text)+(o.truncated?'\n…':'')+'</pre>';
     else if(o.note) h+='<div class="exmeta">'+esc(o.note)+'</div>';
