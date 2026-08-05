@@ -239,7 +239,10 @@ def main():
     ap = argparse.ArgumentParser(description="Phase E: consensus ortholog table")
     ap.add_argument('--liftoff_dir', required=True, help='work/02d_merged/')
     ap.add_argument('--rbest', required=True, help='work/03_consensus/rbest_edges.tsv')
-    ap.add_argument('--graph', required=True, help='work/03_consensus/graph_edges.tsv')
+    ap.add_argument('--graph', default=None,
+                    help='graph_edges.tsv from a pggb/odgi graph. Optional: the pipeline runs '
+                         'without a graph at all, and on the 2026-06-12 data the graph '
+                         'contributed zero edges, so the table was already chains + projections.')
     ap.add_argument('--anchors', required=True, help='Space-separated anchor strain list')
     ap.add_argument('--strains', required=True, help='Space-separated all-strain list')
     ap.add_argument('--ref', required=True, help='Reference strain name')
@@ -399,7 +402,7 @@ def main():
 
     # Incorporate graph co-membership edges
     graph_edges_added = 0
-    if Path(args.graph).exists():
+    if args.graph and Path(args.graph).exists():
         with open(args.graph) as fh:
             r = csv.DictReader(fh, delimiter='\t')
             for row in r:
@@ -431,9 +434,9 @@ def main():
 
     N_ALL = len(all_strains)
     rows_out = []
-    for cid, nodes in comps.items():
+    for cid, nodes in sorted(comps.items(), key=lambda kv: (-len(kv[1]), min(kv[1]))):
         per_strain: dict = defaultdict(list)
-        for n in nodes:
+        for n in sorted(nodes):      # `nodes` is a set: sort so runs are diffable
             parts = n.split('#', 1)
             if len(parts) == 2:
                 per_strain[parts[0]].append(parts[1])
