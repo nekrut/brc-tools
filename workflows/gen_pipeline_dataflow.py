@@ -114,9 +114,6 @@ STAGED = {
     ("A", "similarity_matrix", "I", "compare_csv"):
         "Same content, but staged as an upload (sourmash_compare_8x8.csv) rather "
         "than taken from WF-A's output.",
-    ("C2", "classifications", "E", "c4_classifications"):
-        "WF-C2 emits a flat list of 21 cells keyed anchor_query; WF-E declares "
-        "list:list, outer=anchor / inner=query.",
 }
 
 
