@@ -30,7 +30,7 @@ inputs:
   anchor_bed12s:
     type: collection
     collection_type: list
-    doc: anchor BED12 (triage/merge ref-bed), id=anchor
+    doc: anchor BED12 (triage/merge ref-bed; WF-A anchor_prep), id=anchor
     position: {top: 20, left: 20}
   assemblies:
     type: collection
@@ -50,7 +50,7 @@ inputs:
   anchor_isoforms:
     type: collection
     collection_type: list
-    doc: anchor gene<TAB>transcript tables (TOGA2 --isoform_file; anchor_prep), id=anchor
+    doc: anchor gene<TAB>transcript tables (TOGA2 --isoform_file; WF-A anchor_prep), id=anchor
     position: {top: 60, left: 60}
   cleaned_chains:
     type: collection
