@@ -19,6 +19,7 @@ You know one or more of these assets. Nobody knows the suite names yet — we ju
 | **Crypto protocol** — Module 3 orthology/synteny/ancestry/gene-family layer (§8.1–8.4, 8.6–8.8) | → **ANCOR** | Cross-species comparative suite: OrthoFinder → synteny → ancestral reconstruction → gene-family evolution | Existing designs; add ledger output + assembly QC gate |
 | **Crypto protocol** — Module 3 HyPhy layer (§8.5) | → **CAPHEINE** (extend) | Shared selection-analysis engine (HyPhy suite) | Already in IWC but viral-tuned; extend for eukaryotes + full method coverage |
 | **Pangenome workflows** (`brc-tools`, `pangenome-helpers`) — PGGB, Liftoff/TOGA2, consensus orthogroups, per-OG BUSTED, UCSC hubs | → **PANTEON** | Within-species pangenome pipeline | Has a working prototype (unlike PLAIG/ANCOR which are plan-only); add ledger sidecars, reroute selection through CAPHEINE |
+| **MalariaGEN Plasmodium proxies** ([github.com/asgiraldoc/MalariaGEN-Pf8-Data-Retrieval-Proxy](https://github.com/asgiraldoc/MalariaGEN-Pf8-Data-Retrieval-Proxy)) — FastAPI over MalariaGEN Zarr releases: gene/sample-filtered FASTA/VCF extraction, 10 interactive pop-gen workflows (PCoA, Fws, NJ tree, PLINK2 PCA, Fst, diversity, selection scans, haplotype network, allele-frequency views), IGV.js genome browser. Deployed as **one instance per species per port** (Pf8:9000, Pv5:9001, Pk1:9050, Pmb1:9051, Poc1:9052, Pow1:9053) — likely includes lab-generated data alongside public MalariaGEN releases | → **PLAIG** (analysis workflows) + **BRC site** (interactive views) + **UCSC** (browser) | De-facto requirements document for malaria pop-gen across the genus; the per-port-per-species deployment is exactly the sprawl BRC + PLAIG consolidates (one site, all organisms; one workflow family, parameterized per species) | Workflows translate to Galaxy (`popgen-analysis` toggles); interactive views become BRC site features; browser becomes UCSC track hubs. See §12 and [`plaig-design.md`](plaig-design.md) gap analysis |
 
 **Key insight:** ANCOR ≈ crypto Module 3's orthology/synteny/ancestry/gene-family layer, generalized. Module 3's HyPhy layer is CAPHEINE's job, not ANCOR's. PANTEON is the within-species layer the crypto protocol lacks. CAPHEINE sits underneath both PANTEON and ANCOR as the shared selection engine.
 
@@ -158,8 +159,66 @@ Current justified divergences:
 - [x] ~~Does PANTEON route its existing BUSTED step through CAPHEINE?~~ Resolved §2.1: yes, reroute WF-H after CAPHEINE extension lands.
 - [ ] hyphy-cln vs MACSE frameshift/stop retention — decide whether hyphy-cln needs a codon-tolerant mode or whether frameshift OGs bypass it with documented justification
 - [ ] UCSC assembly hub output: PANTEON produces hubs (WF-K). Should PLAIG and ANCOR also emit hubs for visualization on the BRC site?
+- [ ] Popgen results contract (§11.2): define now alongside the orthology ledger, or defer until PLAIG v1 workflows exist?
+- [ ] BRC gene pages (§11.3): which assemblies get gene pages (reference only? all?), and what is the workflow launch list for v1?
 
-## 11. Next steps
+## 11. BRC Analytics integration — division of labor across UCSC, Galaxy, and BRC
+
+The Pf8 proxy review (2026-08-05) clarified how features from an interactive analysis site decompose across the three hosting planes BRC Analytics already partners with. The principle: **Galaxy computes, UCSC visualizes, BRC navigates and renders precomputed results.** No plane should duplicate another's role.
+
+### 11.1 What goes where
+
+| Capability | Plane | Rationale |
+|---|---|---|
+| **Variant visualization** (track hubs, locus browsing) | **UCSC** | BRC already deep-links to UCSC (`ucscBrowserUrl`, `UcscTrack` types). Precompute variant/diversity tracks as bgzipped VCF/bigBed/bigWig once; UCSC serves byte-ranges. Replaces the proxy's IGV.js + PLINK2-track pipeline. |
+| **Population-genetics compute** (PCA, Fst, Fws, selection scans, NJ trees, haplotype networks) | **Galaxy** | PLAIG `popgen-analysis` toggles. Launched from BRC via existing workflow-landing machinery (`galaxy-api.ts`, `WorkflowInputsView`). |
+| **FASTA/VCF extraction** (genotype-aware, per-sample) | **Galaxy** (or a slimmed proxy API) | Can't be static — injecting 33k samples' genotypes is real compute. Either a Galaxy workflow or the proxy's extraction API linked from gene pages. |
+| **Gene search & resolution** | **BRC site** | Static search index over annotation (the proxy's `GENE_NAME_MAP` is just a GFF lookup). Natural fit for BRC gene pages. |
+| **Metadata dashboard / sample filtering** | **BRC site** | Faceted catalog tables are BRC's core competency (findable-ui). Pf8 samples could become a catalog entity type. |
+| **Precomputed result views** (PCoA with filtering, Fws-by-population, allele-frequency heatmaps) | **BRC site** | Galaxy workflows emit versioned result artifacts; BRC renders them interactively — same pattern as the orthology ledger (§4.1). |
+
+### 11.2 The popgen results contract
+
+The orthology ledger (§4.1) already established the pattern: workflows emit a versioned TSV/JSON contract; the BRC site consumes it for interactive views. A parallel **popgen results contract** would let PLAIG workflows produce:
+
+- PCoA coordinates + variance proportions (NPZ/TSV)
+- Fws-by-population tables (TSV)
+- Allele-frequency-by-population/time tables (TSV)
+- Pairwise Fst matrices (TSV)
+
+…once, and the BRC site renders them with filtering/exploration — replacing the proxy's entire reason for existing as a live API. This is the within-species analog of the orthology ledger: a data contract between Galaxy outputs and BRC views.
+
+### 11.3 Gene pages as the connective tissue
+
+Genes/loci are the natural join key across all three planes. BRC's entity model currently stops at organisms → assemblies. **Gene pages** — even minimal ones — give every feature a stable anchor. A v1 gene page need only contain:
+
+- Gene ID + coordinates (chrom, start, end, strand)
+- Organism and assembly name
+- Functional annotation (where available)
+- Sequence file downloads (CDS, protein, genomic)
+- A list of workflows runnable with this gene as input (e.g. kmindex query, lexicap, AlphaFold structure prediction)
+- **UCSC deep link** to the gene's locus (derived from coordinates + the assembly's UCSC hub URL), giving immediate biological context — surrounding genes, existing tracks, etc.
+
+No precomputed per-gene summaries (variant counts, diversity stats) are assumed for v1 — those can come later if the popgen results contract (§11.2) makes them cheap to generate. The immediate value is the **launch point**: each workflow button deep-links into Galaxy with the gene/locus prefilled, and the UCSC link provides the visual context. Without gene pages, BRC can only link at assembly granularity and the user re-does gene-hunting inside each partner tool.
+
+A note on what BRC renders vs. what Galaxy computes: the precomputed result views in §11.1 (PCoA, Fws, freq tables) are not produced by a separate BRC compute path — they are the **outputs of Galaxy workflow runs**, surfaced on the BRC site via linked Galaxy user accounts. BRC is the navigation and rendering layer; Galaxy remains the sole compute plane. This means the popgen results contract (§11.2) is also a provenance contract: every result view traces back to a specific Galaxy invocation.
+
+#### 11.3.1 Future: variant data on gene pages (proxy parity)
+
+To fully replicate the Pf8 proxy's gene-level experience, a gene page would eventually need to present a **slice of the variant data** for that locus — e.g. a per-sample variant table, SNP-injected reference sequence, or a mini-VCF download filtered to the gene's coordinates and the user's sample filters. This is genotype-aware compute (not static annotation), so it requires either:
+
+- A Galaxy workflow (VCF slice + filter → download), launched from the gene page with the locus prefilled, or
+- A thin backend API (the proxy's extraction endpoint, or a successor) that the gene page calls directly.
+
+This is explicitly **out of scope for v1 gene pages**. It depends on the popgen results contract (§11.2) or a persistent extraction service existing first. Listed here so the v1 design doesn't accidentally preclude it — e.g. the gene page's coordinate data should be structured in a way that a future "Extract variants" button can consume.
+
+### 11.4 What this means for the suites
+
+- **PLAIG** should emit UCSC track hubs (open question §10) and popgen results contract artifacts alongside its analysis outputs.
+- **PANTEON** already produces UCSC hubs (WF-K); its orthology ledger sidecars are the model for PLAIG's results contract.
+- The proxy's `analysis/` and `browser/` packages become redundant once PLAIG workflows + UCSC hubs + BRC result views exist. The proxy's extraction API may persist as a thin backend or be replaced by a Galaxy workflow.
+
+## 12. Next steps
 
 1. [ ] Group sign-off on this doc + orthology ledger spec (one page)
 2. [ ] PLAIG: start `haploid-read-to-vcf` (all existing tools, highest reuse)
@@ -167,6 +226,8 @@ Current justified divergences:
 4. [ ] ANCOR: proceed per existing design doc (Option B modular), add `assembly-qc-gate` + ledger output format
 5. [ ] PANTEON change list per §2.1 (GARD+SRV in WF-H first; ledger sidecars in WF-E)
 6. [ ] Wrapper queue per §6 ownership
+7. [ ] Popgen results contract spec (§11.2) — define output shapes for PCoA/Fws/freq/Fst alongside the orthology ledger
+8. [ ] BRC gene pages: scope entity model, search index, and v1 workflow launch list (§11.3)
 
 ---
 
@@ -183,3 +244,4 @@ Primary sources:
 - ANCOR designs: `ancor-workflow-designs.md`, `ANCOR_workflows.md`, `ANCOR_workflows_detailed.md`, `ancor-core.ga`
 - Pangenome: `brc-tools/libs/pangenome-helpers/`
 - CAPHEINE: `galaxyproject/iwc` → `workflows/comparative_genomics/hyphy/`; Nextflow sibling `veg/CAPHEINE`
+- MalariaGEN Plasmodium proxies: [github.com/asgiraldoc/MalariaGEN-Pf8-Data-Retrieval-Proxy](https://github.com/asgiraldoc/MalariaGEN-Pf8-Data-Retrieval-Proxy) — reviewed 2026-08-05; deployed as 6 per-species instances (Pf8, Pv5, Pk1, Pmb1, Poc1, Pow1); gap analysis in [`plaig-design.md`](plaig-design.md), BRC integration notes in §11

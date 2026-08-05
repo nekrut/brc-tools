@@ -1,7 +1,7 @@
 site_name: BRC Pathogen Comparative Genomics Program
 site_description: Coordination plan and design docs for the comparative & population genomics program across PANTEON, ANCOR, PLAIG, and CAPHEINE.
-repo_url: https://github.com/nekrut/brc-tools
-site_url: https://nekrut.github.io/brc-tools
+repo_url: https://github.com/d-callan/brc-tools
+site_url: https://d-callan.github.io/brc-tools
 
 theme:
   name: material
@@ -31,7 +31,11 @@ theme:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.tabbed:
@@ -39,6 +43,9 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+
+extra_javascript:
+  - javascripts/mermaid.js
 
 nav:
   - Home: index.md

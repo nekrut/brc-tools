@@ -34,6 +34,76 @@ Publishing pattern: **Option B modular** — four importable workflows + one con
 
 > Specific workflow names and step descriptions are tentative — actual workflow structure may change as planning continues.
 
+### Workflow diagram
+
+```mermaid
+flowchart TD
+    proteomes[/"Proteomes (FASTA)"/]
+    gffs[/"Gene annotations (GFF3)"/]
+    sptree[/"Species tree<br/>(optional)"/]
+    ultratree[/"Ultrametric tree<br/>(for CAFE5)"/]
+
+    subgraph WF1["1 — orthofinder-core (shared subworkflow)"]
+        direction TB
+        validate["Header / filename validation"]
+        seqkit["seqkit stats QC"]
+        orthofinder[OrthoFinder]
+        flatten["Flatten output dir<br/>+ summary stats/plots"]
+        validate --> seqkit --> orthofinder --> flatten
+    end
+
+    subgraph WF2["2 — Synteny Analysis"]
+        direction TB
+        gffread[gffread] --> diamond["DIAMOND all-vs-all"]
+        diamond --> anchor["OG-constrained<br/>anchor filtering + tandem collapse"]
+        anchor --> mcscanx["MCScanX or jcvi"]
+    end
+
+    subgraph WF3["3 — Core Genome Ancestral Reconstruction"]
+        direction TB
+        agora[AGORA]
+        carfilter["CAR filtering<br/>(min 5–10 genes)"]
+        mapcar["Map CARs to<br/>extant chromosomes"]
+        agora --> carfilter --> mapcar
+    end
+
+    subgraph WF4["4 — Gene Family Evolution"]
+        direction TB
+        filter["Filter extreme OGs<br/>(>100 copies)"]
+        cafe5["CAFE5 birth-death model"]
+        enrich["GO / KEGG enrichment"]
+        filter --> cafe5 --> enrich
+    end
+
+    subgraph WF5["5 — ANCOR Suite"]
+        suite["Unified report<br/>(imports 1–4)"]
+    end
+
+    proteomes --> WF1
+    sptree --> WF1
+    WF1 -->|"orthogroups.tsv<br/>+ gene trees + species tree"| WF2
+    gffs --> WF2
+    WF1 -->|"core-OG gene order<br/>+ species tree"| WF3
+    WF1 -->|"orthogroup count matrix"| WF4
+    ultratree --> WF4
+    WF1 --> WF5
+    WF2 --> WF5
+    WF3 --> WF5
+    WF4 --> WF5
+
+    WF1 --> ogout[/"orthogroups.tsv (ledger)<br/>gene trees + species tree<br/>QC report"/]
+    WF2 --> synout[/"collinear blocks<br/>rearrangement counts<br/>dotplots"/]
+    WF3 --> ancout[/"CARs + per-branch<br/>rearrangement events"/]
+    WF4 --> famout[/"expansions / contractions<br/>GO/KEGG enrichment"/]
+    WF5 --> suiteout[/"unified report"/]
+
+    style WF1 fill:none,stroke:#999,stroke-dasharray:5 5
+    style WF2 fill:none,stroke:#999,stroke-dasharray:5 5
+    style WF3 fill:none,stroke:#999,stroke-dasharray:5 5
+    style WF4 fill:none,stroke:#999,stroke-dasharray:5 5
+    style WF5 fill:none,stroke:#999,stroke-dasharray:5 5
+```
+
 ## Tools and availability
 
 | Tool | Role | Bioconda | Galaxy/IUC | Notes |

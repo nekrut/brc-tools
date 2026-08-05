@@ -31,6 +31,103 @@ A **within-species pangenome pipeline** for eukaryotic pathogens: builds a PGGB 
 | J | `vcf_projection` | Project reference-coordinate cohort VCF onto every non-reference strain via CrossMap over cleaned chains (Path A2; graph-native Path B cut) | CrossMap (all IUC, no new wrappers) | IUC-wrapped |
 | K | `ucsc_hub` | UCSC assembly hub: bigMaf, bigChain+bigLink, annotation, strict+relaxed BUSTED selection tracks, orthogroup tracks. **Least-validated stage** (gate: `hubCheck` clean + manual load) | UCSC utils, `pangenome_helpers.hub/selection` | custom wrapper — triage |
 
+### Workflow diagram
+
+```mermaid
+flowchart TD
+    assemblies[/"Strain panel<br/>assemblies + annotations"/]
+    cohortvcf[/"Cohort VCF<br/>(reference coords)"/]
+
+    subgraph WFA["A — inventory"]
+        direction TB
+        sourmash[sourmash] --> busco[BUSCO]
+    end
+
+    subgraph WFB["B — softmask"]
+        direction TB
+        longdust[longdust] --> sdust[sdust]
+    end
+
+    subgraph WFC["C — align_chain"]
+        direction TB
+        minimap2[minimap2] --> paftools["paftools<br/>→ cleaned rb chains"]
+    end
+
+    subgraph WFC2["C2 — project_annotations"]
+        direction TB
+        liftoff[Liftoff] --> triage["triage rule engine<br/>(R1–R8)"]
+        triage --> toga2[TOGA2]
+        toga2 --> merge["merge → merged GFF<br/>+ classification TSV"]
+    end
+
+    subgraph WFD["D — pggb-pangenome-build"]
+        direction TB
+        pansn["PanSN rename"] --> pggb["PGGB<br/>wfmash→seqwish→smoothxg→gfaffix→odgi"]
+        pggb --> odgi["odgi stats / layout / viz<br/>+ vg deconstruct VCF"]
+    end
+
+    subgraph WFE["E — consensus_orthology"]
+        direction TB
+        consensus["UnionFind consensus<br/>(chains + graph edges + annotations)"]
+        consensus --> ogtbl["orthogroups.tsv<br/>(ledger format)"]
+    end
+
+    subgraph WFCAP["F/G/H → CAPHEINE"]
+        direction TB
+        msa["MAFFT → pal2nal → trimAL<br/>(to be replaced by CAPHEINE)"]
+        tree["IQ-TREE<br/>(to be replaced by CAPHEINE)"]
+        busted["BUSTED<br/>(to be replaced by CAPHEINE)"]
+        msa --> tree --> busted
+    end
+
+    subgraph WFI["I — multiz"]
+        multiz["Progressive multiz<br/>→ multi-way MAF"]
+    end
+
+    subgraph WFJ["J — vcf_projection"]
+        crossmap["CrossMap<br/>→ projected VCFs"]
+    end
+
+    subgraph WFK["K — ucsc_hub"]
+        hub["UCSC assembly hub<br/>bigMaf + bigChain + selection tracks<br/>+ orthogroup tracks"]
+    end
+
+    assemblies --> WFA
+    WFA --> WFB
+    WFB --> WFC
+    WFB --> WFD
+    WFC --> WFC2
+    WFC --> WFE
+    WFD --> WFE
+    WFC2 --> WFE
+    WFE -->|"per-OG sequences"| WFCAP
+    WFC --> WFI
+    WFC --> WFJ
+    cohortvcf --> WFJ
+    WFCAP --> WFK
+    WFI --> WFK
+    WFJ --> WFK
+    WFC2 --> WFK
+    WFD --> WFK
+
+    WFE --> ogout[/"orthogroups.tsv<br/>(ledger)"/]
+    WFCAP --> capout[/"per-OG alignments<br/>trees + selection"/]
+    WFI --> mafout[/"multi-way MAF"/]
+    WFJ --> vcfout[/"projected VCFs"/]
+    WFK --> hubout[/"UCSC assembly hub"/]
+
+    style WFA fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFB fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFC fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFC2 fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFD fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFE fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFCAP fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFI fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFJ fill:none,stroke:#999,stroke-dasharray:5 5
+    style WFK fill:none,stroke:#999,stroke-dasharray:5 5
+```
+
 **WF-F, G, H will be replaced by CAPHEINE** before IWC submission. CAPHEINE's pluggable preprocessing (MAFFT/MACSE/PRANK path) + tree building + full HyPhy suite subsumes all three. PANTEON will invoke CAPHEINE with per-OG inputs from WF-E instead of running its own alignment/tree/selection steps.
 
 **Custom wrapper triage**: several tools have custom wrappers in `brc-tools/tools/` that are already ported to IUC and will be used from there instead. The remaining custom wrappers (those with custom Python logic in `pangenome-helpers`) are in triage to decide whether they can be replaced with existing Galaxy tools or need to be wrapped fresh through the planned `pangenome-helpers` Bioconda package.
