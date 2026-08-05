@@ -111,16 +111,35 @@ with Liftoff, then triaged and merged into a per-pair classification.
 ### description
 
 Most genomes in a panel have no gene annotation worth trusting. This workflow borrows
-one. Each anchor genome comes with a curated set of gene models, and those genes are
-carried across the alignment onto every other genome: wherever the alignment says a
-stretch of anchor sequence corresponds to a stretch of query sequence, the gene is
-placed there. It takes the anchor genomes with their gene models, the genomes being
-annotated, and the soft-masked sequence. Every projected gene is then examined, because
-a gene landing somewhere is not the same as a gene surviving: the check asks whether it
-still has an intact reading frame, or whether it is interrupted by a premature stop,
-shifted out of frame, or missing exons. What comes out, for each anchor and query
-combination, is a GFF3 of the projected genes and a table classifying each one as intact
-or lost. That classification is the raw evidence the orthology step downstream uses to
-decide which genes are shared across the whole panel. One limitation to be clear about:
-this is projection, not gene finding. A gene present in a query genome but absent from
-every anchor cannot be discovered this way.
+one. Each anchor genome comes with a curated set of gene models, and Liftoff carries
+those genes onto every other genome: it takes the sequence of each annotated gene out of
+the anchor, aligns that sequence against the target genome, and places the gene wherever
+it finds the best match, keeping the exon structure intact.
+
+Every projected gene is then examined, because a gene landing somewhere is not the same
+as a gene surviving: the check asks whether it still has an intact reading frame, or
+whether it is interrupted by a premature stop, shifted out of frame, or missing exons.
+
+Genes that fail that check are not discarded. They go to a second pass, **TOGA2**, which
+re-projects them with CESAR2 using the whole-genome chain alignments from WF-C. This is
+the only reason WF-C feeds WF-C2 at all: Liftoff does its own gene-by-gene alignment
+internally and needs nothing from WF-C, so pass 1 alone would leave the two halves of
+Phase C independent. TOGA2 is worth the cost because it does not just re-try the
+projection, it grades the outcome: intact, partially intact, lost, or lost in a way the
+alignment cannot resolve. On the first verified pair that turned 4,707 usable gene calls
+into roughly 8,900, and separated 1,876 genes that are genuinely absent from the far
+larger set that had simply never been looked at properly.
+
+It takes the anchor genomes with their gene models, the genomes being annotated, the
+soft-masked genomes for both sides, a gene-to-transcript table per anchor, and WF-C's
+cleaned chains. The unmasked sequence is what Liftoff aligns against; the soft-masked
+sequence is what the intactness check and CESAR2 use.
+
+What comes out, for each anchor and query combination, is a GFF3 of the projected genes
+and a table classifying each one, tagged with which of the two passes produced it. That
+classification is the raw evidence the orthology step downstream uses to decide which
+genes are shared across the whole panel, and it weights a CESAR2 call slightly above a
+Liftoff one because it is better evidenced.
+
+One limitation to be clear about: this is projection, not gene finding. A gene present in
+a query genome but absent from every anchor cannot be discovered by either pass.

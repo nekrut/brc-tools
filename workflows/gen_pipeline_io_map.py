@@ -78,6 +78,7 @@ EXTERNAL = {
     ("C2", "anchor_gene_gff3s"): "PlasmoDB-68 gene GFF3 for the 3 anchors",
     ("C2", "anchor_bed12s"): "PlasmoDB-68 BED12 for the 3 anchors (triage/merge reference bed)",
     ("C2", "assemblies"): "Staged panel genomes, unmasked (Liftoff target)",
+    ("C2", "anchor_isoforms"): "anchor_prep output — gene<TAB>transcript per anchor (TOGA2 --isoform_file)",
 }
 
 SHAPE = {
@@ -114,6 +115,9 @@ SHAPE = {
     ("C2", "in", "anchor_bed12s"): "list[3] · id=anchor",
     ("C2", "in", "assemblies"): "list[8] · id=strain",
     ("C2", "in", "query_masked"): "list[8] · id=strain",
+    ("C2", "in", "anchor_masked"): "list[3] · id=anchor",
+    ("C2", "in", "anchor_isoforms"): "list[3] · id=anchor",
+    ("C2", "in", "cleaned_chains"): "list[56] · id=target.query",
     ("C2", "out", "merged_annotations"): "list[21] · id=anchor_query",
     ("C2", "out", "classifications"): "list[21] · id=anchor_query",
 }
@@ -135,10 +139,13 @@ STATUS = {
                    "(sdust and longdust were dropped)."),
     "C": dict(jobs="500 / 500 ok", when="2026-06-19", history="11862b69df84527c",
               note="Full ordered grid: 56 pairs from 8 strains, KegAlign on GPU plus batched LASTZ."),
-    "C2": dict(jobs="72 / 72 ok", when="2026-08-03", history="a03fa1145e6c2383",
-               invocation="05cc7ae0b9b139a2",
-               note="3 anchors x 8 queries = 24 grid cells, filtered to 21 by dropping self-pairs. "
-                    "Under 3 minutes. Invoked from the committed .gxwf.yml, not the live editor copy."),
+    "C2": dict(jobs="20 / 20 ok", when="2026-08-04", history="c0c37ae0d73bec21",
+               invocation="fb7104b5587eadcb",
+               note="Pass 1 verified on the full 21-cell grid (72/72 jobs, under 3 minutes, history "
+                    "a03fa1145e6c2383). Pass 2 verified on one cell, PvW1->PvP01: TOGA2 82 min, "
+                    "16,874 classification rows against 10,782 for Liftoff alone -- 4,707 liftoff/I "
+                    "plus 6,092 cesar2 (FI 3,906, L 1,876, UL 170, I 135, PI 5). The full grid with "
+                    "TOGA2 on has not been run yet."),
 }
 
 CAVEATS = [
@@ -147,11 +154,27 @@ CAVEATS = [
      "<code>.gxwf.yml</code>. The descriptions here are reconstructed from the verified run and live "
      "in <code>FALLBACK_DOC</code> in this generator — they should move into the workflow files "
      "before IWC submission."),
+    ("The TOGA2 container is not reproducible",
+     "Upstream's Apptainer def installs Nextflow from <code>get.nextflow.io</code>, i.e. whatever is "
+     "newest at <b>build</b> time. A build made today ships a Nextflow whose strict parser rejects "
+     "TOGA2 2.0.8's own <code>execute_joblist.nf</code>, so rebuilding the image on a different day "
+     "gives a different result. The wrapper works around it with "
+     "<code>NXF_SYNTAX_PARSER=v1</code>, but that parser is deprecated upstream; the durable fix is "
+     "to pin <code>NXF_VER</code> in the def and rebuild."),
+    ("The TOGA2 pass has only been proven on one cell",
+     "Pass 2 is verified end to end on PvW1&rarr;PvP01 (82 minutes). The full 21-cell grid has not "
+     "been run with TOGA2 enabled. Expect it to be dominated by the PvSY56 anchor, whose genes fall "
+     "through to CESAR2 at 75&ndash;83&nbsp;% against roughly 21&nbsp;% for PvW1 and PAM."),
     ("Phase C.2 / C.4 TSVs are written with CRLF line endings",
      "<code>phase_c2_triage.py</code> and <code>phase_c4_merge.py</code> pass <code>newline=''</code> "
      "but leave <code>csv</code>'s default <code>lineterminator='\\r\\n'</code> in place. Harmless for "
      "<code>phase_e_consensus</code> (universal newlines) but wrong for a published artifact: the last "
      "column, <code>orthology_class</code>, carries a trailing CR for anything splitting on <code>\\n</code>."),
+    ("<code>phase_c2_triage</code> writes an empty <code>needs_cesar2.bed</code>",
+     "It looks flagged genes up in the anchor BED12 by gene id, but that file is transcript-keyed "
+     "(<code>PVW1_000005000_t1</code>) as TOGA2 requires — zero overlap, so the BED is always empty. "
+     "Harmless today: the C.4 redesign has TOGA2 classify the full anchor annotation rather than a "
+     "triage subset, so nothing consumes it. Worth removing or fixing when that tool is next touched."),
     ("WF-B accepts any list collection",
      "<code>assemblies</code> is typed as a bare <code>collection_type: list</code>, so the run form "
      "accepts a non-FASTA collection and fails at the first tool rather than at selection time."),
@@ -230,6 +253,21 @@ INPUT_GUIDE = {
         "Derive it from the same GFF3 you use above so the two can never drift apart.",
         "<code>gff3ToGenePred anchor.gff3 stdout | genePredToBed stdin anchor.bed12</code> "
         "(UCSC kent), or PlasmoDB's own BED."),
+    ("C2", "anchor_masked"): (
+        "The soft-masked version of each anchor genome. TOGA2 wants soft-masked sequence on "
+        "<b>both</b> sides, so the anchor side is needed here even though Liftoff aligns against "
+        "the unmasked copy. Same WF-B output as <code>query_masked</code>, restricted to anchors.",
+        "PvW1, PAM, PvSY56 from WF-B's <code>softmasked_fasta</code>."),
+    ("C2", "anchor_isoforms"): (
+        "A two-column gene-to-transcript table per anchor, grouping the BED12 transcripts into "
+        "genes. The transcript ids must match column 4 of <code>anchor_bed12s</code> exactly, or "
+        "TOGA2 cannot tie projections back to genes.",
+        "<code>anchor_prep</code> output; 6,075 transcripts for PvW1, matching its BED12 one for one."),
+    ("C2", "cleaned_chains"): (
+        "WF-C's cleaned chains for every ordered strain pair. Only the TOGA2 pass needs these; "
+        "Liftoff does its own alignment. The workflow selects the anchor-to-query subset and "
+        "renames it to match the grid, so pass the whole collection.",
+        "56 chains for 8 strains, filtered in-workflow to the 21 anchor cells."),
     ("C2", "assemblies"): (
         "The query axis of the projection grid: the genomes receiving genes. Pass the whole panel — "
         "the anchor self-cells are dropped internally, so anchors receive each other's genes "

@@ -60,6 +60,10 @@ EDGES = [
     ("A", "relabel_map", "C", "relabel_map"),
     ("B", "softmasked_fasta", "C", "masked_fastas"),
     ("B", "softmasked_fasta", "C2", "query_masked"),
+    ("B", "softmasked_fasta", "C2", "anchor_masked"),
+    # WF-C -> WF-C2 exists only because of the TOGA2 rescue pass: Liftoff does
+    # its own gene-level alignment, so pass 1 needs nothing from WF-C.
+    ("C", "cleaned_chains", "C2", "cleaned_chains"),
     ("B", "softmasked_fasta", "F", "ref_fasta"),
     ("B", "softmasked_fasta", "F", "query_fasta"),
     ("B", "softmasked_fasta", "J", "target_fastas"),
