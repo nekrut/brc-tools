@@ -54,7 +54,7 @@ def load_edges(path):
     for the denominator that does.
     """
     edges = set()
-    with open(path) as fh:
+    with path.open() as fh:
         for row in csv.DictReader(fh, delimiter="\t"):
             a = f'{row["strain_a"]}#{row["gene_a"]}'
             b = f'{row["strain_b"]}#{row["gene_b"]}'
@@ -213,7 +213,9 @@ def main():
         print(f"      {og}  {k} strains, {mx} max copies, {n} genes, clique {c}")
 
     if a.table:
-        shipped = Counter(r["label"] for r in csv.DictReader(open(a.table), delimiter="\t"))
+        # SIM115/PTH123: the reader was built over a bare open() whose handle was never closed.
+        with a.table.open(newline="") as fh:
+            shipped = Counter(r["label"] for r in csv.DictReader(fh, delimiter="\t"))
         total = sum(shipped.values())
         print("\nshipped WF-E table vs this baseline:")
         print(f"   {'label':18} {'shipped':>16} {'baseline':>16}")
@@ -222,7 +224,7 @@ def main():
                   f"{labels[lab]:>8,} {100*labels[lab]/len(comps):5.1f}%")
 
     if a.out:
-        with open(a.out, "w", newline="") as fh:
+        with a.out.open("w", newline="") as fh:
             w = csv.DictWriter(fh, delimiter="\t", fieldnames=list(rows[0]))
             w.writeheader()
             w.writerows(rows)
