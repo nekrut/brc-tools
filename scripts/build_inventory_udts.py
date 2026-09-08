@@ -341,6 +341,13 @@ help:
     The signature names are written by `sourmash sketch --name`, so the labels in the CSV come from
     the sketches themselves rather than from a post-hoc rename.
 
+    **The matrix columns are in the classic wrapper's order**, which is filename order
+    (`{{strain}}.sig`, C collation) rather than panel order — the classic passes `stage/*.sig` and
+    lets the shell sort it. Same numbers and same labels either way, but one output ordered two ways
+    across two editions of WF-A is the shape of a bug this project has already paid for once, in
+    WF-C2. It also means the columns and the `signatures` elements now agree, since discovery sorts
+    that collection by the same filenames.
+
     **The per-strain signatures come back as a collection.** The classic WF-A pair published one
     `.sig` dataset per strain — "BRC-reusable" — and doing the sketch inside this job made them
     work-dir files instead. They are copied to `signatures/{{strain}}.sig` after the compare and

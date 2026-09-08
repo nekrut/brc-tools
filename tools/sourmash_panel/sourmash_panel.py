@@ -131,7 +131,35 @@ for _i, (path, name) in enumerate(zip(paths, ids, strict=True)):
               file=sys.stderr)
     print(f"sketched {name} <- {path}  ({_n} hashes)", file=sys.stderr)
 
-sigs = [f"stage/{i:04d}.sig" for i in range(len(ids))]
+# ⛔ COMPARE IN THE CLASSIC WRAPPER'S ORDER, NOT THE PANEL'S. sourmash's CSV columns follow the
+# command line, and the classic `sourmash_compare` hands it `stage/*.sig` -- a shell glob over
+# `stage/{element_identifier}.sig` -- so its columns come out in FILENAME order while this tool's
+# came out in panel order. Same numbers, same labels, different sequence: two editions of WF-A
+# publishing one output two ways, for no reason a reader could act on.
+#
+# ⚠ THIS PROJECT HAS ALREADY PAID FOR AN ALPHABETICAL-VERSUS-PANEL MISMATCH. In WF-C2, chains
+# filtered out of WF-C arrived alphabetical while the grid was in panel order, and every projection
+# got the WRONG CHAIN with correct-looking identifiers throughout (workflows/
+# workflow_descriptions.md). Nothing reads this matrix positionally today -- multiz_fold keys off
+# the header labels -- so this was a latent version of that bug and not a live one. Removing it is
+# cheaper than remembering it.
+#
+# ⚠ SORTED ON THE FILENAME, NOT ON THE IDENTIFIER, because the filename is what the glob sorts.
+# They are the same until one identifier is a PREFIX of another: `cs` and `cs-1` sort as
+# ("cs", "cs-1") by identifier but ("cs-1.sig", "cs.sig") by filename, because `-` (0x2D) is below
+# `.` (0x2E). Matching the glob exactly is the point, so sort what the glob sorted.
+#
+# ⚠ WHICH IS THE C COLLATION'S ORDER, AND THAT IS AN ASSUMPTION ABOUT THE CLASSIC'S JOB, NOT ABOUT
+# THIS ONE. Bash sorts pathname expansion by LC_COLLATE, so a classic job under a non-C locale would
+# order its own columns differently and this would no longer match it. Measured on laila:
+# LC_ALL=C.UTF-8, which collates by codepoint. NOT verified on the production BRC instance, and not
+# fixable from here -- the glob is in the classic wrapper. This matches the classic where the
+# classic is known to run.
+#
+# ⚠ AND IT AGREES WITH `signatures` NOW. That collection is discovered with `sort_key: filename`
+# over the same `{identifier}.sig` names, so the matrix columns and the collection elements come
+# out in ONE order rather than two.
+sigs = [f"stage/{i:04d}.sig" for i in sorted(range(len(ids)), key=lambda i: ids[i] + ".sig")]
 subprocess.run(["sourmash", "compare", "--ksize", a.ksize, "-o", "cmp", "--csv", "similarity.csv",
                 *sigs], check=True)
 subprocess.run(["sourmash", "plot", "--labels", "cmp"], check=True)

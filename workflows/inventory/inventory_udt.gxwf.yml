@@ -94,7 +94,12 @@ inputs:
 outputs:
   similarity_matrix:
     outputSource: sourmash_panel/similarity
-    doc: N x N sourmash similarity matrix (compare.csv); feeds WF-I fold order.
+    doc: >-
+      N x N sourmash similarity matrix (compare.csv); feeds WF-I fold order. Columns are in the
+      CLASSIC's order -- filename order, `{strain}.sig` under C collation -- not panel order, so the
+      two editions publish this output one way rather than two. WF-I reads it by header label
+      either way, and the `signatures` collection is sorted by those same filenames, so everything
+      here now agrees on one sequence.
   sourmash_heatmap:
     outputSource: sourmash_panel/heatmap
     doc: Clustered sourmash similarity heatmap (PNG).
