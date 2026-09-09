@@ -136,3 +136,7 @@ help:
 
     **Reports which mode ran, and the fraction involved**, so a kept mask, a no-op and a discarded
     47% mask are three distinguishable lines in the job log rather than all looking like success.
+
+    ⚠ A STOPGAP. `seqtk` can do this -- `seqtk seq -U` uppercases -- and IUC's `seqtk_seq`
+    wrapper IS installed on usegalaxy.org, but it does not expose `-U` (measured against its 17
+    parameters). Retiring this UDT needs one flag added to that wrapper, not a new tool.

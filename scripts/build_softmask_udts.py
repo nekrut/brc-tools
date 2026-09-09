@@ -39,6 +39,7 @@ import hashlib
 import pathlib
 import re
 import sys
+import textwrap
 import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -149,6 +150,39 @@ help:
     Stage 1 of a two-step port. Emits BED3 intervals plus the uppercased FASTA they index into.
     Feed BOTH to `brc-lc-classify` to get the content-annotated BED6 the workflow expects.
 """
+
+
+#: Why each UDT is a UDT, and what would retire it. ⛔ A STOCK GALAXY TOOL IS PREFERRED TO A UDT
+#: WHENEVER ONE EXISTS, so a UDT that merely duplicates an installed tool is a mistake and a UDT
+#: that exists because none was available is a STOPGAP, not an endpoint. Neither is legible from the
+#: definition itself, which is how a stopgap comes to look permanent -- so the status is recorded
+#: here, measured against usegalaxy.org and the main toolshed rather than assumed.
+#:
+#: ⚠ THE UPSTREAM ROUTE IS SLOW AND THE UDT STAYS IN THE MEANTIME. That is the point of saying which
+#: route each one needs: an IUC wrapper change and a .org installation are different asks with
+#: different lead times, and knowing which applies is what lets the stopgap be retired rather than
+#: forgotten.
+STOCK_TOOL_STATUS = {
+    "fasta_uppercase": (
+        "⚠ A STOPGAP. `seqtk` can do this -- `seqtk seq -U` uppercases -- and IUC's `seqtk_seq` "
+        "wrapper IS installed on usegalaxy.org, but it does not expose `-U` (measured against its "
+        "17 parameters). Retiring this UDT needs one flag added to that wrapper, not a new tool."),
+    "windowmasker_bed3": (
+        "⚠ A STOPGAP, AND THE SHALLOWEST ONE. IUC's `windowmasker_mkcounts` and `windowmasker_ustat` "
+        "are BOTH installed on usegalaxy.org, and `ustat`'s `output_format` already defaults to "
+        "`interval` -- exactly what this runs internally. Two stock steps plus interval2bed.awk "
+        "would replace it with no upstream change at all."),
+    "dustmasker_bed3": (
+        "No stock route: the binary ships in BLAST+, and the toolshed's `blast` repository wraps "
+        "makeblastdb and the search tools, not dustmasker. Retiring this needs a NEW wrapper."),
+    "tantan_bed3": (
+        "No stock route: the toolshed has no tantan wrapper at all. Retiring this needs a NEW "
+        "wrapper."),
+    "samtools_faidx": (
+        "⚠ A STOPGAP, AND PURELY AN AVAILABILITY ONE. IUC's `samtools_faidx` wrapper EXISTS in the "
+        "main toolshed; it is simply not installed on usegalaxy.org. Retiring this needs a "
+        "usegalaxy-tools installation PR, not any code."),
+}
 
 
 #: The masker columns, in the one order both the header and masking_table.py must use.
@@ -928,6 +962,20 @@ help:
     x1000 driving UCSC grayscale, column 6 `.`. This is `tools/dustmasker/lc_classify.py` inlined
     verbatim, not a reimplementation.
 """
+
+    # ⛔ APPENDED IN ONE PLACE, NOT WRITTEN PER TOOL. Every definition above is a separate string
+    # literal, so a per-tool note is a note that gets added to four of five and looks deliberate.
+    # A UDT's status relative to the stock tool it stands in for belongs in its help, where the
+    # next person reads it, and belongs in ONE table, where it can be kept true.
+    for stem, status in STOCK_TOOL_STATUS.items():
+        key = f"{stem}.gxtool.yml"
+        if key not in out:
+            raise SystemExit(f"REFUSING: STOCK_TOOL_STATUS names {stem!r}, which build() does not "
+                             f"produce. A status for a tool that no longer exists is a claim "
+                             f"nothing checks; remove it or fix the name.")
+        body = textwrap.fill(status, width=96, initial_indent="    ",
+                             subsequent_indent="    ")
+        out[key] = out[key].rstrip("\n") + "\n\n" + body + "\n"
     return out
 
 

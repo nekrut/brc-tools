@@ -68,3 +68,6 @@ help:
   content: |
     Stage 1 of a two-step port. Emits BED3 intervals plus the uppercased FASTA they index into.
     Feed BOTH to `brc-lc-classify` to get the content-annotated BED6 the workflow expects.
+
+    No stock route: the toolshed has no tantan wrapper at all. Retiring this needs a NEW
+    wrapper.

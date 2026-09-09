@@ -78,3 +78,7 @@ help:
 
     The second output saves a step: the classic workflow ran `Cut c1,c2` over the `.fai` to build
     the bedtools genome file, which is exactly `chrom.sizes` here.
+
+    ⚠ A STOPGAP, AND PURELY AN AVAILABILITY ONE. IUC's `samtools_faidx` wrapper EXISTS in the
+    main toolshed; it is simply not installed on usegalaxy.org. Retiring this needs a usegalaxy-
+    tools installation PR, not any code.

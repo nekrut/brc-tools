@@ -81,3 +81,8 @@ help:
   content: |
     Stage 1 of a two-step port. Emits BED3 intervals plus the uppercased FASTA they index into.
     Feed BOTH to `brc-lc-classify` to get the content-annotated BED6 the workflow expects.
+
+    ⚠ A STOPGAP, AND THE SHALLOWEST ONE. IUC's `windowmasker_mkcounts` and `windowmasker_ustat`
+    are BOTH installed on usegalaxy.org, and `ustat`'s `output_format` already defaults to
+    `interval` -- exactly what this runs internally. Two stock steps plus interval2bed.awk would
+    replace it with no upstream change at all.
