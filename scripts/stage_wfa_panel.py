@@ -82,6 +82,16 @@ def load_panel(path: pathlib.Path) -> dict:
     if absent:
         sys.exit(f"{path} is missing {absent}. Every key is required:\n" +
                  "\n".join(f"  {k}: {v}" for k, v in PANEL_KEYS.items()))
+    # ⛔ A PANEL OF ZERO IS NOT A PANEL, AND `0 == 0` WOULD HAVE PASSED. The template ships
+    # `expected_assemblies: 0`, and with no reachable collection the resolve check compared 0
+    # against 0 and staged an empty history reporting success -- the same silent-zero this repo
+    # keeps finding. An unfilled template must fail on the template, not on the run.
+    if not isinstance(doc["expected_assemblies"], int) or doc["expected_assemblies"] < 1:
+        sys.exit(f"{path}: `expected_assemblies` is {doc['expected_assemblies']!r}; it must be a "
+                 f"positive integer. A copy of the template that was never filled in ends up here.")
+    if str(doc["name"]).startswith("REPLACE ME"):
+        sys.exit(f"{path}: `name` is still the template placeholder, so this panel was copied and "
+                 f"not filled in. It names the Galaxy history, which is how a run is found later.")
     for k in ("proteomes", "anchors", "by_url"):
         if not isinstance(doc[k], dict):
             sys.exit(f"{path}: `{k}` must be a mapping, got {type(doc[k]).__name__}")
