@@ -1,43 +1,24 @@
-# Cannabis sativa panel for WF-A staging. See scripts/stage_wfa_panel.py for what each key means.
+# Cannabis sativa panel for WF-A staging. Key meanings: scripts/stage_wfa_panel.py (PANEL_KEYS).
 #
-# ⛔ MEMBERSHIP IS A SURVEY DECISION, AND IT LIVES HERE RATHER THAN IN THE CODE. The same pipeline
-# runs over a Plasmodium panel from the same scripts, so which genomes are in a set, which of them
-# carry an annotation and which serve as anchors are facts about a dataset, not about staging.
-#
-# ⚠ THE INCLUSION CRITERION IS CONTIG N50, NOT ASSEMBLY LEVEL. The pre-staged collection was
-# filtered on "chromosome-level or better", which is a proxy for fragmentation and the wrong
-# measurement: the four `extra` members below are Contig level but their contig N50 is 1.67-3.81 Mb
-# against cs10's 1.96 Mb -- cs10 leads only on SCAFFOLD N50 (91.9 Mb), which is scaffolding.
-# Four further NCBI assemblies fail the real criterion and stay out: ASM151000v1 (2.6 kb over
-# 311,039 sequences), Chemdog91_175268 (2.2 kb over 190,122), ASM209043v1 (52 kb), ASM186575v1
-# (129 kb).
+# ⚠ WHY EACH GENOME IS OR IS NOT HERE IS RECORDED WITH THE SURVEY, NOT IN THIS REPOSITORY.
+# Membership is a dataset decision -- cultivars, chemotypes, annotation provenance, and the
+# contiguity measurements behind the inclusion criterion (contig N50, not assembly level). This
+# file is only the resolved answer, so that the staging code stays organism-agnostic.
 name: Cannabis sativa
 
-#: 19 from the pre-staged collection plus the four below. Asserted at run time.
+# 19 from the pre-staged collection plus the four in `extra`. Asserted at run time.
 expected_assemblies: 23
 
-#: The staged raw panel. ⚠ REQUIRED IN PRACTICE, not an optimisation: `by_url` covers 8 of the 23,
-#: because the eight PUJ haplotypes come from Zenodo and Cannbio-2 from GigaDB. Without this
-#: collection the run resolves to 8 and the count check refuses.
+# ⚠ REQUIRED IN PRACTICE, not an optimisation: `by_url` covers 8 of the 23, so without this
+# collection the run resolves to 8 and the count check refuses.
 raw_collection: cab4808ec6fe5c51
 
-#: Members the collection does not hold.
-#:
-#: ⚠ THREE OF THESE ARE A TRIO, which is why they are worth the extra alignments. NCBI's BioSample
-#: attributes: JL_Father (cultivar `Jamaican Lion ^4`, isolate Father, male, ecotype Type II) x
-#: JL_Mother (same cultivar, isolate Mother, female, Type II) -> JL5 (same cultivar, isolate JL5,
-#: female, Type III). Two balanced-chemotype parents and a CBD-dominant offspring is B-locus
-#: segregation in a family: Mendelian checks, phasing, and a way to TEST a projected annotation
-#: rather than only produce one. JL_DASH is a different cultivar (`Jamaican Lion DASH`, The DASH
-#: DAO), here as an independent cross-group assembly.
-extra:
-  - JL_Father
-  - JL_Mother
-  - JL5
-  - JL_DASH
+# Members the collection does not hold. JL_Father x JL_Mother -> JL5 is a trio (Type II parents,
+# Type III offspring); JL_DASH is a different cultivar, kept as a cross-group assembly.
+extra: [JL_Father, JL_Mother, JL5, JL_DASH]
 
-#: identifier -> {accession, assembly_name}. Both are needed: the NCBI FTP path is built from the
-#: pair, so a wrong assembly_name is a 404 at fetch time rather than a validation error.
+# identifier -> {accession, assembly_name}. Both are needed: the NCBI FTP path is built from the
+# pair, so a wrong assembly_name is a 404 at fetch time rather than a validation error.
 by_url:
   cs10_NCBI_RefSeq_softmasked: {accession: GCF_900626175.2, assembly_name: cs10}
   ASM2916894v1: {accession: GCF_029168945.1, assembly_name: ASM2916894v1}
@@ -48,15 +29,9 @@ by_url:
   JL5: {accession: GCA_016415525.1, assembly_name: JL5}
   JL_DASH: {accession: GCA_003660325.2, assembly_name: Oct15_3.7Mb_N50_Jamaican_Lion_Assembly}
 
-#: The members that HAVE a protein FASTA, mapped to the file key their `_protein_primary.faa.gz`
-#: is named by.
-#:
-#: ⚠ SEVEN OF TWENTY-THREE IS THE CEILING, NOT A PARTIAL STAGE. Only six Cannabis assemblies at
-#: NCBI carry an annotation -- a genus-wide sweep returns 29 and exactly six have one -- plus
-#: Cannbio-2, whose full annotation GigaDB publishes. The rest have none published anywhere: the
-#: pangenome deposits carry only targeted families, and the PUJ haplotypes' `cs10-copies` GFFs are
-#: themselves projections from cs10. Those 16 get their genes from WF-C2 by projection, which is
-#: why those workflows exist.
+# The members that HAVE a protein FASTA, mapped to the file key their `_protein_primary.faa.gz` is
+# named by. Seven of 23 is the steady state, not a partial stage: the other 16 have no annotation
+# published anywhere and get their genes from WF-C2 by projection.
 proteomes:
   cs10_NCBI_RefSeq_softmasked: cs10
   ASM2916894v1: ASM2916894v1
@@ -66,9 +41,8 @@ proteomes:
   JL_Mother: JL_Mother
   Cannbio2_GigaDB: Cannbio2
 
-#: A subset of `proteomes`, and the workflow says so ("shorter than assemblies"). The two RefSeq
-#: annotations are the curated ones; the T2T pair are submitter annotations, fine as projection
-#: targets but a different provenance to mix into a reference set.
+# A subset of `proteomes`. The two RefSeq annotations are the curated ones; the T2T pair are
+# submitter annotations, fine as projection targets but a different provenance for a reference set.
 anchors:
   cs10_NCBI_RefSeq_softmasked: cs10
   ASM2916894v1: ASM2916894v1

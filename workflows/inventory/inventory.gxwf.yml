@@ -28,10 +28,9 @@ inputs:
     doc: >-
       Protein FASTAs for the panel members that HAVE an annotation, keyed by strain. ⚠ A SUBSET of
       `assemblies`, not parallel to it: BUSCO runs -m prot so it needs a protein FASTA, while
-      sourmash and faidx need only sequence. Seven of twenty-three, and that is the ceiling — six
-      Cannabis assemblies at NCBI carry an annotation, plus Cannbio-2 from GigaDB; the rest get
-      genes from WF-C2 by projection. One protein per gene, because BUSCO reads `duplicated`
-      straight off the file.
+      sourmash and faidx need only sequence. A panel whose members are not all annotated is the
+      expected case — the rest get genes from WF-C2 by projection, which is what those workflows
+      are for. One protein per gene, because BUSCO reads `duplicated` straight off the file.
     position: {top: 380, left: 300}
   busco_lineage:
     type: string

@@ -92,9 +92,9 @@ EXTERNAL = {
 #: while WF-C's `relabel_map` INPUT read 64 too, so the page contradicted itself across the very
 #: cross-workflow edge that connects them. Derived, that pair cannot drift.
 #:
-#: ⚠ THESE ARE Pv4 NUMBERS AND THE PAGE SAYS SO. This document is the Pv4 clean re-run; the cannabis
-#: panel is a different size (23 assemblies, 7 proteomes, 2 anchors) and changing these to it would
-#: misdescribe every observed-run note on the page. Change them together with the run they describe.
+#: ⚠ THESE ARE Pv4 NUMBERS AND THE PAGE SAYS SO. This document is the Pv4 clean re-run. Another
+#: panel through the same pipeline is a different size, and changing these to it would misdescribe
+#: every observed-run note on the page. Change them together with the run they describe.
 PANEL_N = 8                      #: staged panel genomes
 ANCHOR_N = 3                     #: curated anchors, a subset of the panel
 PAIRS_N = PANEL_N * PANEL_N - PANEL_N          #: ordered pairs, self-cells removed
@@ -106,7 +106,7 @@ _LIST_ANCHOR = f"list[{ANCHOR_N}] · id=anchor"
 SHAPE = {
     ("A", "in", "assemblies"): _LIST_STRAIN,
     # ⚠ A SUBSET in general -- it feeds BUSCO alone, which needs an annotation. Equal to
-    # `assemblies` on Pv4 only because every strain there has one; the cannabis panel has 7 of 23.
+    # `assemblies` on Pv4 only because every strain there has an annotation.
     ("A", "in", "proteomes"): _LIST_STRAIN,
     ("A", "in", "busco_lineage"): "string",
     ("A", "out", "similarity_matrix"): f"1 CSV · {PANEL_N}x{PANEL_N}",

@@ -6,19 +6,19 @@ MEMBER OF THE PANEL USES ONE RULE. BUSCO protein mode scores a proteome against 
 orthologs, so two isoforms of one gene both hit the same ortholog and the group is called
 duplicated. `complete` and `missing` barely move; `duplicated` moves a lot.
 
-⚠ AND `duplicated` IS A NUMBER THIS PANEL ACTUALLY READS. Eight of the cannabis assemblies are
-haplotype pairs, where duplication legitimately means the assembly has not collapsed its
-haplotypes -- workflows/workflow_descriptions.md says so. Mix isoform noise in and you cannot tell
-annotation style from assembly biology, which destroys the one signal the number carries here.
+⚠ AND `duplicated` IS A NUMBER SOME PANELS ACTUALLY READ. Where a panel holds haplotype-resolved
+assemblies, duplication legitimately means the assembly has not collapsed its haplotypes --
+workflows/workflow_descriptions.md says so. Mix isoform noise in and you cannot tell annotation
+style from assembly biology, which destroys the one signal the number carries there.
 
-⛔ THE RULE IS "LONGEST PER GENE" BECAUSE THE EXISTING RULE CANNOT BE EXTENDED. The six proteomes
-staged so far carry `_protein_primary.faa.gz` files whose record counts equal NCBI's own
-`protein_coding` gene totals exactly -- cs10 33,674 -> 25,296, ASM2916894v1 39,959 -> 28,747 -- so
-they were built by taking NCBI's DESIGNATED primary transcript. Measured: the records cs10 discards
-average 513 aa against the 438 aa kept, so it is demonstrably not the longest isoform. That
-designation is a RefSeq annotation attribute; GenBank submitter annotations and GigaDB's published
-files do not carry it, so the rule stops working the moment a proteome arrives from anywhere else.
-Longest-per-gene needs nothing but the FASTA, which is why it is the rule that can cover the panel.
+⛔ THE RULE IS "LONGEST PER GENE" BECAUSE A PROVIDER'S OWN RULE CANNOT COVER A MIXED PANEL. The
+`_protein_primary.faa.gz` files staged before this existed were built by taking RefSeq's DESIGNATED
+primary transcript: their record counts equal NCBI's `protein_coding` gene totals exactly, and the
+records they discard average LONGER than the ones they keep, so it is demonstrably not the longest
+isoform. That designation is a RefSeq annotation attribute -- GenBank submitter annotations and
+other publishers do not carry it -- so the rule stops working the moment a proteome arrives from
+anywhere else. Longest-per-gene needs nothing but the FASTA, which is why it is the rule that can
+cover a panel assembled from several sources.
 
 ⚠ HOW THE GENE IS IDENTIFIED IS PER-SOURCE, AND GUESSING IT IS THE WAY TO GET THIS SILENTLY WRONG.
 A pattern that fails to group isoforms leaves the file unchanged and reports success, which looks
@@ -26,7 +26,7 @@ exactly like a proteome that was already one-per-gene. So `--gene-regex` is REQU
 summary prints how many genes had more than one transcript: if that is 0 on a file you expected to
 reduce, the pattern did not match, not the data.
 
-    # GigaDB Cannbio-2: Cs_Cb2.10g000010.m01.polypeptide -> gene Cs_Cb2.10g000010
+    # transcript-suffixed ids, e.g. Xx_1.10g000010.m01.polypeptide -> gene Xx_1.10g000010
     python3 scripts/primary_proteome.py in.fasta --out out.faa.gz \\
         --gene-regex '^(?P<gene>[^ ]+?)\\.m[0-9]+\\.polypeptide'
 
@@ -117,7 +117,7 @@ def main() -> int:
     print(f"  {total} record(s) -> {len(best)} gene(s); {groups} record(s) dropped as shorter "
           f"isoforms")
     if groups == 0:
-        # Not an error: four of the six existing proteomes are natively one-per-gene. But it is
+        # Not an error: plenty of published proteomes are natively one-per-gene. But it is
         # indistinguishable from a pattern that matched nothing, so say which it was.
         print(f"  ⚠ NOTHING WAS REDUCED. Either this proteome is already one protein per gene, or "
               f"--gene-regex grouped nothing ({total - unmatched} header(s) did match). Check "
