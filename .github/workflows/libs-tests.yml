@@ -1,0 +1,50 @@
+name: libs-tests
+
+# Run the pytest suite of every library under libs/ (currently genome-io; a
+# pangenome-helpers is planned). Discovery is dynamic — any directory with a
+# pyproject.toml is picked up, so a new library is covered without editing this
+# file.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'libs/**'
+      - '.github/workflows/libs-tests.yml'
+  pull_request:
+    paths:
+      - 'libs/**'
+      - '.github/workflows/libs-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor and ceiling of the range genome-io's pyproject claims to support.
+        python-version: ['3.9', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Test each library
+        run: |
+          set -euo pipefail
+          found=0
+          for lib in libs/*/; do
+            [ -f "${lib}pyproject.toml" ] || continue
+            found=1
+            echo "::group::${lib}"
+            pip install --quiet -e "${lib}[test]"
+            (cd "$lib" && python -m pytest -q)
+            echo "::endgroup::"
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "::error::no library with a pyproject.toml found under libs/"
+            exit 1
+          fi
