@@ -89,10 +89,10 @@ python '$__tool_directory__/phase_e_consensus.py'
             <param name="ref" value="A"/>
             <output name="ortholog_table">
                 <assert_contents>
-                    <has_text text="orthogroup_id&#9;label&#9;n_strains&#9;max_copies&#9;A&#9;B&#9;C"/>
+                    <has_text text="orthogroup_id&#9;label&#9;n_strains&#9;max_copies&#9;clique&#9;clique_ceiling&#9;density&#9;A&#9;B&#9;C"/>
                     <has_text text="OG000001"/>
                     <has_text text="CORE-1:1"/>
-                    <has_n_columns n="7"/>
+                    <has_n_columns n="10"/>
                 </assert_contents>
             </output>
         </test>
