@@ -5,7 +5,7 @@
 # list, because a job container receives paths and never sees a collection's identifiers.
 class: GalaxyUserTool
 id: brc-sourmash-panel
-version: "0.11.0"
+version: "0.12.0"
 name: sourmash sketch + compare over a panel (BRC UDT)
 description: MinHash signatures for every assembly in a collection and the similarity matrix over them
 container: quay.io/biocontainers/sourmash:4.9.4--hdfd78af_0
@@ -34,13 +34,23 @@ requirements:
   # EVERY signature -- ~197 M hashes over this panel, order 2-4 GB -- and `--processes` multiplies
   # what its workers touch. The old 3788 MB default sat inside that range.
   #
-  # ⚠ ZERO HEADROOM, MEASURED 2026-09-21. The 219-assembly run peaked at 32.00 GiB against a
-  # 32 GiB grant (27.81 GiB on the run before it). It has not failed, but it cannot absorb more
-  # panel members. Raising this needs a measurement, not a guess, so it is left at 32 GiB and
-  # flagged here rather than quietly bumped.
+  # ⛔ 64 GiB BECAUSE THE 32 GiB MEASUREMENT WAS CENSORED, NOT BECAUSE 64 IS MEASURED. The
+  # 219-assembly run reported `memory.peak` of 32.00 GiB against a 32 GiB grant -- exactly the
+  # ceiling -- and a peak that lands on its own limit does not say what the job wanted, only that
+  # the limit truncated the observation. The run before it peaked 27.81 GiB, so the true figure is
+  # somewhere at or above 32 and unknown.
+  #
+  # ▶ RAISING IT IS WHAT PRODUCES THE MEASUREMENT. With room above the requirement the next run
+  # reports an UNCENSORED peak, and this value can then be set from evidence. Leaving it at 32 and
+  # waiting means learning the number from an OOM on a ~28-minute job over the whole panel.
+  # `max_accepted_mem` is 120 GiB, so 64 is inside the destination; the cost is queue time, which
+  # is cheap for a tool that runs once per panel rather than once per genome.
+  #
+  # ⚠ SET THIS FROM THE NEXT RUN'S `memory.peak`, and if that peak again equals the grant, raise
+  # again rather than believing it.
   - type: resource
     cores_min: 16
-    ram_min: 32768
+    ram_min: 65536
 shell_command: |
   cat > rendered.txt <<'BRC_RENDERED'
   $(inputs.assemblies)
