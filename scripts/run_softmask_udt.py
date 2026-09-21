@@ -107,6 +107,17 @@ def main() -> int:
                          "already soft-masked) gives the same result as the raw assemblies -- the "
                          "mask is always recomputed de novo. Saves re-uploading large genomes.")
     ap.add_argument("--history-name", default="WF-B softmask (UDT edition)")
+    # ⛔ WITHOUT THIS FLAG THE RUNNER SILENTLY TAKES THE WORKFLOW DEFAULT, WHICH IS THE OTHER ARM.
+    # `strip_arrived_mask` decides whether the published mask is recomputed from stripped sequence
+    # or laid on top of whatever the submitter shipped, and cannabis-genome adopted `true` on
+    # measured evidence (4.85 points of published masking under true against 22.61 under false).
+    # The invoke below filters `parameter_input` steps out of `inputs`, so before this flag existed
+    # there was NO way to reach the parameter from here and every run took `false` without saying
+    # so -- a wrong arm that completes green and looks exactly like the right one.
+    ap.add_argument("--strip-arrived-mask", dest="strip", action="store_true",
+                    help="recompute the mask from sequence with the ARRIVED soft-mask stripped. "
+                         "Off by default, matching the workflow and the classic pipeline. The "
+                         "chosen value is printed and recorded in the invocation either way.")
     ap.add_argument("--register-only", action="store_true")
     ap.add_argument("--work", type=pathlib.Path, default=ROOT / "build/softmask_udt")
     args = ap.parse_args()
@@ -146,6 +157,18 @@ def main() -> int:
     handles = _wf["inputs"]
     inputs = {sid: {"src": "hdca", "id": hdca} for sid in handles
               if (_steps.get(str(sid)) or {}).get("type") != "parameter_input"}
+    # ⚠ THE PARAMETER IS BOUND BY LABEL, AND ONLY IF THE WORKFLOW HAS ONE. An older resolved
+    # workflow without the step must not silently swallow the flag: say so and stop, rather than
+    # run the other arm.
+    _params = {sid: h for sid, h in handles.items()
+               if (_steps.get(str(sid)) or {}).get("type") == "parameter_input"
+               and (h.get("label") or "") == "strip_arrived_mask"}
+    if _params:
+        inputs.update({sid: args.strip for sid in _params})
+    elif args.strip:
+        sys.exit("--strip-arrived-mask was given, but this workflow has no `strip_arrived_mask` "
+                 "parameter_input. Refusing rather than running the other arm silently.")
+    print(f"  strip_arrived_mask = {args.strip}")
     # ⛔ NO allow_tool_state_corrections. Every parameter every step can take is named in the
     # workflow, so there is nothing for it to silence -- and it never fixed anything anyway: it only
     # swaps Galaxy's refusal for a log.debug on the server that no response exposes. A refusal here
