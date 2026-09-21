@@ -159,10 +159,24 @@ def read_helper(relpath: str) -> str:
 #: allowance on the same panel and is fine, because it streams and the cgroup fills with reclaimable
 #: cache. windowmasker builds a k-mer counts structure; there is nothing to give back.
 #:
-#: ⛔ `ram_min` IS ON THE GB SCALE, NOT THE MEBIBYTES THE SCHEMA DOCUMENTS. The destination's
-#: `max_accepted_mem` is 120, so a schema-conformant value exceeds it, matches no destination, and
-#: the job dies with an empty error and no command line. Measured: `ram_min: 16` yields
-#: GALAXY_MEMORY_MB=16384, GALAXY_SLOTS=1, nproc=1. See udt/slots_probe.gxtool.yml.
+#: ⛔ `ram_min` IS IN MEBIBYTES, AS THE SCHEMA SAYS. THIS BLOCK USED TO SAY THE OPPOSITE, AND THE
+#: OPPOSITE WAS TRUE UNTIL 2026-09-12 -- DO NOT "RESTORE" IT.
+#:
+#: Galaxy follows CWL and expresses `ram_min`/`ram_max` in MiB; TPV's `mem`/`max_mem` are in GiB.
+#: TPV injected the one into the other WITHOUT converting, so `ram_min: 16` really did yield
+#: GALAXY_MEMORY_MB=16384 -- a GB scale -- and a schema-conformant 16384 really did exceed the
+#: destination's `max_accepted_mem` of 120 and leave the job unroutable. Both of those observations
+#: were correct when they were made.
+#:
+#: total-perspective-vortex#205 ("Convert Galaxy tool RAM requirements from MiB to GiB") merged
+#: 2026-09-12 and divides by 1024. Its own description names this exact hazard: *"Tools previously
+#: tuned against the buggy behavior would now request significantly less memory after this
+#: correction, potentially causing out-of-memory failures."* That is what happened here.
+#:
+#: ⚠ MEASURED AFTER THE UPGRADE, 2026-09-21: `ram_min: 8` yielded GALAXY_MEMORY_MB=**8**, and every
+#: dustmasker job in a 195-genome run was SIGKILLed (exit 137) -- 9 of 9, on inputs from 520 MB to
+#: 1.2 GB. The measured peaks below are unchanged and still govern; only the unit moved, so every
+#: value here is now the GiB figure times 1024.
 #:
 #: ⛔ AND NO `cores_min` ON ANY MASKER. None of dustmasker, windowmasker or tantan takes a thread
 #: flag, so a core request would be reserved and left idle.
@@ -173,10 +187,20 @@ def masker(tool_id, name, container, desc, cmd, helper_path, helper_name,
            ram_min=None, version="0.1.0") -> str:
     helper = read_helper(helper_path)
     # ⚠ EMITTED ONLY WHEN ASKED FOR. A masker that needs no more than the default carries no
-    # `resource` entry at all -- and that is not cosmetic: an entry whose `ram_min` defaults to 256
-    # is read as 256 GB here, exceeds the destination limit and makes the tool unroutable.
+    # `resource` entry at all. Pre-TPV#205 that mattered because the schema default of 256 was read
+    # as 256 GB and made the tool unroutable; post-#205 it is 256 MiB, which is merely far too
+    # little. Either way, omitting the entry is what yields the instance default of 3788 MB.
     reqs = ""
     if ram_min is not None:
+        # ⛔ A GUARD, NOT A STYLE RULE. Every value here is MEBIBYTES. The three maskers were once
+        # tuned in GB against a TPV that did not convert, and after #205 those numbers became 8 MB
+        # and 16 MB. Nothing downstream complains: the tool registers, the workflow schedules, the
+        # jobs go green-then-137. A plain floor is the only thing between that and a rerun.
+        if ram_min < 256:
+            raise SystemExit(
+                f"ram_min={ram_min} for {tool_id}: ram_min is in MEBIBYTES since "
+                f"total-perspective-vortex#205 (2026-09-12). A value this small is almost "
+                f"certainly a GiB figure -- did you mean {ram_min * 1024}?")
         reqs = (f"requirements:\n"
                 f"  # ⛔ MEASURED. {MASKER_MEMORY_BASIS}\n"
                 f"  - type: resource\n"
@@ -463,7 +487,7 @@ def build() -> dict[str, str]:
         "NCBI symmetric-DUST low-complexity intervals, stage 1 of 2",
         "  dustmasker -in upper.fa -outfmt interval | awk -f interval2bed.awk > intervals.bed3",
         "tools/dustmasker/interval2bed.awk", "interval2bed.awk",
-        ram_min=8, version="0.3.0")            # peaked 59% of 3788 MB on 23 cannabis genomes
+        ram_min=8192, version="0.4.0")         # 8 GiB; peaked 59% of 3788 MB on 23 cannabis genomes
 
     out["windowmasker_bed3.gxtool.yml"] = masker(
         "brc-windowmasker-bed3", "windowmasker -> BED3 (BRC UDT)",
@@ -473,7 +497,7 @@ def build() -> dict[str, str]:
         "  windowmasker -ustat counts -in upper.fa -outfmt interval"
         " | awk -f interval2bed.awk > intervals.bed3",
         "tools/dustmasker/interval2bed.awk", "interval2bed.awk",
-        ram_min=16, version="0.3.0")           # peaked 89%, projects >100% on 11 panel members
+        ram_min=16384, version="0.4.0")        # 16 GiB; peaked 89%, projects >100% on 11 panel members
 
     out["tantan_bed3.gxtool.yml"] = masker(
         "brc-tantan-bed3", "tantan -> BED3 (BRC UDT)",
@@ -489,7 +513,7 @@ def build() -> dict[str, str]:
         "tantan gentle low-complexity intervals, stage 1 of 2",
         "  tantan upper.fa | awk -f lc2bed.awk > intervals.bed3",
         "tools/tantan/lc2bed.awk", "lc2bed.awk",
-        ram_min=8, version="0.3.0")            # peaked 66% of 3788 MB on 23 cannabis genomes
+        ram_min=8192, version="0.4.0")         # 8 GiB; peaked 66% of 3788 MB on 23 cannabis genomes
 
     out["fasta_uppercase.gxtool.yml"] = HEADER + """class: GalaxyUserTool
 id: brc-fasta-uppercase
