@@ -12,6 +12,15 @@ carries real content instead of the (redundant) tool name:
 
 Smallest period that explains the interval well is preferred.
 
+⚠ PERIODS 1-6 ONLY, AND THAT IS WHY THE fastan TRACK DOES NOT USE THIS. Anything with a longer
+unit comes back `lc`. Measured on 103,341 real FASTAN intervals (ASM1303036v1), 75.9% have a unit
+longer than 6 -- 65,084 of them 20 bp or more, median interval 62 bp, longest 22,755. FASTAN
+measures the unit from its own tandem-array model and reports divergence, so classifying its
+output here would fail on three quarters of the intervals and overwrite a measured value with a
+guess. Its BED6 therefore carries a DIFFERENT vocabulary in columns 4 and 5 -- unit LENGTH
+(`u65`) and 1000 - 10 x divergence, against the signature (`polyA`, `(AT)n`) and purity x 1000
+this produces. Both are 0-1000 and higher-is-better, so nothing errors when they are mixed.
+
 ⛔ THE FASTA IS STREAMED ONE RECORD AT A TIME, AND THAT IS A MEMORY FIX, NOT A SPEED ONE.
 This used to build a dict of every sequence in the assembly, uppercased. MEASURED on vgp:
 five brc-lc-classify jobs peaked at 3,790 MB against a 3,788 MB grant -- 100.0%, with no

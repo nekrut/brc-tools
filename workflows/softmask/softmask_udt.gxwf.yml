@@ -87,16 +87,33 @@ outputs:
       because it is the index OF the FASTA WF-C aligns.'
   dustmasker_bed:
     outputSource: dustmasker_classify/output
-    doc: dustmasker low-complexity BED6 (UCSC-hub track).
+    doc: 'dustmasker low-complexity BED6 (UCSC-hub track). ⚠ COLUMN VOCABULARY: name = sequence signature
+      (`polyA`, `(AT)n`, `lc`), score = purity x 1000, from `lc_classify`. The `fastan_bed` track uses
+      a DIFFERENT vocabulary -- see its doc -- so grouping by name or comparing scores across the four
+      tracks mixes two schemes and nothing errors.'
   windowmasker_bed:
     outputSource: windowmasker_classify/output
-    doc: windowmasker masked-interval BED6 (UCSC-hub track).
+    doc: 'windowmasker masked-interval BED6 (UCSC-hub track). ⚠ COLUMN VOCABULARY: name = sequence signature
+      (`polyA`, `(AT)n`, `lc`), score = purity x 1000, from `lc_classify`. The `fastan_bed` track uses
+      a DIFFERENT vocabulary -- see its doc -- so grouping by name or comparing scores across the four
+      tracks mixes two schemes and nothing errors.'
   tantan_bed:
     outputSource: tantan_classify/output
-    doc: tantan low-complexity BED6 (UCSC-hub track).
+    doc: 'tantan low-complexity BED6 (UCSC-hub track). ⚠ COLUMN VOCABULARY: name = sequence signature
+      (`polyA`, `(AT)n`, `lc`), score = purity x 1000, from `lc_classify`. The `fastan_bed` track uses
+      a DIFFERENT vocabulary -- see its doc -- so grouping by name or comparing scores across the four
+      tracks mixes two schemes and nothing errors.'
   fastan_bed:
     outputSource: fastan_bed/output
-    doc: fastan tandem-array BED6 (UCSC-hub track).
+    doc: 'fastan tandem-array BED6 (UCSC-hub track). ⛔ ITS COLUMNS 4 AND 5 DO NOT MATCH THE OTHER THREE
+      TRACKS: name is the repeat UNIT LENGTH (`u65`, `u8`) and score is 1000 - 10 x divergence, straight
+      from `ano2bed6.awk`, where dustmasker/windowmasker/tantan give a sequence signature and purity x
+      1000 from `lc_classify`. Both are 0-1000 and higher-is-better, so a UCSC hub renders all four happily
+      and no check here would notice the mix. ⛔ `lc_classify` is absent ON PURPOSE: it searches periods
+      1-6 only, and measured on 103,341 real intervals (ASM1303036v1) 75.9% have a unit longer than 6
+      -- 65,084 of them 20 bp or more. FASTAN measures the unit from its own tandem-array model; classifying
+      it would overwrite a measured value with a guess on three quarters of the intervals. The classic
+      tools/fastan/fastan.xml omits it too.'
   mask_union:
     outputSource: merge_bed/output
     doc: 'The merged union of the four maskers AND the mask the assembly arrived with -- the published

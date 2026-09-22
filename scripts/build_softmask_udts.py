@@ -949,7 +949,7 @@ help:
 
     out["fastan_bed.gxtool.yml"] = HEADER + FASTAN_NOTE + f"""class: GalaxyUserTool
 id: brc-fastan-bed
-version: "0.2.0"
+version: "0.2.1"
 name: FasTAN .1ano -> BED6 (BRC UDT)
 description: Convert a FasTAN .1ano to a content-annotated BED6 via ONEview (NOT ANOtoBED), stage 3 of 3
 container: quay.io/biocontainers/fastga:1.5.20260729--h118bc1c_0
@@ -980,6 +980,29 @@ outputs:
 help:
   format: markdown
   content: |
+    ⛔ **COLUMNS 4 AND 5 DO NOT MEAN THE SAME THING AS IN THE OTHER THREE TRACKS, AND NOTHING
+    ERRORS IF YOU MIX THEM.** The dustmasker, windowmasker and tantan BED6s go through
+    `lc_classify`, which names a SEQUENCE SIGNATURE and scores PURITY. This one comes straight from
+    `ano2bed6.awk`, which names the repeat UNIT LENGTH and scores DIVERGENCE:
+
+    | track | name (col 4) | score (col 5) |
+    |---|---|---|
+    | dustmasker / windowmasker / tantan | `polyA`, `(AT)n`, `lc` | purity x 1000 |
+    | fastan | `u65`, `u8` -- the unit LENGTH | 1000 - 10 x divergence |
+
+    Both scores are 0-1000 and higher-is-better, so a UCSC hub renders all four happily. But
+    anything that GROUPS BY NAME or COMPARES SCORES across tracks is mixing two vocabularies, and no
+    check in this repository would notice.
+
+    ⛔ **`lc_classify` IS ABSENT ON PURPOSE -- ADDING IT WOULD DESTROY INFORMATION.** It brute-forces
+    periods 1-6 only and returns `lc` for anything longer. MEASURED on 103,341 real fastan intervals
+    (ASM1303036v1): **75.9% have a unit longer than 6**, 65,084 of them 20 bp or more, median
+    interval 62 bp and longest 22,755. FASTAN *measures* the unit from its own tandem-array model
+    (the `L` record) and reports divergence (`X`); running lc_classify over that would fail on three
+    quarters of the intervals and overwrite a measured value with a guess. FASTAN is a tandem-array
+    finder, not a low-complexity masker -- it already knows what lc_classify guesses. The classic
+    `tools/fastan/fastan.xml` omits it for the same reason, so the two are in step.
+
     ⚠ **`set -o pipefail` is on, so any filter added to this pipeline needs its own guard.**
     There is no `grep` in this tool today -- the pipeline is
     `ONEview | awk -f ano2bed6.awk | sort` -- but a `grep -v` inserted later exits 1 when it
@@ -1120,7 +1143,7 @@ help:
     lc = read_helper("tools/dustmasker/lc_classify.py")
     out["lc_classify.gxtool.yml"] = HEADER + SPLIT_NOTE + f"""class: GalaxyUserTool
 id: brc-lc-classify
-version: "0.2.1"
+version: "0.2.2"
 name: lc_classify -> BED6 (BRC UDT)
 description: Annotate masked intervals with repeat-unit signature and purity, stage 2 of 2
 container: quay.io/biocontainers/python:3.12
