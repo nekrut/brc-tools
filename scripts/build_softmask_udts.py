@@ -207,7 +207,12 @@ MASKER_MEMORY_BASIS = "see MASKER_MEMORY_BASIS in scripts/build_softmask_udts.py
 
 def masker(tool_id, name, container, desc, cmd, helper_path, helper_name,
            ram_min=None, version="0.1.0") -> str:
-    helper = read_helper(helper_path)
+    # ⚠ A MASKER THAT NEEDS NO CONVERTER PASSES helper_path=None. tantan emits BED itself
+    # (`-f 3`), so it ships no awk at all; the NCBI pair still do, because their `-outfmt` has no
+    # BED among its values (interval / fasta / maskinfo_* / seqloc_* / acclist -- checked).
+    helper_block = ""
+    if helper_path is not None:
+        helper_block = f"  cat > {helper_name} <<'BRC_AWK'\n{indent(read_helper(helper_path))}\n  BRC_AWK\n"
     # ⚠ EMITTED ONLY WHEN ASKED FOR. A masker that needs no more than the default carries no
     # `resource` entry at all. Pre-TPV#205 that mattered because the schema default of 256 was read
     # as 256 GB and made the tool unroutable; post-#205 it is 256 MiB, which is merely far too
@@ -234,10 +239,7 @@ name: {name}
 description: {desc}
 container: {container}
 {reqs}shell_command: |
-  cat > {helper_name} <<'BRC_AWK'
-{indent(helper)}
-  BRC_AWK
-  set -o pipefail
+{helper_block}  set -o pipefail
   # ⛔ `set -e` IS LOAD-BEARING HERE, NOT HOUSE STYLE. The decompress branch below writes seq.fa and
   # then assigns SRC as a SEPARATE statement -- an assignment always succeeds, so without errexit a
   # failed or truncated `gzip -cd` would leave SRC pointing at a short file and the masker would
@@ -305,7 +307,7 @@ HAND_WRITTEN_UDTS = frozenset({
 #: ⛔ THESE ARE MATCHED AGAINST THE <command> ELEMENT ONLY, NOT THE WHOLE FILE. An earlier version
 #: searched the raw XML text, and prose satisfied the anchors: `tantan ` matches
 #: `<description>tantan gentle low-complexity...`, `FasTAN` and `ANOtoBED` appear in fastan.xml's
-#: comment and help. An adversarial pass gutted tantan's entire <command>, left `lc2bed.awk` in a
+#: comment and help. An adversarial pass gutted tantan's entire <command>, left a helper name in a
 #: `## FIXME` comment, and the tripwire passed.
 XML_ANCHORS = {
     "tools/dustmasker/dustmasker.xml": ["dustmasker -in", "-outfmt interval", "interval2bed.awk",
@@ -313,7 +315,7 @@ XML_ANCHORS = {
     "tools/windowmasker/windowmasker.xml": ["windowmasker -mk_counts", "windowmasker -ustat",
                                             "-outfmt interval", "interval2bed.awk",
                                             "lc_classify.py", "toupper"],
-    "tools/tantan/tantan.xml": ["tantan in.fa", "lc2bed.awk", "lc_classify.py", "toupper"],
+    "tools/tantan/tantan.xml": ["tantan -f3 in.fa", "lc_classify.py", "toupper"],
     "tools/fastan/fastan.xml": ["FAtoGDB", "FasTAN", "ONEview", "ano2bed6.awk", "toupper"],
     "tools/masking_table/masking_table.xml": ["masking_table.py", "--dustmasker", "--union"],
 }
@@ -341,7 +343,7 @@ XML_REQUIREMENTS = {
 XML_COMMAND_DIGESTS: dict[str, str] = {
     "tools/dustmasker/dustmasker.xml": "44ba77c505a3a1d9",
     "tools/windowmasker/windowmasker.xml": "5e7222543a06ea8f",
-    "tools/tantan/tantan.xml": "75d35538a082d2c1",
+    "tools/tantan/tantan.xml": "1f0c4bd0d9fabc3a",
     "tools/fastan/fastan.xml": "6fd29cf164a54fea",
     "tools/masking_table/masking_table.xml": "2d7cb425599d5daa",
 }
@@ -535,9 +537,21 @@ def build() -> dict[str, str]:
         # --check-containers now asks, so a guess cannot ship again.
         "quay.io/biocontainers/tantan:51--h5ca1c30_1",
         "tantan gentle low-complexity intervals, stage 1 of 2",
-        "  tantan $SRC | awk -f lc2bed.awk > intervals.bed3",
-        "tools/tantan/lc2bed.awk", "lc2bed.awk",
-        ram_min=8192, version="0.5.0")         # 8 GiB; peaked 66% of 3788 MB on 23 cannabis genomes
+        # ⛔ `-f 3` IS tantan's OWN BED WRITER, and it replaces a converter we maintained.
+        # `-f` is documented as 0=masked sequence, 1=repeat probabilities, 2=repeat counts,
+        # 3=BED, 4=tandem repeats. MEASURED byte-identical to the `tantan | awk -f lc2bed.awk`
+        # route it replaces, on a synthetic sequence AND on 288 real records / 37 MB of
+        # salk_USV: 163,983 BED lines, same md5, same 288 distinct sequence names.
+        #
+        # ⚠ AND IT STRENGTHENS check_coordinates RATHER THAN GUTTING IT. The old `case_tantan`
+        # compared lc2bed.awk against a Python reimplementation of the same idea, both reading
+        # the SAME lc.fa -- the weak form its own docstring warns about, which can only catch a
+        # bug one implementation has and the other does not. It now compares tantan's BED writer
+        # against tantan's soft-mask writer: two different routes out of the tool, which is
+        # exactly what makes `case_ncbi_masker` strong. See scripts/check_coordinates.py.
+        "  tantan -f3 $SRC > intervals.bed3",
+        None, None,
+        ram_min=8192, version="0.6.0")         # 8 GiB; peaked 66% of 3788 MB on 23 cannabis genomes
 
     out["fasta_uppercase.gxtool.yml"] = HEADER + """class: GalaxyUserTool
 id: brc-fasta-uppercase
