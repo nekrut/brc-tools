@@ -679,22 +679,25 @@ help:
 
     out["samtools_faidx.gxtool.yml"] = HEADER + """class: GalaxyUserTool
 id: brc-samtools-faidx
-version: "0.2.0"
+version: "0.3.0"
 name: samtools faidx (BRC UDT)
 description: Index a FASTA (.fai) and emit the chrom/length table bedtools wants as its genome file
 container: quay.io/biocontainers/samtools:1.24--h9dcdb79_1
 shell_command: |
   set -o pipefail
-""" + DECOMPRESS_ONLY + "    > seq.fa &&" + """
-  samtools faidx seq.fa &&
+  # ⛔ `set -e`: SOURCE_SELECT assigns SRC as a separate statement and an assignment always
+  # succeeds, so without errexit a truncated `gzip -cd` would leave SRC pointing at a short file
+  # and this would publish a chrom.sizes that looks complete. See SOURCE_SELECT.
+  set -e
+""" + SOURCE_SELECT + """  samtools faidx $SRC --fai-idx seq.fa.fai &&
   cut -f1,2 seq.fa.fai > chrom.sizes &&
   awk '{ line = $0; sub(/\\r$/, "", line) } line ~ /\\r/ {
       print "⛔ brc-samtools-faidx: a carriage return appears MID-LINE, so this FASTA has lone-CR (classic Mac) or mixed line endings." > "/dev/stderr"
       print "   samtools splits records on a newline exactly as this awk does, so a > that follows a bare CR is invisible to BOTH: the record is swallowed into its predecessor, whose length then covers it, and the record-count guard below sees MATCHING counts and passes." > "/dev/stderr"
       print "   Measured: a 3-record FASTA came out as a 2-row index with the second contig reported 18 bp long when it is 8, and the third absent entirely, exit 0." > "/dev/stderr"
       print "   chrom.sizes is the bedtools genome file WF-C runs on -- an over-long contig lets intervals past its real end survive, and a missing one makes every interval on it vanish. REFUSING; convert the line endings first." > "/dev/stderr"
-      exit 1 }' seq.fa &&
-  awk '/^>/ {n++} END {print n+0}' seq.fa > n_seq.txt &&
+      exit 1 }' $SRC &&
+  awk '/^>/ {n++} END {print n+0}' $SRC > n_seq.txt &&
   awk 'END {print NR+0}' seq.fa.fai > n_fai.txt &&
   awk 'NR == FNR {a = $1; next} {b = $1} END {
       if (a+0 == 0) {
@@ -774,13 +777,18 @@ help:
     awk_ano = read_helper("tools/fastan/ano2bed6.awk")
     out["fastan_gdb.gxtool.yml"] = HEADER + FASTAN_NOTE + """class: GalaxyUserTool
 id: brc-fastan-gdb
-version: "0.1.0"
+version: "0.2.0"
 name: FAtoGDB -> GDB tarball (BRC UDT)
 description: Convert a FASTA to a FastGA GDB, stage 1 of 3 for the fastan tandem-array track
 container: quay.io/biocontainers/fastga:1.5.20260729--h118bc1c_0
 shell_command: |
   set -o pipefail
-  cp '$(inputs.input.path)' up.fa &&
+  # ⛔ A SYMLINK, NOT A COPY, AND THE NAME IS THE WHOLE REASON THE LINK EXISTS. FAtoGDB refuses a
+  # path it cannot read an extension from -- handed Galaxy's `dataset_42.dat` it prints
+  # "Could not find valid extension of dataset_42.dat" and exits 1 -- so the `.fa` name is
+  # required. Copying to get it is not: measured, a symlink satisfies the extension check and
+  # FAtoGDB reads through it (rc=0, same gdb). The copy was a full extra genome per job.
+  ln -sf '$(inputs.input.path)' up.fa &&
   FAtoGDB up.fa gdb &&
   tar cf gdb.tar gdb.1gdb .gdb.bps
 inputs:
@@ -813,14 +821,16 @@ help:
 
     out["fastan_scan.gxtool.yml"] = HEADER + FASTAN_NOTE + """class: GalaxyUserTool
 id: brc-fastan-scan
-version: "0.1.0"
+version: "0.2.0"
 name: FasTAN tandem scan (BRC UDT)
 description: Find tandem arrays in a GDB, stage 2 of 3
 container: quay.io/biocontainers/fastan:0.8--h118bc1c_1
 shell_command: |
   set -o pipefail
-  cp '$(inputs.gdb.path)' gdb.tar &&
-  tar xf gdb.tar &&
+  # ⚠ No copy and no link: `tar` has no extension requirement, so it extracts straight from the
+  # dataset. (Measured: `tar xf <read-only dataset path>` then FasTAN, rc=0.) The GDB tarball is
+  # genome-sized, so the `cp` this replaces was the largest single write in the fastan arm.
+  tar xf '$(inputs.gdb.path)' &&
   FasTAN -m -p -T1 -oscan gdb
 inputs:
   - name: gdb
@@ -865,7 +875,7 @@ help:
 
     out["fastan_bed.gxtool.yml"] = HEADER + FASTAN_NOTE + f"""class: GalaxyUserTool
 id: brc-fastan-bed
-version: "0.1.0"
+version: "0.2.0"
 name: FasTAN .1ano -> BED6 (BRC UDT)
 description: Convert a FasTAN .1ano to a content-annotated BED6 via ONEview (NOT ANOtoBED), stage 3 of 3
 container: quay.io/biocontainers/fastga:1.5.20260729--h118bc1c_0
@@ -874,7 +884,12 @@ shell_command: |
 {indent(awk_ano)}
   BRC_AWK
   set -o pipefail
-  cp '$(inputs.ano.path)' scan.1ano &&
+  # ⚠ THE LINK'S NAME IS LOAD-BEARING, THOUGH THE COPY WAS NOT. ONEview reads a path with no
+  # recognised extension perfectly well, but it stamps the name it was GIVEN into the 1-code
+  # provenance line, so reading the raw dataset path would put a Galaxy object-store path into
+  # every output and change its bytes run to run. A symlink keeps the name -- and the output
+  # byte-identical to the copy it replaces -- for none of the I/O.
+  ln -sf '$(inputs.ano.path)' scan.1ano &&
   ONEview scan.1ano | awk -f ano2bed6.awk \\
     | LC_ALL=C sort -k1,1 -k2,2n > annotated.bed6
 inputs:

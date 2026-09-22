@@ -11,7 +11,7 @@
 # publication gap rather than for an unknowable hash.
 class: GalaxyUserTool
 id: brc-fastan-bed
-version: "0.1.0"
+version: "0.2.0"
 name: FasTAN .1ano -> BED6 (BRC UDT)
 description: Convert a FasTAN .1ano to a content-annotated BED6 via ONEview (NOT ANOtoBED), stage 3 of 3
 container: quay.io/biocontainers/fastga:1.5.20260729--h118bc1c_0
@@ -85,7 +85,12 @@ shell_command: |
   END { flush() }
   BRC_AWK
   set -o pipefail
-  cp '$(inputs.ano.path)' scan.1ano &&
+  # ⚠ THE LINK'S NAME IS LOAD-BEARING, THOUGH THE COPY WAS NOT. ONEview reads a path with no
+  # recognised extension perfectly well, but it stamps the name it was GIVEN into the 1-code
+  # provenance line, so reading the raw dataset path would put a Galaxy object-store path into
+  # every output and change its bytes run to run. A symlink keeps the name -- and the output
+  # byte-identical to the copy it replaces -- for none of the I/O.
+  ln -sf '$(inputs.ano.path)' scan.1ano &&
   ONEview scan.1ano | awk -f ano2bed6.awk \
     | LC_ALL=C sort -k1,1 -k2,2n > annotated.bed6
 inputs:
