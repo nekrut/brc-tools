@@ -375,7 +375,7 @@ UDT_RATIONALE = {
                           "do not have it installed", "tools/dustmasker/interval2bed.awk"),
     "windowmasker_bed3": ("CONVERTED", "ports tools/windowmasker/windowmasker.xml",
                           "tools/windowmasker/interval2bed.awk"),
-    "tantan_bed3":       ("CONVERTED", "ports tools/tantan/tantan.xml", "tools/tantan/lc2bed.awk"),
+    "tantan_bed3":       ("CONVERTED", "ports tools/tantan/tantan.xml", "tools/tantan/tantan.xml"),
     "lc_classify":       ("CONVERTED", "stage 2 of the masker ports",
                           "tools/dustmasker/lc_classify.py"),
     "fastan_gdb":        ("CONVERTED", "ports the FAtoGDB stage of tools/fastan/fastan.xml",
