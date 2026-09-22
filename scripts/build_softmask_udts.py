@@ -270,7 +270,7 @@ help:
 
 
 #: The masker columns, in the one order both the header and masking_table.py must use.
-MASKER_COLUMNS = ("dustmasker", "windowmasker", "tantan", "fastan", "union")
+MASKER_COLUMNS = ("arrived", "dustmasker", "windowmasker", "tantan", "fastan", "union")
 
 #: UDTs that live in udt/ but are deliberately NOT generated, with the reason.
 #: ⚠ Anything here is exempt from the staleness check, so the list should stay short.
@@ -555,7 +555,7 @@ def build() -> dict[str, str]:
 
     out["fasta_uppercase.gxtool.yml"] = HEADER + """class: GalaxyUserTool
 id: brc-fasta-uppercase
-version: "0.3.0"
+version: "0.4.0"
 name: Uppercase a FASTA (BRC UDT)
 description: Optionally strip an existing soft-mask so the workflow's output is its OWN mask
 container: quay.io/biocontainers/python:3.12
@@ -600,18 +600,61 @@ shell_command: |
   # either offline, so run it after editing a comment and not only after editing code.
   strip = $(inputs.strip_existing_mask ? 'True' : 'False')
 
-  lower = total = seqs = 0
-  with op(src) as fin, open('uppercased.fasta', 'w', encoding='utf-8') as out:
+  # ⛔ THE SEQUENCE IS NOW ALWAYS UPPERCASED, AND THE ARRIVING MASK LEAVES AS INTERVALS.
+  # It used to emit the input unchanged when strip_existing_mask was false, so `uppercased.fasta`
+  # was only uppercase half the time and its own workflow output had to carry a disclaimer. That
+  # also made the arriving mask INVISIBLE: it reached the published FASTA by surviving in the
+  # bytes, so `mask_union` was a strict SUBSET of the published lower-case and
+  # verify_softmask_outputs.py had to infer the mode to know which direction it could assert.
+  #
+  # Nothing downstream lost anything, because MEASURED 2026-09-22 nothing downstream reads case
+  # except `bedtools maskfasta`: dustmasker, windowmasker and tantan are case-INSENSITIVE
+  # (identical md5 on an uppercase vs soft-masked copy of one sequence), FAtoGDB packs 2 bits per
+  # base so `.gdb.bps` is byte-identical either way, lc_classify uppercases its own slices, and
+  # samtools faidx reports the same lengths and offsets.
+  #
+  # So the arriving mask becomes the FIFTH ARM of the union instead of a property of the bytes,
+  # and `strip_existing_mask` decides whether that arm is populated or EMPTY -- which is why the
+  # flag still reaches exactly one node and nothing downstream needs a conditional.
+  lower = total = seqs = runs = 0
+  name = None
+  run_start = -1          # start of the lower-case run currently open, in 0-based record coords
+  pos = 0                 # 0-based offset within the current record
+  with op(src) as fin, \
+       open('uppercased.fasta', 'w', encoding='utf-8') as out, \
+       open('arrived_mask.bed3', 'w', encoding='utf-8') as bed:
+
+      def close_run():
+          # ⚠ `strip` gates the WRITING, not the counting. The percentages below are reported in
+          # both modes and must mean the same thing in both, so the scan always runs.
+          global run_start, runs
+          if run_start >= 0:
+              runs += 1
+              if not strip:
+                  bed.write('%s\\t%d\\t%d\\n' % (name, run_start, pos))
+              run_start = -1
+
       for line in fin:
           if line.startswith('>'):
+              close_run()
               seqs += 1
+              pos = 0
+              name = line[1:].split()[0] if line[1:].split() else ''
               out.write(line)          # verbatim -- see above
               continue
           s = line.rstrip('\\n')
           total += len(s)
-          lower += sum(1 for c in s if 'a' <= c <= 'z')
-          out.write(s.upper() if strip else s)
+          for ch in s:
+              if 'a' <= ch <= 'z':
+                  lower += 1
+                  if run_start < 0:
+                      run_start = pos
+              elif run_start >= 0:
+                  close_run()
+              pos += 1
+          out.write(s.upper())
           out.write('\\n')
+      close_run()
 
   if seqs == 0:
       raise SystemExit('no FASTA headers found -- is this a FASTA file?')
@@ -624,20 +667,23 @@ shell_command: |
   # ⛔ THE LOG MUST SAY WHICH MODE RAN. A tool that reports "removed 462,181,305" whether or not
   # it removed anything makes the one number a reader checks meaningless, and this tool's
   # whole purpose is that the two modes produce measurably different downstream results.
+  print(f'arriving soft-mask: {lower:,} residues ({frac:.1%}), {runs:,} interval(s)')
   if strip:
-      print(f'soft-masked residues removed: {lower:,} ({frac:.1%})')
+      print(f'strip_existing_mask is TRUE: DISCARDED. arrived_mask.bed3 is empty, so the '
+            f'published mask is this workflow\\'s own and nothing else.')
       if lower == 0:
-          print('NOTE: input carried no soft-masking; this was a no-op')
+          print('NOTE: input carried no soft-masking, so this was a no-op either way')
       elif frac > 0.10:
           print(f'NOTE: a substantial existing mask ({frac:.1%}) was discarded. That is '
-                f'intended when strip_existing_mask is true -- the workflow re-masks from '
-                f'scratch -- and is data loss anywhere else.')
+                f'intended here -- the workflow re-masks from scratch -- and is data loss '
+                f'anywhere else.')
   else:
-      print(f'soft-masked residues KEPT: {lower:,} ({frac:.1%}) -- strip_existing_mask is '
-            f'false, so the sequence passed through unchanged.')
+      print(f'strip_existing_mask is FALSE: KEPT, as {runs:,} interval(s) in arrived_mask.bed3, '
+            f'which joins the union as a fifth arm.')
       if lower:
-          print('NOTE: the published FASTA will carry this mask AND this workflow\\'s own, '
-                'indistinguishably. The BED tracks report only the latter.')
+          print('NOTE: the published FASTA will carry this mask AND this workflow\\'s own. '
+                'They are distinguishable now: the `arrived` column of the masking table and '
+                'the arrived_mask BED report this one alone.')
   BRC_PY
 inputs:
   - name: input
@@ -666,14 +712,28 @@ outputs:
     format: fasta
     from_work_dir: uppercased.fasta
     label: Uppercased FASTA
+  - name: arrived_mask
+    type: data
+    format: bed
+    from_work_dir: arrived_mask.bed3
+    label: the soft-mask this assembly ARRIVED with, as BED3 (EMPTY when strip_existing_mask)
 help:
   format: markdown
   content: |
-    Rewrites every sequence line in uppercase -- WHEN `strip_existing_mask` is true -- and leaves
-    header lines exactly as they were either way. ⚠ THE DEFAULT IS **false**, which passes the
-    sequence through byte-for-byte, so the workflow masks the assembly as it ARRIVED and matches
-    the classic `softmask.gxwf.yml`. Uppercasing is opt-in because discarding the arriving mask
-    changes alignment measurably; the parameter's own help carries the numbers.
+    Rewrites every sequence line in uppercase -- **always, in both modes** -- and leaves header
+    lines exactly as they were. `strip_existing_mask` no longer decides whether the sequence is
+    uppercased; it decides whether the mask the assembly ARRIVED with is carried forward, as
+    intervals, in the second output.
+
+    | `strip_existing_mask` | `output` | `arrived_mask` |
+    |---|---|---|
+    | false (default) | fully uppercase | the arriving soft-mask, as BED3 |
+    | true | fully uppercase | EMPTY |
+
+    ⚠ THE DEFAULT IS STILL **false**, and still means "keep what arrived" -- the classic
+    `softmask.gxwf.yml` behaviour -- because discarding the arriving mask changes alignment
+    measurably; the parameter's own help carries the numbers. What changed is HOW it is kept: as
+    a fifth arm of the union rather than as lower-case surviving in the sequence bytes.
 
     ⛔ **Why the workflow needs this as a SEPARATE step even though each masker already uppercases
     internally.** The maskers uppercase their own working copy, so the BED tracks are computed on
@@ -943,7 +1003,7 @@ help:
     mt = read_helper("tools/masking_table/masking_table.py")
     out["masking_row.gxtool.yml"] = HEADER + f"""class: GalaxyUserTool
 id: brc-masking-row
-version: "0.2.0"
+version: "0.3.0"
 name: masking table row (BRC UDT)
 description: One strain's percent-masked values, to be mapped over the genomecov collections
 container: quay.io/biocontainers/python:3.12
@@ -961,6 +1021,10 @@ shell_command: |
     --out full.tabular &&
   tail -n +2 full.tabular | cut -f2- > row.tabular
 inputs:
+  - name: arrived
+    type: data
+    format: tabular
+    label: genomecov of the ARRIVING mask (brc-fasta-uppercase's arrived_mask)
   - name: dustmasker
     type: data
     format: tabular
@@ -1015,7 +1079,7 @@ help:
     # exactly the mislabeled-percentages failure that guard exists to prevent. One source now.
     out["masking_header.gxtool.yml"] = HEADER + """class: GalaxyUserTool
 id: brc-masking-header
-version: "0.1.0"
+version: "0.2.0"
 name: masking table header (BRC UDT)
 description: Prepend the Sample/masker header to the collapsed per-strain rows
 container: quay.io/biocontainers/python:3.12
@@ -1056,7 +1120,7 @@ help:
     lc = read_helper("tools/dustmasker/lc_classify.py")
     out["lc_classify.gxtool.yml"] = HEADER + SPLIT_NOTE + f"""class: GalaxyUserTool
 id: brc-lc-classify
-version: "0.2.0"
+version: "0.2.1"
 name: lc_classify -> BED6 (BRC UDT)
 description: Annotate masked intervals with repeat-unit signature and purity, stage 2 of 2
 container: quay.io/biocontainers/python:3.12
