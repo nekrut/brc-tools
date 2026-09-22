@@ -1056,7 +1056,7 @@ help:
     lc = read_helper("tools/dustmasker/lc_classify.py")
     out["lc_classify.gxtool.yml"] = HEADER + SPLIT_NOTE + f"""class: GalaxyUserTool
 id: brc-lc-classify
-version: "0.1.0"
+version: "0.2.0"
 name: lc_classify -> BED6 (BRC UDT)
 description: Annotate masked intervals with repeat-unit signature and purity, stage 2 of 2
 container: quay.io/biocontainers/python:3.12
