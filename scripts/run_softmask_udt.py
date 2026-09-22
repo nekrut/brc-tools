@@ -118,6 +118,18 @@ def main() -> int:
                     help="recompute the mask from sequence with the ARRIVED soft-mask stripped. "
                          "Off by default, matching the workflow and the classic pipeline. The "
                          "chosen value is printed and recorded in the invocation either way.")
+    # ⛔ THE SAME FLAG run_udt_workflow.py HAS, AND THE SAME WARNING, WORD FOR WORD. Without it
+    # this runner could not re-invoke cheaply at all, so repairing ONE failed element of a
+    # 195-element run meant redoing all 195 -- roughly 700 core-hours to fix one genome. Measured
+    # 2026-09-22: one dustmasker job failed (exit 2, not memory) out of 195, and every other step
+    # of that run was sound.
+    ap.add_argument("--use-cached-job", action="store_true",
+                    help="reuse prior jobs with identical tool version, inputs and params "
+                         "instead of re-running them. ⛔ THE CACHE JUDGES A JOB BY ITS STATE, "
+                         "NOT ITS OUTPUTS: a job killed at the scheduler can be `ok` with "
+                         "zero-byte outputs, and this will happily reuse it. DELETE every "
+                         "output of any job being redone first -- all of them, not just the "
+                         "ones wired into collections.")
     ap.add_argument("--register-only", action="store_true")
     ap.add_argument("--work", type=pathlib.Path, default=ROOT / "build/softmask_udt")
     args = ap.parse_args()
@@ -164,7 +176,7 @@ def main() -> int:
                if (_steps.get(str(sid)) or {}).get("type") == "parameter_input"
                and (h.get("label") or "") == "strip_arrived_mask"}
     if _params:
-        inputs.update({sid: args.strip for sid in _params})
+        inputs.update(dict.fromkeys(_params, args.strip))
     elif args.strip:
         sys.exit("--strip-arrived-mask was given, but this workflow has no `strip_arrived_mask` "
                  "parameter_input. Refusing rather than running the other arm silently.")
@@ -173,7 +185,11 @@ def main() -> int:
     # workflow, so there is nothing for it to silence -- and it never fixed anything anyway: it only
     # swaps Galaxy's refusal for a log.debug on the server that no response exposes. A refusal here
     # is real news. See softmask_lib.invoke.
-    inv = invoke(gi, wf_id, inputs, history["id"])
+    inv = invoke(gi, wf_id, inputs, history["id"], use_cached_job=args.use_cached_job)
+    if args.use_cached_job:
+        print("  job cache ENABLED -- steps with an identical prior job will not re-run.")
+        print("  ⛔ this is only correct if you deleted the outputs of every job you want redone;")
+        print("     an undeleted output is a cache hit, even from a job that failed.")
     base = gi.base_url
     print(f"  INVOKED {inv['id']} -> {base}/workflows/invocations/{inv['id']}")
     return await_invocation(gi, inv["id"])
