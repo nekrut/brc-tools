@@ -1048,7 +1048,8 @@ DEFECTS = [
     # is not an asymmetry and correctly did not fire. (anchor_prep itself trips this check for
     # real; that is a finding, not a fixture.)
     ("udt/samtools_faidx.gxtool.yml", "one output pre-created, the other not",
-     "  samtools faidx seq.fa", "  touch seq.fa.fai\n  samtools faidx seq.fa",
+     "  samtools faidx $SRC --fai-idx seq.fa.fai",
+     "  touch seq.fa.fai\n  samtools faidx $SRC --fai-idx seq.fa.fai",
      "OUTPUT-CREATE-ASYMMETRY"),
     ("udt/phase_c2_triage.gxtool.yml", "a regex validator anchored at one end only",
      'expression: "[A-Za-z0-9_.-]+$"', 'expression: "[A-Za-z0-9_.-]+"', "UNANCHORED-VALIDATOR"),
