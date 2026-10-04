@@ -29,7 +29,7 @@ odgi build
                help="Apply generalized topological sort and reassign node IDs in order."/>
         <param argument="--optimize" type="boolean" truevalue="--optimize" falsevalue=""
                checked="false" label="Optimize node IDs after build"/>
-        <param argument="--to-gfa" type="boolean" truevalue="yes" falsevalue="no"
+        <param argument="--to-gfa" type="boolean" truevalue="yes" falsevalue=""
                checked="false" label="Also output GFA"
                help="Also emit a GFA1 export of the graph."/>
     </inputs>
@@ -40,12 +40,37 @@ odgi build
         </data>
     </outputs>
     <tests>
+        <!-- GFA export OFF (the default): one output. With falsevalue="no" the Cheetah
+             string was "no", which is truthy, so this command still appended the export and
+             its redirect while the filter told Galaxy not to create the dataset. -->
         <test expect_num_outputs="1">
             <param name="gfa" value="toy.gfa" ftype="gfa1"/>
             <param name="sort" value="true"/>
+            <param name="to_gfa" value="false"/>
+            <assert_command>
+                <not_has_text text="to-gfa"/>
+            </assert_command>
             <output name="odgi_output">
                 <assert_contents>
                     <has_size min="10"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- GFA export ON: the second dataset appears and the flag reaches the command. -->
+        <test expect_num_outputs="2">
+            <param name="gfa" value="toy.gfa" ftype="gfa1"/>
+            <param name="to_gfa" value="true"/>
+            <assert_command>
+                <has_text text="to-gfa"/>
+            </assert_command>
+            <output name="odgi_output">
+                <assert_contents>
+                    <has_size min="10"/>
+                </assert_contents>
+            </output>
+            <output name="gfa_output">
+                <assert_contents>
+                    <has_text text="S"/>
                 </assert_contents>
             </output>
         </test>
