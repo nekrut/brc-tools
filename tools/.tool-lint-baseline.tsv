@@ -22,14 +22,10 @@ tools/collection_self_pairs/collection_self_pairs.xml	GTR027	1
 tools/collection_self_pairs/collection_self_pairs.xml	GTR038	1
 tools/cyclospora/cyclospora_build_sheet/cyclospora_build_sheet.xml	GTR020.2	1
 tools/cyclospora/cyclospora_build_sheet/cyclospora_build_sheet.xml	GTR027	1
-tools/cyclospora/cyclospora_build_sheet/cyclospora_build_sheet.xml	GTR037	2
 tools/cyclospora/cyclospora_junction_caller/cyclospora_junction_caller.xml	GTR020.2	1
 tools/cyclospora/cyclospora_junction_caller/cyclospora_junction_caller.xml	GTR027	1
-tools/cyclospora/cyclospora_junction_caller/cyclospora_junction_caller.xml	GTR037	4
 tools/cyclospora/cyclospora_part_caller/cyclospora_part_caller.xml	GTR027	1
-tools/cyclospora/cyclospora_part_caller/cyclospora_part_caller.xml	GTR037	6
 tools/cyclospora/cyclospora_pyeuk/cyclospora_pyeuk.xml	GTR027	1
-tools/cyclospora/cyclospora_pyeuk/cyclospora_pyeuk.xml	GTR037	9
 tools/dustmasker/dustmasker.xml	GTR021	1
 tools/dustmasker/dustmasker.xml	GTR027	1
 tools/fasta_concat/fasta_concat.xml	GTR027	1

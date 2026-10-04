@@ -108,12 +108,12 @@ python3 '$__tool_directory__/junction_caller.py'
             </param>
             <when value="bundled"/>
             <when value="history">
-                <param name="junction_ref" argument="--junction-ref" type="data" format="fasta" label="Junction reference FASTA" help="Records must share one constant LEFT flank; the shortest record is taken as the zero-repeat class, i.e. LEFT+RIGHT."/>
+                <param argument="--junction-ref" type="data" format="fasta" label="Junction reference FASTA" help="Records must share one constant LEFT flank; the shortest record is taken as the zero-repeat class, i.e. LEFT+RIGHT."/>
             </when>
         </conditional>
-        <param name="min_reads" argument="--min-reads" type="integer" min="1" value="3" label="Minimum spanning fragments for a call" help="PRE-REGISTERED at 3. Not a relaxed gate: Tn5 cuts inside the AT-rich repeat array, so typical spanning depth is 2 to 15 fragments even at ~900k reads while thousands of reads carry only one flank."/>
-        <param name="min_freq" argument="--min-freq" type="float" min="0.0" max="1.0" value="0.05" label="Minimum fraction of spanning fragments" help="PRE-REGISTERED at 0.05. Mixed infections are real: every array passing both gates is emitted."/>
-        <param name="emit_specimen_column" argument="--emit-specimen-column" type="boolean" truevalue="--emit-specimen-column" falsevalue="" checked="true" label="Prepend a specimen column" help="Keep this ON for Galaxy. A Galaxy dataset is called dataset_N.dat, so the sheet builder cannot recover the specimen id from the file name. Turn it OFF only to reproduce the reference implementation's output byte for byte."/>
+        <param argument="--min-reads" type="integer" min="1" value="3" label="Minimum spanning fragments for a call" help="PRE-REGISTERED at 3. Not a relaxed gate: Tn5 cuts inside the AT-rich repeat array, so typical spanning depth is 2 to 15 fragments even at ~900k reads while thousands of reads carry only one flank."/>
+        <param argument="--min-freq" type="float" min="0.0" max="1.0" value="0.05" label="Minimum fraction of spanning fragments" help="PRE-REGISTERED at 0.05. Mixed infections are real: every array passing both gates is emitted."/>
+        <param argument="--emit-specimen-column" type="boolean" truevalue="--emit-specimen-column" falsevalue="" checked="true" label="Prepend a specimen column" help="Keep this ON for Galaxy. A Galaxy dataset is called dataset_N.dat, so the sheet builder cannot recover the specimen id from the file name. Turn it OFF only to reproduce the reference implementation's output byte for byte."/>
         <param name="emit_diag" type="boolean" truevalue="yes" falsevalue="" checked="false" label="Also write the diagnostics JSON" help="Read counters: reads_scanned, left_anchored, left_anchor_only, right_anchor_only, spanning_reads, spanning_fragments, discordant_fragments, flank_reads. This is how a true negative is told apart from the wrong input file."/>
     </inputs>
     <outputs>
