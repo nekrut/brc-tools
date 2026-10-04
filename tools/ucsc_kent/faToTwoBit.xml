@@ -17,14 +17,9 @@ faToTwoBit
     '$output'
     ]]></command>
     <inputs>
-        <param argument="input" type="data" format="fasta,fasta.gz" label="Input FASTA"
-               help="Nucleotide FASTA, plain or gzipped."/>
-        <param argument="-long" type="boolean" truevalue="-long" falsevalue="" checked="false"
-               label="Use 64-bit offsets"
-               help="Write a long (64-bit offset) 2bit file, required for genomes larger than 4 Gb."/>
-        <param argument="-noMask" name="no_mask" type="boolean" truevalue="-noMask" falsevalue="" checked="false"
-               label="Ignore lowercase masking"
-               help="Do not store soft-masking (lowercase) information."/>
+        <param argument="input" type="data" format="fasta,fasta.gz" label="Input FASTA" help="Nucleotide FASTA, plain or gzipped."/>
+        <param argument="-long" type="boolean" truevalue="-long" falsevalue="" checked="false" label="Use 64-bit offsets" help="Write a long (64-bit offset) 2bit file, required for genomes larger than 4 Gb."/>
+        <param name="no_mask" argument="-noMask" type="boolean" truevalue="-noMask" falsevalue="" checked="false" label="Ignore lowercase masking" help="Do not store soft-masking (lowercase) information."/>
     </inputs>
     <outputs>
         <data name="output" format="twobit" label="${tool.name} on ${on_string}: 2bit"/>

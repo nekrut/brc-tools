@@ -7,7 +7,7 @@
         <xref type="bio.tools">odgi</xref>
     </xrefs>
     <expand macro="requirements"/>
-    <version_command>odgi version 2>&amp;1 | head -1</version_command>
+    <version_command>odgi version 2&gt;&amp;1 | head -1</version_command>
     <command detect_errors="aggressive"><![CDATA[
 #set $in_ext = 'gfa.gz' if str($gfa.ext) == 'gfa1.gz' else 'gfa'
 ln -sf '$gfa' 'input.${in_ext}' &&
@@ -22,16 +22,10 @@ odgi build
     #end if
     ]]></command>
     <inputs>
-        <param argument="--gfa" type="data" format="gfa1,gfa1.gz" label="Input GFA1"
-               help="GFA1 (smoothed/fixed graph from pggb)."/>
-        <param argument="--sort" type="boolean" truevalue="--sort" falsevalue=""
-               checked="false" label="Topological sort"
-               help="Apply generalized topological sort and reassign node IDs in order."/>
-        <param argument="--optimize" type="boolean" truevalue="--optimize" falsevalue=""
-               checked="false" label="Optimize node IDs after build"/>
-        <param argument="--to-gfa" type="boolean" truevalue="yes" falsevalue=""
-               checked="false" label="Also output GFA"
-               help="Also emit a GFA1 export of the graph."/>
+        <param argument="--gfa" type="data" format="gfa1,gfa1.gz" label="Input GFA1" help="GFA1 (smoothed/fixed graph from pggb)."/>
+        <param argument="--sort" type="boolean" truevalue="--sort" falsevalue="" checked="false" label="Topological sort" help="Apply generalized topological sort and reassign node IDs in order."/>
+        <param argument="--optimize" type="boolean" truevalue="--optimize" falsevalue="" checked="false" label="Optimize node IDs after build"/>
+        <param argument="--to-gfa" type="boolean" truevalue="yes" falsevalue="" checked="false" label="Also output GFA" help="Also emit a GFA1 export of the graph."/>
     </inputs>
     <outputs>
         <data name="odgi_output" format="odgi" label="${tool.name} on ${on_string}: odgi .og"/>
