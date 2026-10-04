@@ -60,6 +60,8 @@ $drop_novel
         <!-- 1. One specimen, both caller types. Exercises both header parsers and
              the union of a PART call with a junction call in one row. -->
         <test expect_num_outputs="1">
+            <param name="emit_summary" value="false"/>
+            <param name="drop_novel" value="false"/>
             <param name="calls">
                 <collection type="list">
                     <element name="TEST_parts" value="calls_parts.tsv" ftype="tabular"/>
@@ -67,6 +69,10 @@ $drop_novel
                 </collection>
             </param>
             <output name="sheet" file="expected_sheet.tabular" ftype="tabular" compare="diff"/>
+            <assert_command>
+                <not_has_text text="--summary"/>
+                <not_has_text text="--drop-novel"/>
+            </assert_command>
         </test>
         <!-- 2. The same calls plus a specimen list naming a specimen with no calls.
              TEST_DROPOUT must appear as a row of empty cells: an entirely empty

@@ -58,9 +58,11 @@ odgi build
         </test>
         <!-- GFA export ON: the second dataset appears and the flag reaches the command. -->
         <test expect_num_outputs="2">
+            <param name="sort" value="false"/>
             <param name="gfa" value="toy.gfa" ftype="gfa1"/>
             <param name="to_gfa" value="true"/>
             <assert_command>
+                <not_has_text text="--sort"/>
                 <has_text text="to-gfa"/>
             </assert_command>
             <output name="odgi_output">

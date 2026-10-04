@@ -169,6 +169,7 @@ python3 '$__tool_directory__/junction_caller.py'
             <!-- The marker-aligned BAM is the WRONG input, and it must stay
                  visibly wrong: flank_reads=0 plus the marker_absent flag,
                  never an empty file that reads like a real negative. -->
+            <param name="emit_diag" value="false"/>
             <conditional name="reads">
                 <param name="reads_source" value="bam"/>
                 <param name="bam_input" value="parts_reads.bam" ftype="bam"/>
@@ -183,6 +184,9 @@ python3 '$__tool_directory__/junction_caller.py'
                     <has_line line="WRONGINPUT&#9;NA&#9;NO_CALL&#9;0&#9;0.0&#9;NA&#9;NA&#9;NA&#9;NA&#9;NA&#9;marker_absent&#9;0&#9;0&#9;NA"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--diag"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

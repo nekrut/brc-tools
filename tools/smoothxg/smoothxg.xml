@@ -79,6 +79,8 @@ smoothxg
     </outputs>
     <tests>
         <test expect_num_outputs="1">
+            <param name="change_alignment_mode" value="false"/>
+            <param name="abpoa" value="false"/>
             <param name="gfa_in" value="seqwish.gfa" ftype="gfa1"/>
             <param name="n_haps" value="3"/>
             <param name="block_id_min" value="0.5"/>
@@ -89,6 +91,10 @@ smoothxg
                     <has_line_matching expression="^S\t.+"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--change-alignment-mode"/>
+                <not_has_text text="--abpoa"/>
+            </assert_command>
         </test>
         <test expect_num_outputs="1">
             <param name="gfa_in" value="seqwish.gfa" ftype="gfa1"/>

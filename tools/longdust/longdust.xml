@@ -52,6 +52,7 @@ longdust
     </outputs>
     <tests>
         <test expect_num_outputs="1">
+            <param name="f" value="false"/>
             <param name="input" value="lowcomplex.fasta" ftype="fasta"/>
             <output name="output">
                 <assert_contents>
