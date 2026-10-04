@@ -126,6 +126,7 @@ python '$__tool_directory__/part_haplotype_caller.py'
              other 22 PARTs of the bundled BED resolve to zero coverage rather than
              to an error; exactly one PART clears the 50-read floor. -->
         <test expect_num_outputs="1">
+            <param name="emit_summary" value="false"/>
             <param name="input" value="parts_reads.bam" ftype="bam"/>
             <param name="specimen" value="TEST"/>
             <conditional name="reference">
@@ -142,6 +143,9 @@ python '$__tool_directory__/part_haplotype_caller.py'
                     <not_has_text text="Nu_CDS2_PART_B"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--summary"/>
+            </assert_command>
         </test>
         <!-- History reference set plus the depth summary. Same call, and the summary
              shows why PART_B is missing above: span 30, called = no. -->

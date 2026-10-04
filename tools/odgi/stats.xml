@@ -48,9 +48,29 @@ odgi stats
         <test expect_num_outputs="1">
             <param name="idx" value="toy.og" ftype="odgi"/>
             <param name="summarize" value="true"/>
+            <param name="base_content" value="false"/>
             <output name="stats_tsv">
                 <assert_contents>
                     <has_text text="length"/>
+                </assert_contents>
+            </output>
+        </test>
+        <!-- Summarize OFF. It cannot be tested on its own: the command forces it back on when
+             every flag is off, so another metric has to be requested for the off-state to be
+             reachable at all. That fallback is exercised here too. The command assertion is the
+             load-bearing one: what this pins is which flags were templated, not what odgi
+             then printed. -->
+        <test expect_num_outputs="1">
+            <param name="idx" value="toy.og" ftype="odgi"/>
+            <param name="summarize" value="false"/>
+            <param name="base_content" value="true"/>
+            <assert_command>
+                <has_text text="--base-content"/>
+                <not_has_text text="--summarize"/>
+            </assert_command>
+            <output name="stats_tsv">
+                <assert_contents>
+                    <has_size min="1"/>
                 </assert_contents>
             </output>
         </test>

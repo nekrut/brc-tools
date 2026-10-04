@@ -37,6 +37,7 @@ odgi viz
     </outputs>
     <tests>
         <test expect_num_outputs="1">
+            <param name="color_by_mean_depth" value="false"/>
             <param name="idx" value="toy.og" ftype="odgi"/>
             <param name="width" value="1500"/>
             <param name="height" value="500"/>
@@ -46,6 +47,9 @@ odgi viz
                     <has_image_height height="30" delta="20"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--color-by-mean-depth"/>
+            </assert_command>
         </test>
         <test expect_num_outputs="1">
             <param name="idx" value="toy.og" ftype="odgi"/>

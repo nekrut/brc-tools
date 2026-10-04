@@ -101,6 +101,7 @@ python '$__tool_directory__/build_trackdb.py'
         <!-- Minimal inputs, non-reference: bigMaf + bigChain still emitted and separated;
              no selection composite. -->
         <test expect_num_outputs="1">
+            <param name="is_reference" value="false"/>
             <param name="assembly" value="GCA_900093555.2"/>
             <param name="strain" value="PvP01"/>
             <param name="strain_label" value="GCA_000002415.2=Sal-I GCA_900093555.2=PvP01"/>
@@ -114,6 +115,9 @@ python '$__tool_directory__/build_trackdb.py'
                     <not_has_text text="track brc_pangenome_select"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--is-reference"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

@@ -119,6 +119,7 @@ wfmash
     </outputs>
     <tests>
         <test expect_num_outputs="1">
+            <param name="approx_mapping" value="false"/>
             <param name="target" ftype="fasta" value="ecoli_k12.fa"/>
             <conditional name="query_source">
                 <param name="query_mode" value="two_fasta"/>
