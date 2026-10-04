@@ -63,5 +63,7 @@ FASTAN measures the unit from its own tandem-array model (the ``L`` record) and 
 divergence (``X``); classifying that would fail on three quarters of the intervals and replace a
 measured value with a guess. The UDT port omits it for the same reason, so the two stay in step.
     ]]></help>
-    <citations><citation type="doi">10.1101/2023.04.01.535214</citation></citations>
+    <citations>
+        <citation type="doi">10.1101/2023.04.01.535214</citation>
+    </citations>
 </tool>

@@ -18,8 +18,7 @@ python '$__tool_directory__/chain_to_bigChain.py'
     '$biglink_bed'
     ]]></command>
     <inputs>
-        <param argument="chain" type="data" format="chain" label="Chain alignment"
-               help="UCSC pairwise alignment chain file. Chains with a non-'+' target strand are skipped with a warning."/>
+        <param argument="chain" type="data" format="chain" label="Chain alignment" help="UCSC pairwise alignment chain file. Chains with a non-'+' target strand are skipped with a warning."/>
     </inputs>
     <outputs>
         <data name="bigchain_bed" format="bed" label="${tool.name} on ${on_string}: bigChain.bed (bed6+6)"/>
