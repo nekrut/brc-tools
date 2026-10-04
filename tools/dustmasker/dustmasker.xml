@@ -35,5 +35,7 @@ Maintained replacement for the unmaintained standalone ``sdust``. The input is
 upper-cased first so masking is computed de novo (independent of any pre-existing
 soft-masking).
     ]]></help>
-    <citations><citation type="doi">10.1089/cmb.2006.13.1028</citation></citations>
+    <citations>
+        <citation type="doi">10.1089/cmb.2006.13.1028</citation>
+    </citations>
 </tool>

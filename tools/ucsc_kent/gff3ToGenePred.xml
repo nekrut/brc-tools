@@ -18,23 +18,11 @@ gff3ToGenePred
     '$output'
     ]]></command>
     <inputs>
-        <param argument="input" type="data" format="gff3" label="Input GFF3"
-               help="GFF3 gene annotation."/>
-        <param argument="-useName" name="use_name" type="boolean" truevalue="-useName" falsevalue="" checked="false"
-               label="Use Name attribute as name"
-               help="Use the 'Name' tag as the genePred name, if present."/>
-        <param argument="-warnAndContinue" name="warn_and_continue" type="boolean"
-               truevalue="-warnAndContinue" falsevalue="" checked="false"
-               label="Warn and continue"
-               help="On bad genePreds being created, emit a warning but continue."/>
-        <param argument="-processAllGeneChildren" name="process_all_gene_children" type="boolean"
-               truevalue="-processAllGeneChildren" falsevalue="" checked="false"
-               label="Process all gene children"
-               help="Output a genePred for all children of a gene regardless of feature type."/>
-        <param argument="-allowMinimalGenes" name="allow_minimal_genes" type="boolean"
-               truevalue="-allowMinimalGenes" falsevalue="" checked="false"
-               label="Allow minimal genes"
-               help="Convert genes whose exons are direct children, and stand-alone genes with no transcript/exon children."/>
+        <param argument="input" type="data" format="gff3" label="Input GFF3" help="GFF3 gene annotation."/>
+        <param name="use_name" argument="-useName" type="boolean" truevalue="-useName" falsevalue="" checked="false" label="Use Name attribute as name" help="Use the 'Name' tag as the genePred name, if present."/>
+        <param name="warn_and_continue" argument="-warnAndContinue" type="boolean" truevalue="-warnAndContinue" falsevalue="" checked="false" label="Warn and continue" help="On bad genePreds being created, emit a warning but continue."/>
+        <param name="process_all_gene_children" argument="-processAllGeneChildren" type="boolean" truevalue="-processAllGeneChildren" falsevalue="" checked="false" label="Process all gene children" help="Output a genePred for all children of a gene regardless of feature type."/>
+        <param name="allow_minimal_genes" argument="-allowMinimalGenes" type="boolean" truevalue="-allowMinimalGenes" falsevalue="" checked="false" label="Allow minimal genes" help="Convert genes whose exons are direct children, and stand-alone genes with no transcript/exon children."/>
     </inputs>
     <outputs>
         <data name="output" format="tabular" label="${tool.name} on ${on_string}: genePred"/>

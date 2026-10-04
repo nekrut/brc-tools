@@ -5,7 +5,7 @@
     </macros>
     <expand macro="requirements"/>
     <expand macro="stdio"/>
-    <version_command>pggb --version 2>&amp;1 | head -1</version_command>
+    <version_command>pggb --version 2&gt;&amp;1 | head -1</version_command>
     <command detect_errors="aggressive"><![CDATA[
 mkdir -p pggb_out pggb_tmp &&
 #set $delim_map = {'hash': '#', 'pipe': '|', 'underscore': '_', 'dot': '.'}
@@ -102,80 +102,42 @@ if [ -n "\$multiqc_html" ]; then cp "\$multiqc_html" '$output_multiqc' ; fi ;
 echo "DONE"
     ]]></command>
     <inputs>
-        <param argument="--input-fasta" type="data" format="fasta,fasta.gz"
-               label="Input multi-FASTA (PanSN-renamed)"
-               help="A single FASTA (typically bgzipped) of all haplotypes, with PanSN-spec headers (SAMPLE#HAP#CONTIG). Concatenate per-strain assemblies first via fasta-merge."/>
-        <param argument="--n-haplotypes" type="integer" min="2" value="8"
-               label="Number of haplotypes (-n)"
-               help="Total haplotypes in the input. For the 8-strain Pv panel: 8."/>
-        <param argument="--segment-length" type="integer" min="100" value="5000"
-               label="wfmash segment length (-s)"
-               help="Minimum mapping seed length. 5000 for ~25 Mb apicomplexan-scale genomes."/>
-        <param argument="--map-pct-id" type="float" min="50" max="100" value="90"
-               label="Mapping identity % (-p)"
-               help="90 intra-species, 70-80 inter-species. Use 90 for the Pv panel."/>
-        <param argument="--min-match-len" type="integer" min="1" value="23"
-               label="seqwish min match length (-k)"
-               help="23 is the pggb default. Lower = finer graph; higher = more local collapsing."/>
-        <param argument="--n-mappings" type="integer" min="1" value="1"
-               label="Mappings per segment (-c)"
-               help="Number of mappings retained per segment in wfmash. Defaults to 1; raise for highly diverse panels."/>
-        <param argument="--mash-kmer" type="integer" min="5" max="31" value="19"
-               label="MashMap k-mer (-K)"/>
-        <param argument="--exclude-delim" type="select"
-               label="PanSN exclude-delimiter (-Y)"
-               help="Skip mappings where query and target share a prefix before this delimiter. Must match the delimiter used in PanSN-renamed headers.">
+        <param argument="--input-fasta" type="data" format="fasta,fasta.gz" label="Input multi-FASTA (PanSN-renamed)" help="A single FASTA (typically bgzipped) of all haplotypes, with PanSN-spec headers (SAMPLE#HAP#CONTIG). Concatenate per-strain assemblies first via fasta-merge."/>
+        <param argument="--n-haplotypes" type="integer" min="2" value="8" label="Number of haplotypes (-n)" help="Total haplotypes in the input. For the 8-strain Pv panel: 8."/>
+        <param argument="--segment-length" type="integer" min="100" value="5000" label="wfmash segment length (-s)" help="Minimum mapping seed length. 5000 for ~25 Mb apicomplexan-scale genomes."/>
+        <param argument="--map-pct-id" type="float" min="50" max="100" value="90" label="Mapping identity % (-p)" help="90 intra-species, 70-80 inter-species. Use 90 for the Pv panel."/>
+        <param argument="--min-match-len" type="integer" min="1" value="23" label="seqwish min match length (-k)" help="23 is the pggb default. Lower = finer graph; higher = more local collapsing."/>
+        <param argument="--n-mappings" type="integer" min="1" value="1" label="Mappings per segment (-c)" help="Number of mappings retained per segment in wfmash. Defaults to 1; raise for highly diverse panels."/>
+        <param argument="--mash-kmer" type="integer" min="5" max="31" value="19" label="MashMap k-mer (-K)"/>
+        <param argument="--exclude-delim" type="select" label="PanSN exclude-delimiter (-Y)" help="Skip mappings where query and target share a prefix before this delimiter. Must match the delimiter used in PanSN-renamed headers.">
             <option value="hash" selected="true">#  (PanSN default)</option>
             <option value="pipe">|  (pipe)</option>
             <option value="underscore">_  (underscore)</option>
             <option value="dot">.  (dot)</option>
         </param>
-        <param argument="--block-length" type="text" value=""
-               label="Block length filter (-l, blank = 5x segment-length)"
-               help="Minimum mapping block length filter.">
+        <param argument="--block-length" type="text" value="" label="Block length filter (-l, blank = 5x segment-length)" help="Minimum mapping block length filter.">
             <validator type="regex" message="Integer or blank">[0-9]*</validator>
         </param>
-        <param argument="--no-splits" type="boolean" truevalue="--no-splits" falsevalue=""
-               checked="false" label="Disable mapping splits (-N)"/>
-        <param argument="--poa-length-target" type="text" value="700,1100"
-               label="POA target lengths (-G)"
-               help="Comma-separated POA target lengths; smoothxg iterates once per length. pggb 0.7 default: 700,1100.">
+        <param argument="--no-splits" type="boolean" truevalue="--no-splits" falsevalue="" checked="false" label="Disable mapping splits (-N)"/>
+        <param argument="--poa-length-target" type="text" value="700,1100" label="POA target lengths (-G)" help="Comma-separated POA target lengths; smoothxg iterates once per length. pggb 0.7 default: 700,1100.">
             <validator type="regex" message="Comma-separated integers">[0-9]+(,[0-9]+)*</validator>
         </param>
-        <param argument="--poa-params" type="text" value="1,4,6,2,26,1"
-               label="POA score parameters (-P)"
-               help="match,mismatch,gap1,ext1,gap2,ext2 OR a preset (asm5,asm10,asm15,asm20). Default is asm20 = 1,4,6,2,26,1."/>
-        <param argument="--poa-padding" type="text" value=""
-               label="POA padding ratio (-O, blank = pggb default 0.001)"
-               help="Flanking sequence length as fraction of average sequence length per block. v2 native build used 0.03.">
+        <param argument="--poa-params" type="text" value="1,4,6,2,26,1" label="POA score parameters (-P)" help="match,mismatch,gap1,ext1,gap2,ext2 OR a preset (asm5,asm10,asm15,asm20). Default is asm20 = 1,4,6,2,26,1."/>
+        <param argument="--poa-padding" type="text" value="" label="POA padding ratio (-O, blank = pggb default 0.001)" help="Flanking sequence length as fraction of average sequence length per block. v2 native build used 0.03.">
             <validator type="regex" message="Float or blank">([0-9]*\.?[0-9]+)?</validator>
         </param>
-        <param argument="--run-abpoa" type="boolean" truevalue="--run-abpoa" falsevalue=""
-               checked="false" label="Use abPOA (-b)" help="Default SPOA."/>
-        <param argument="--global-poa" type="boolean" truevalue="--global-poa" falsevalue=""
-               checked="false" label="Run POA in global mode (-z)"
-               help="Default is local mode."/>
-        <param argument="--write-maf" type="boolean" truevalue="--write-maf" falsevalue=""
-               checked="false" label="Write MAF output (-M)"
-               help="Multi-Alignment Format representing merged POA blocks."/>
-        <param argument="--multiqc" type="boolean" truevalue="--multiqc" falsevalue=""
-               checked="false" label="Generate MultiQC report (-m)"
-               help="Automatically runs odgi stats and produces a MultiQC report."/>
-        <param argument="--skip-normalization" type="boolean"
-               truevalue="--skip-normalization" falsevalue="" checked="false"
-               label="Skip final graph normalization (-X)"/>
-        <param argument="--skip-viz" type="boolean" truevalue="--skip-viz" falsevalue=""
-               checked="false" label="Skip 1D/2D viz (-v)"
-               help="Suppresses layout PNG and viz outputs. Speeds up small test runs."/>
-        <param argument="--stats" type="boolean" truevalue="--stats" falsevalue=""
-               checked="false" label="Emit odgi stats (-S)"/>
-        <param argument="--vcf-spec" type="text" value=""
-               label="VCF spec (-V, blank = off)"
-               help="Reference path prefix(es) for vg deconstruct, e.g. 'GCA_900093555.2' for the Pv PvP01 reference. Multiple comma-separated. Set blank to skip."/>
+        <param argument="--run-abpoa" type="boolean" truevalue="--run-abpoa" falsevalue="" checked="false" label="Use abPOA (-b)" help="Default SPOA."/>
+        <param argument="--global-poa" type="boolean" truevalue="--global-poa" falsevalue="" checked="false" label="Run POA in global mode (-z)" help="Default is local mode."/>
+        <param argument="--write-maf" type="boolean" truevalue="--write-maf" falsevalue="" checked="false" label="Write MAF output (-M)" help="Multi-Alignment Format representing merged POA blocks."/>
+        <param argument="--multiqc" type="boolean" truevalue="--multiqc" falsevalue="" checked="false" label="Generate MultiQC report (-m)" help="Automatically runs odgi stats and produces a MultiQC report."/>
+        <param argument="--skip-normalization" type="boolean" truevalue="--skip-normalization" falsevalue="" checked="false" label="Skip final graph normalization (-X)"/>
+        <param argument="--skip-viz" type="boolean" truevalue="--skip-viz" falsevalue="" checked="false" label="Skip 1D/2D viz (-v)" help="Suppresses layout PNG and viz outputs. Speeds up small test runs."/>
+        <param argument="--stats" type="boolean" truevalue="--stats" falsevalue="" checked="false" label="Emit odgi stats (-S)"/>
+        <param argument="--vcf-spec" type="text" value="" label="VCF spec (-V, blank = off)" help="Reference path prefix(es) for vg deconstruct, e.g. 'GCA_900093555.2' for the Pv PvP01 reference. Multiple comma-separated. Set blank to skip."/>
     </inputs>
     <outputs>
         <data name="output_gfa" format="gfa1.gz" label="${tool.name} on ${on_string}: smoothed GFA (gz)"/>
-        <data name="output_og"  format="odgi" label="${tool.name} on ${on_string}: odgi .og"/>
+        <data name="output_og" format="odgi" label="${tool.name} on ${on_string}: odgi .og"/>
         <data name="output_lay" format="binary" label="${tool.name} on ${on_string}: layout (.og.lay)">
             <filter>not skip_viz</filter>
         </data>
