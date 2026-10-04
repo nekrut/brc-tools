@@ -110,12 +110,21 @@ def check_tool(path: Path) -> list[tuple[str, str, str]]:
         ptype = param.get("type", "")
 
         if ptype == "boolean":
-            falsevalue = param.get("falsevalue")
+            # ⛔ AN ABSENT falsevalue IS NOT AN EMPTY ONE. Galaxy defaults the pair to the
+            # strings 'true'/'false' (galaxy.tool_util.parser.util.boolean_true_and_false_values,
+            # checked against profiles 21.09 / 24.0 / 26.1), so a param declaring neither is the
+            # WORST case: `#if $flag` is always true and there is no wrong-looking attribute to
+            # notice. Reading `falsevalue` alone missed six live instances in another repo.
+            declared = param.get("falsevalue")
+            falsevalue = "false" if declared is None else declared
             if name in bare and falsevalue:
-                out.append(
-                    ("BOOL-TRUTHY", name, f"`#if ${name}` is ALWAYS true: falsevalue={falsevalue!r} "
-                                    f"is a non-empty string, not a Python false")
+                why = (
+                    f"falsevalue={declared!r} is a non-empty string, not a Python false"
+                    if declared is not None
+                    else "it declares no truevalue/falsevalue, so Galaxy defaults them to the "
+                         "strings 'true'/'false'"
                 )
+                out.append(("BOOL-TRUTHY", name, f"`#if ${name}` is ALWAYS true: {why}"))
                 if name in filters:
                     out.append(
                         ("BOOL-FILTER", name, f"`{name}` also gates an <output> <filter>; the command "
@@ -184,6 +193,12 @@ def _self_test() -> int:
             --go
             #end if]]></command><inputs>
             <param name="flag" type="boolean" truevalue="yes" falsevalue="no"/>
+            </inputs><outputs/></tool>"""),
+        ("BOOL-TRUTHY", """<tool id="t" name="T" version="1"><command><![CDATA[
+            p #if $flag
+            --go
+            #end if]]></command><inputs>
+            <param argument="--flag" type="boolean" checked="false"/>
             </inputs><outputs/></tool>"""),
         ("NUM-ZERO", """<tool id="t" name="T" version="1"><command><![CDATA[
             p #if $n
