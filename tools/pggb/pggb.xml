@@ -195,6 +195,8 @@ echo "DONE"
     </outputs>
     <tests>
         <test expect_num_outputs="3">
+            <param name="stats" value="false"/>
+            <param name="multiqc" value="false"/>
             <param name="input_fasta" value="toy.fa.gz" ftype="fasta.gz"/>
             <param name="n_haplotypes" value="3"/>
             <param name="segment_length" value="500"/>
@@ -213,8 +215,13 @@ echo "DONE"
                     <has_text text="pggb"/>
                 </assert_contents>
             </output>
+            <assert_command>
+                <not_has_text text="--stats"/>
+                <not_has_text text="--multiqc"/>
+            </assert_command>
         </test>
         <test expect_num_outputs="7">
+            <param name="skip_viz" value="false"/>
             <param name="input_fasta" value="toy.fa.gz" ftype="fasta.gz"/>
             <param name="n_haplotypes" value="3"/>
             <param name="segment_length" value="500"/>
@@ -234,6 +241,7 @@ echo "DONE"
                 </assert_contents>
             </output>
             <assert_command>
+                <not_has_text text="--skip-viz"/>
                 <has_text text="--multiqc"/>
                 <has_text text="--stats"/>
             </assert_command>
