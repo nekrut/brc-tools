@@ -3,18 +3,19 @@
 
     check_tool_lint.py [PATH ...] [--baseline FILE] [--write-baseline]
 
-⚠ NEEDS `pip install galaxy-tool-refactor-registry==0.3.7` -- unlike check_tool_defects.py,
+⚠ NEEDS `pip install galaxy-tool-refactor-registry==0.3.8` -- unlike check_tool_defects.py,
 which is stdlib only. It must be the REGISTRY distribution, not galaxy-tool-lint: the lint package
 does not depend on the registry, so installing it alone leaves this import failing. The version is
 PINNED, because a new rule in a later release would otherwise turn CI red on a day nobody touched
-this repo, and a lint gate that goes red on its own gets switched off.
+this repo, and a lint gate that goes red on its own gets switched off. Raising the pin is a
+maintainer step that comes with re-baselining, since a release can move counts in either
+direction.
 
-⛔ TWO RULES ARE EXCLUDED, and not as a matter of taste. GTR025 (<requirements>) and GTR038
-(<citations>) do not expand macros, so every wrapper that declares those through
-`<expand macro="requirements"/>` is reported as declaring nothing. Measured here 2026-10-04: 42
-GTR025 findings of which 40 are that false positive, and 50 GTR038 of which 44 are. GTR034 reads
-the macro-expanded tree, so the capability exists -- these two just don't use it. Re-include them
-once that is fixed upstream; until then they would bury the 100-odd real findings in noise.
+NOTHING IS EXCLUDED ANY MORE. GTR025 (<requirements>) and GTR038 (<citations>) used to be, because
+they read the unexpanded tree: every wrapper declaring those through `<expand macro=.../>` was
+reported as declaring nothing -- 40 of 42 GTR025 findings here and 44 of 50 GTR038 were that false
+positive, which would have buried the real ones. Fixed upstream in 0.3.8, so both are back and the
+8 genuine findings between them are visible.
 
 The baseline is keyed on (file, code) and a COUNT, not on a line number or a message: line numbers
 move whenever anything above them is edited, and messages get reworded between releases. Either
@@ -29,8 +30,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-# Macro-blind in 0.3.7; see the module docstring before re-including either.
-EXCLUDED = frozenset({"GTR025", "GTR038"})
+# Empty since 0.3.8 fixed the macro blindness. Kept as the seam: a rule that turns out to be
+# systematically wrong on this repo gets parked here WITH ITS MEASUREMENT, never silently dropped.
+EXCLUDED: frozenset[str] = frozenset()
 BASELINE_DEFAULT = Path("tools/.tool-lint-baseline.tsv")
 
 
@@ -105,14 +107,14 @@ def main() -> int:
     try:
         counts, samples = collect(args.paths)
     except ImportError:
-        print("check_tool_lint: needs `pip install galaxy-tool-refactor-registry==0.3.7`",
+        print("check_tool_lint: needs `pip install galaxy-tool-refactor-registry==0.3.8`",
               file=sys.stderr)
         return 2
 
     if args.write_baseline:
         header = (
-            "# galaxy-tool-refactor 0.3.7 strict findings per (file, code), minus the macro-blind\n"
-            "# GTR025/GTR038. CI fails when a count RISES or a new pair appears.\n"
+            "# galaxy-tool-refactor 0.3.8 strict findings per (file, code).\n"
+            "# CI fails when a count RISES or a new pair appears.\n"
             "# Lower a number as you fix; never raise one.\n"
         )
         body = "".join(f"{f}\t{c}\t{n}\n" for (f, c), n in sorted(counts.items()))
