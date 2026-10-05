@@ -60,7 +60,7 @@ jobs:
       # ⚠ PINNED. An unpinned install turns this job red on a day nobody touched the repo, the
       # first time a release adds a rule -- and a gate that goes red on its own gets switched off.
       # Raising the pin is a maintainer step that comes with re-baselining.
-      - run: pip install --quiet galaxy-tool-refactor-registry==0.3.9
+      - run: pip install --quiet galaxy-tool-refactor-registry==0.3.10
 
       - name: No new galaxy-tool-refactor findings
         run: python3 scripts/check_tool_lint.py tools
