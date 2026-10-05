@@ -3,7 +3,7 @@
 
     check_tool_lint.py [PATH ...] [--baseline FILE] [--write-baseline]
 
-⚠ NEEDS `pip install galaxy-tool-refactor-registry==0.3.9` -- unlike check_tool_defects.py,
+⚠ NEEDS `pip install galaxy-tool-refactor-registry==0.3.10` -- unlike check_tool_defects.py,
 which is stdlib only. It must be the REGISTRY distribution, not galaxy-tool-lint: the lint package
 does not depend on the registry, so installing it alone leaves this import failing. The version is
 PINNED, because a new rule in a later release would otherwise turn CI red on a day nobody touched
@@ -107,13 +107,13 @@ def main() -> int:
     try:
         counts, samples = collect(args.paths)
     except ImportError:
-        print("check_tool_lint: needs `pip install galaxy-tool-refactor-registry==0.3.9`",
+        print("check_tool_lint: needs `pip install galaxy-tool-refactor-registry==0.3.10`",
               file=sys.stderr)
         return 2
 
     if args.write_baseline:
         header = (
-            "# galaxy-tool-refactor 0.3.9 strict findings per (file, code).\n"
+            "# galaxy-tool-refactor 0.3.10 strict findings per (file, code).\n"
             "# CI fails when a count RISES or a new pair appears.\n"
             "# Lower a number as you fix; never raise one.\n"
         )
