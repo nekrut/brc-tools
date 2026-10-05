@@ -1,5 +1,9 @@
-<tool id="fastan" name="fastan" version="0.8+galaxy2" profile="23.0">
+<tool id="fastan" name="fastan" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.0">
     <description>FASTAN tandem-repeat arrays as content-annotated BED6</description>
+    <macros>
+        <token name="@TOOL_VERSION@">0.8</token>
+        <token name="@VERSION_SUFFIX@">2</token>
+    </macros>
     <!--
       Dependencies come from bioconda. Both of the blockers this wrapper was written
       around have since been resolved upstream:
@@ -18,7 +22,7 @@
       pinning rather than documenting. bioconda-recipes#68612 added 1.5.20260729.
     -->
     <requirements>
-        <requirement type="package" version="0.8">fastan</requirement>
+        <requirement type="package" version="@TOOL_VERSION@">fastan</requirement>
         <requirement type="package" version="1.5.20260729">fastga</requirement>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
