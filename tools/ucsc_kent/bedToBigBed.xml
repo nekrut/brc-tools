@@ -5,6 +5,12 @@
     </macros>
     <requirements>
         <requirement type="package" version="@BEDTOBIGBED_VERSION@">ucsc-bedtobigbed</requirement>
+        <!-- ⛔ READ-BACK VERIFIER. A bigBed writes its R-tree index and total-summary
+             block LAST, and the header at the front points at them by offset. Truncate the
+             file and the header still reads, the datatype still sniffs, the job still
+             reports ok, and every consumer fails later on an index that is not there.
+             bigBedInfo resolves those offsets, so it either loads or it does not. -->
+        <requirement type="package" version="@BIGBEDINFO_VERSION@">ucsc-bigbedinfo</requirement>
     </requirements>
     <version_command><![CDATA[bedToBigBed 2>&1 | head -1]]></version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -22,6 +28,8 @@ bedToBigBed
     'input.bed'
     'chrom.sizes'
     '$output'
+## Resolve the index the header points at. A truncated bigBed fails here, not downstream.
+&& bigBedInfo '$output' > /dev/null
     ]]></command>
     <inputs>
         <param argument="bed" type="data" format="bed,tabular" label="Sorted BED" help="BED file sorted by chrom then chromStart (sort -k1,1 -k2,2n). May carry extra typed columns."/>

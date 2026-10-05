@@ -5,6 +5,14 @@
     </macros>
     <requirements>
         <requirement type="package" version="@FATOTWOBIT_VERSION@">ucsc-fatotwobit</requirement>
+        <!-- ⛔ READ-BACK VERIFIER, NOT A CONVENIENCE. A 2bit keeps its sequence index at
+             the FRONT and the packed sequence after it, so a write that stopped early
+             leaves a file whose header still parses and whose datatype still sniffs, and
+             the job still reports ok. Only something that follows the index into the
+             sequence data can tell, which is what twoBitInfo does. Galaxy offers no
+             declarative equivalent: <assert_contents> is declared only inside
+             complexType TestOutput, so it never runs on a production job. -->
+        <requirement type="package" version="@TWOBITINFO_VERSION@">ucsc-twobitinfo</requirement>
     </requirements>
     <version_command><![CDATA[faToTwoBit 2>&1 | head -1]]></version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -15,6 +23,8 @@ faToTwoBit
     $no_mask
     'input.${in_ext}'
     '$output'
+## Follow the index into every sequence. Truncation shows up here and nowhere else.
+&& twoBitInfo '$output' stdout > /dev/null
     ]]></command>
     <inputs>
         <param argument="input" type="data" format="fasta,fasta.gz" label="Input FASTA" help="Nucleotide FASTA, plain or gzipped."/>
