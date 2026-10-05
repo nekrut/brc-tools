@@ -1,4 +1,4 @@
-# galaxy-tool-refactor 0.3.8 strict findings per (file, code).
+# galaxy-tool-refactor 0.3.9 strict findings per (file, code).
 # CI fails when a count RISES or a new pair appears.
 # Lower a number as you fix; never raise one.
 tools/anchor_prep/anchor_prep.xml	GTR027	1
@@ -20,9 +20,7 @@ tools/collection_relabel_map/collection_relabel_map.xml	GTR038	1
 tools/collection_self_pairs/collection_self_pairs.xml	GTR021	1
 tools/collection_self_pairs/collection_self_pairs.xml	GTR027	1
 tools/collection_self_pairs/collection_self_pairs.xml	GTR038	1
-tools/cyclospora/cyclospora_build_sheet/cyclospora_build_sheet.xml	GTR020.2	1
 tools/cyclospora/cyclospora_build_sheet/cyclospora_build_sheet.xml	GTR027	1
-tools/cyclospora/cyclospora_junction_caller/cyclospora_junction_caller.xml	GTR020.2	1
 tools/cyclospora/cyclospora_junction_caller/cyclospora_junction_caller.xml	GTR027	1
 tools/cyclospora/cyclospora_part_caller/cyclospora_part_caller.xml	GTR027	1
 tools/cyclospora/cyclospora_pyeuk/cyclospora_pyeuk.xml	GTR027	1
@@ -35,22 +33,16 @@ tools/fasta_uppercase/fasta_uppercase.xml	GTR038	1
 tools/fastan/fastan.xml	GTR021	1
 tools/fastan/fastan.xml	GTR027	1
 tools/gene_bed/gene_bed.xml	GTR027	1
-tools/gfaffix/gfaffix.xml	GTR020.2	1
 tools/gfaffix/gfaffix.xml	GTR027	1
 tools/group_cds_by_og/group_cds_by_og.xml	GTR027	1
 tools/iqtree3/iqtree3.xml	GTR027	1
-tools/longdust/longdust.xml	GTR020.2	2
 tools/longdust/longdust.xml	GTR027	1
 tools/maf_to_bigmaf_bed/maf_to_bigmaf_bed.xml	GTR027	1
 tools/masking_table/masking_table.xml	GTR027	1
 tools/masking_table/masking_table.xml	GTR038	1
 tools/multiz_fold/multiz_fold.xml	GTR027	1
-tools/odgi/build.xml	GTR020.2	2
-tools/odgi/stats.xml	GTR020.2	6
-tools/odgi/viz.xml	GTR020.2	2
-tools/pansn_rename/pansn_rename.xml	GTR020.2	1
 tools/pansn_rename/pansn_rename.xml	GTR027	1
-tools/pggb/pggb.xml	GTR020.2	10
+tools/pggb/pggb.xml	GTR020.2	2
 tools/pggb/pggb.xml	GTR027	1
 tools/phase_c2_triage/phase_c2_triage.xml	GTR027	1
 tools/phase_c4_merge/phase_c4_merge.xml	GTR027	1
@@ -61,7 +53,7 @@ tools/process_maf/process_maf.xml	GTR027	1
 tools/sdust/sdust.xml	GTR027	1
 tools/seqwish/seqwish.xml	GTR020.2	2
 tools/seqwish/seqwish.xml	GTR027	1
-tools/smoothxg/smoothxg.xml	GTR020.2	5
+tools/smoothxg/smoothxg.xml	GTR020.2	2
 tools/smoothxg/smoothxg.xml	GTR027	1
 tools/sourmash_compare/sourmash_compare.xml	GTR027	1
 tools/sourmash_compare/sourmash_compare.xml	GTR102	1
@@ -70,18 +62,12 @@ tools/tantan/tantan.xml	GTR021	1
 tools/tantan/tantan.xml	GTR027	1
 tools/toga2/toga2.xml	GTR021	1
 tools/toga2/toga2.xml	GTR027	1
-tools/ucsc_kent/bedToBigBed.xml	GTR020.2	1
 tools/ucsc_kent/bedToBigBed.xml	GTR027	1
-tools/ucsc_kent/faToTwoBit.xml	GTR020.2	2
 tools/ucsc_kent/faToTwoBit.xml	GTR027	1
-tools/ucsc_kent/genePredToBed.xml	GTR020.2	1
 tools/ucsc_kent/genePredToBed.xml	GTR027	1
-tools/ucsc_kent/gff3ToGenePred.xml	GTR020.2	4
 tools/ucsc_kent/gff3ToGenePred.xml	GTR027	1
-tools/ucsc_kent/hubCheck.xml	GTR020.2	1
 tools/ucsc_kent/hubCheck.xml	GTR027	1
-tools/vg/deconstruct.xml	GTR020.2	2
-tools/wfmash/wfmash.xml	GTR020.2	9
+tools/wfmash/wfmash.xml	GTR020.2	3
 tools/wfmash/wfmash.xml	GTR027	1
 tools/wfmash/wfmash.xml	GTR102	1
 tools/windowmasker/windowmasker.xml	GTR021	1
