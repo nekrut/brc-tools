@@ -77,26 +77,35 @@ viz_png=\$(find pggb_out -maxdepth 1 \( -name '*viz_multiqc.png' -o -name '*.viz
 vcf_file=\$(find pggb_out -maxdepth 1 -name '*.vcf' | head -1) ;
 multiqc_html=\$(find pggb_out -maxdepth 1 -name 'multiqc_report.html' | head -1) ;
 
-cp pggb.log '$output_log' ;
+## ⛔ EVERY WRITE BELOW IS CHECKED. These statements end in `;`, which DISCARDS the exit
+## status: a gzip or cp that stops on a full disk left a truncated output and the job still
+## reported ok, because the next statement ran regardless. That is the same failure that cost
+## three panel pairs 107 GB -- a truncated output is still megabytes, still sniffs as its
+## datatype, and surfaces only when something downstream chokes on it. Galaxy has no
+## declarative way to assert this: <assert_contents> lives inside <tests> and never runs on a
+## production job.
+cp pggb.log '$output_log' || exit 1 ;
 
-if [ -n "\$gfa_file" ]; then gzip -c "\$gfa_file" > '$output_gfa' ;
+## ▶ AND THE GZIP IS TESTED, NOT JUST ITS EXIT CODE. CRC32 and the uncompressed length sit in
+## the trailer, so `gzip -t` proves the whole stream arrived.
+if [ -n "\$gfa_file" ]; then gzip -c "\$gfa_file" > '$output_gfa' || exit 1 ; gzip -t '$output_gfa' || exit 1 ;
 else echo "ERROR: no final GFA in pggb_out/ (pggb exit=\$pggb_exit)" >&2; exit 1; fi ;
 
-if [ -n "\$og_file" ]; then cp "\$og_file" '$output_og' ;
+if [ -n "\$og_file" ]; then cp "\$og_file" '$output_og' || exit 1 ;
 else echo "ERROR: no final .og in pggb_out/ (pggb exit=\$pggb_exit)" >&2; exit 1; fi ;
 
 #if not $skip_viz
-if [ -n "\$lay_file" ]; then cp "\$lay_file" '$output_lay' ; fi ;
-if [ -n "\$draw_png" ]; then cp "\$draw_png" '$output_layout_png' ; fi ;
-if [ -n "\$viz_png" ]; then cp "\$viz_png" '$output_viz_png' ; fi ;
+if [ -n "\$lay_file" ]; then cp "\$lay_file" '$output_lay' || exit 1 ; fi ;
+if [ -n "\$draw_png" ]; then cp "\$draw_png" '$output_layout_png' || exit 1 ; fi ;
+if [ -n "\$viz_png" ]; then cp "\$viz_png" '$output_viz_png' || exit 1 ; fi ;
 #end if
 
 #if str($vcf_spec).strip()
-if [ -n "\$vcf_file" ]; then cp "\$vcf_file" '$output_vcf' ; fi ;
+if [ -n "\$vcf_file" ]; then cp "\$vcf_file" '$output_vcf' || exit 1 ; fi ;
 #end if
 
 #if $multiqc
-if [ -n "\$multiqc_html" ]; then cp "\$multiqc_html" '$output_multiqc' ; fi ;
+if [ -n "\$multiqc_html" ]; then cp "\$multiqc_html" '$output_multiqc' || exit 1 ; fi ;
 #end if
 
 echo "DONE"
