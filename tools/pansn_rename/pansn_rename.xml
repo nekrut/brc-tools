@@ -28,6 +28,12 @@ python '$__tool_directory__/pansn_rename.py'
     #else
         --output '$output'
     #end if
+## ⛔ VERIFY THE GZIP TRAILER -- see fasta_concat. CRC32 and the uncompressed length are in the
+## last 8 bytes, so this catches a write that stopped early, which nothing else here would:
+## a truncated .gz still sniffs as fasta.gz and the job still reports ok.
+#if str($gzip_output) == "--gzip-output"
+    && gzip -t '$output_gz'
+#end if
     ]]></command>
     <inputs>
         <param argument="--input" type="data" format="fasta,fasta.gz" label="Input FASTA" help="One assembly, contig-per-record. Plain FASTA or gzipped."/>

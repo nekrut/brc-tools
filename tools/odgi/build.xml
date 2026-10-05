@@ -20,6 +20,12 @@ odgi build
     #if $to_gfa
         --to-gfa > '$gfa_output'
     #end if
+## ⛔ READ THE .og BACK. A succinct index truncated mid-write is still a plausible-looking
+## binary, still sniffs as the odgi datatype, and the job still reports ok -- it fails later,
+## in whatever queries it. `odgi stats` parses the index, so it either loads or it does not,
+## and odgi is already this tool's only requirement. Galaxy offers no declarative equivalent:
+## <assert_contents> lives inside <tests> and never runs on a production job.
+    && odgi stats --idx '$odgi_output' --summarize > /dev/null
     ]]></command>
     <inputs>
         <param argument="--gfa" type="data" format="gfa1,gfa1.gz" label="Input GFA1" help="GFA1 (smoothed/fixed graph from pggb)."/>

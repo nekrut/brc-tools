@@ -18,6 +18,15 @@ python '$__tool_directory__/fasta_concat.py'
     #for $f in $inputs#
         '$f'
     #end for#
+## ⛔ VERIFY THE GZIP TRAILER. gzip stores CRC32 and the uncompressed length in the last 8
+## bytes, so `gzip -t` is a complete integrity test, not a header sniff: a write that stopped
+## early fails it. Galaxy cannot do this declaratively -- <assert_contents> exists only inside
+## <tests>, so it never runs on a production job -- and a truncated .gz still sniffs as
+## fasta.gz and still reports ok. detect_errors="aggressive" turns the non-zero exit into a
+## failed job.
+#if $compressed
+    && gzip -t '$output_gz'
+#end if
     ]]></command>
     <inputs>
         <param name="inputs" type="data" format="fasta,fasta.gz" label="FASTAs to concatenate" help="Order is preserved from collection order." multiple="true"/>
