@@ -1,12 +1,18 @@
 <?xml version="1.0"?>
 <macros>
     <token name="@TOOL_VERSION@">469</token>
-    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@VERSION_SUFFIX@">1</token>
     <token name="@PROFILE@">26.0</token>
     <xml name="requirements">
         <requirements>
             <requirement type="package" version="3.12">python</requirement>
             <requirement type="package" version="469">ucsc-bedtobigbed</requirement>
+            <!-- Reads the bigBed back after each conversion. ucsc-bedtobigbed ships
+                 only bedToBigBed, so the reader is a separate package: the same call
+                 PR #104 made for tools/ucsc_kent/bedToBigBed.xml. It changes the
+                 resolved dependency set (and so the mulled container), which is the
+                 deliberate cost of being able to prove the output arrived whole. -->
+            <requirement type="package" version="469">ucsc-bigbedinfo</requirement>
         </requirements>
     </xml>
     <xml name="citations">
