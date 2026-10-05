@@ -1,7 +1,11 @@
-<tool id="tantan" name="tantan" version="51+galaxy1" profile="23.0">
+<tool id="tantan" name="tantan" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.0">
     <description>tantan gentle low-complexity intervals as content-annotated BED6</description>
+    <macros>
+        <token name="@TOOL_VERSION@">51</token>
+        <token name="@VERSION_SUFFIX@">1</token>
+    </macros>
     <requirements>
-        <requirement type="package" version="51">tantan</requirement>
+        <requirement type="package" version="@TOOL_VERSION@">tantan</requirement>
         <!-- python3 runs lc_classify.py in <command>; without this the tool dies at
              exit 127 under biocontainer/singularity resolution, where the blast and
              tantan images carry no interpreter (measured, see build_softmask_udts.py).

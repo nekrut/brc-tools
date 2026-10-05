@@ -432,7 +432,28 @@ def assert_sources_aligned() -> None:
                      f"see. Reconcile build() with the XML, then update XML_COMMAND_DIGESTS.")
     for xml, reqs in XML_REQUIREMENTS.items():
         root = ET.parse(ROOT / xml).getroot()
-        got = {r.text.strip(): r.get("version") for r in root.iter("requirement")
+        # ⚠ Resolve @TOKEN@ before comparing. This reads the XML with ElementTree, not
+        # through Galaxy's macro expansion, so a tokenized requirement arrives as the
+        # literal string "@TOOL_VERSION@" and the comparison below refuses a wrapper
+        # that is in fact pinned correctly. Measured: tokenizing dustmasker/windowmasker
+        # (so the tool version and the blast requirement are stated once) turned this
+        # guard red while the effective version had not moved at all. The tokens are
+        # defined in the tool's own inline <macros>, so resolving them here needs no
+        # expansion machinery -- and the guard keeps its real intent, which is to compare
+        # the version the tool EFFECTIVELY requires against the container this generator
+        # pins. Same trap as `ShedVersion`: a reader of raw XML cannot see through a token.
+        tokens = {name: (tok.text or "").strip()
+                  for tok in root.iter("token")
+                  if (name := tok.get("name"))}
+
+        def _resolved(value: str | None) -> str | None:
+            for name, literal in tokens.items():
+                if value and name in value:
+                    value = value.replace(name, literal)
+            return value
+
+        got = {r.text.strip(): _resolved(r.get("version"))
+               for r in root.iter("requirement")
                if r.get("type") == "package" and r.text}
         for pkg, ver in reqs.items():
             if got.get(pkg) != ver:

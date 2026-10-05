@@ -33,7 +33,6 @@ tools/cyclospora/cyclospora_part_caller/cyclospora_part_caller.xml	GTR027	1
 tools/cyclospora/cyclospora_pyeuk/cyclospora_pyeuk.xml	GTR027	1
 tools/dustmasker/dustmasker.xml	GTR021	1
 tools/dustmasker/dustmasker.xml	GTR027	1
-tools/dustmasker/dustmasker.xml	GTR108	1
 tools/dustmasker/dustmasker.xml	GTR109	1
 tools/fasta_concat/fasta_concat.xml	GTR027	1
 tools/fasta_uppercase/fasta_uppercase.xml	GTR025	1
@@ -43,7 +42,6 @@ tools/fasta_uppercase/fasta_uppercase.xml	GTR108	1
 tools/fasta_uppercase/fasta_uppercase.xml	GTR109	1
 tools/fastan/fastan.xml	GTR021	1
 tools/fastan/fastan.xml	GTR027	1
-tools/fastan/fastan.xml	GTR108	1
 tools/fastan/fastan.xml	GTR109	1
 tools/gene_bed/gene_bed.xml	GTR027	1
 tools/gfaffix/gfaffix.xml	GTR027	1
@@ -75,7 +73,6 @@ tools/sourmash_compare/sourmash_compare.xml	GTR102	1
 tools/sourmash_sketch/sourmash_sketch.xml	GTR027	1
 tools/tantan/tantan.xml	GTR021	1
 tools/tantan/tantan.xml	GTR027	1
-tools/tantan/tantan.xml	GTR108	1
 tools/tantan/tantan.xml	GTR109	1
 tools/toga2/toga2.xml	GTR021	1
 tools/toga2/toga2.xml	GTR027	1
@@ -89,5 +86,4 @@ tools/wfmash/wfmash.xml	GTR027	1
 tools/wfmash/wfmash.xml	GTR102	1
 tools/windowmasker/windowmasker.xml	GTR021	1
 tools/windowmasker/windowmasker.xml	GTR027	1
-tools/windowmasker/windowmasker.xml	GTR108	1
 tools/windowmasker/windowmasker.xml	GTR109	1
