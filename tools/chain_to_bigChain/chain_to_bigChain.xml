@@ -68,7 +68,17 @@ python '$__tool_directory__/chain_to_bigChain.py'
                 </assert_contents>
             </output>
         </test>
-        <!-- ⛔ AN ORACLE, NOT A REGRESSION LOCK. The expected files are the output of the REAL
+        <!-- ▶ ALSO VERIFIED AGAINST UCSC'S OWN PUBLISHED EXPECTED OUTPUT, which is a stronger
+             claim than either test here can make. kent ships a test for this tool at
+             src/hg/utils/chainToBigChain/tests/ in userApps.v482.src.tgz: input
+             hg38.mm10.test.chain (4 real hg38/mm10 chains, unsorted in file order, one on the
+             minus strand) with committed expected/simpleTest.bigChain and
+             expected/simpleTest.bigChainLink. On 2026-10-06 this implementation plus the
+             command's sort reproduced BOTH byte for byte, 4 bigChain rows and 11 link rows.
+             ⚠ Those fixtures are NOT copied here: they are UCSC's data under UCSC's licence
+             and this repository is public. To re-run it, fetch the tarball and diff against
+             expected/ in that directory.
+             ⛔ AN ORACLE, NOT A REGRESSION LOCK. The expected files below are the output of the REAL
              kent chainToBigChain v482, generated from this same multi.chain, not values this
              implementation produced. The other test asserts values derived from this script, which
              can only catch drift from itself; this one can catch being wrong from the start.
