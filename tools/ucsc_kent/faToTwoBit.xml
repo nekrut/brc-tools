@@ -6,13 +6,17 @@
     <requirements>
         <requirement type="package" version="@FATOTWOBIT_VERSION@">ucsc-fatotwobit</requirement>
         <!-- ⛔ READ-BACK VERIFIER, NOT A CONVENIENCE. A 2bit keeps its sequence index at
-             the FRONT and the packed sequence after it, so a write that stopped early
-             leaves a file whose header still parses and whose datatype still sniffs, and
-             the job still reports ok. Only something that follows the index into the
-             sequence data can tell, which is what twoBitInfo does. Galaxy offers no
-             declarative equivalent: <assert_contents> is declared only inside
-             complexType TestOutput, so it never runs on a production job. -->
-        <requirement type="package" version="@TWOBITINFO_VERSION@">ucsc-twobitinfo</requirement>
+             the FRONT and the packed sequence after it, so a write that stopped early leaves
+             a file whose header still parses and whose datatype still sniffs, and the job
+             still reports ok. Galaxy offers no declarative equivalent: <assert_contents> is
+             declared only inside complexType TestOutput, so it never runs on a production job.
+             ⛔ THIS WAS twoBitInfo, AND twoBitInfo CANNOT SEE THE FAILURE. Measured against
+             kent v482 on a 99-byte 2bit: truncated by 1, 4 and 16 bytes it exits ZERO and
+             prints both sequence sizes, because it resolves the index and the record headers
+             and never reads the packed bases. Only at 40 bytes, once a header is damaged, does
+             it fail. twoBitToFa exits non-zero on all three ("End of file reading 7 bytes")
+             because it actually reads the bases, which is what a read-back is for. -->
+        <requirement type="package" version="@TWOBITTOFA_VERSION@">ucsc-twobittofa</requirement>
     </requirements>
     <version_command><![CDATA[faToTwoBit 2>&1 | head -1]]></version_command>
     <command detect_errors="aggressive"><![CDATA[
@@ -23,8 +27,9 @@ faToTwoBit
     $no_mask
     'input.${in_ext}'
     '$output'
-## Follow the index into every sequence. Truncation shows up here and nowhere else.
-&& twoBitInfo '$output' stdout > /dev/null
+## Read every base back. twoBitInfo resolves only the index and the record headers,
+## so a truncation inside the last sequence's packed bases leaves it exiting 0.
+&& twoBitToFa '$output' /dev/null
     ]]></command>
     <inputs>
         <param argument="input" type="data" format="fasta,fasta.gz" label="Input FASTA" help="Nucleotide FASTA, plain or gzipped."/>

@@ -9,6 +9,7 @@
          checks: a reader from a different release can disagree about the FORMAT rather
          than about the file, which would make the check lie in both directions. -->
     <token name="@TWOBITINFO_VERSION@">482</token>
+    <token name="@TWOBITTOFA_VERSION@">482</token>
     <token name="@BIGBEDINFO_VERSION@">482</token>
     <token name="@GFF3TOGENEPRED_VERSION@">482</token>
     <token name="@GENEPREDTOBED_VERSION@">482</token>

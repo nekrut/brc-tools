@@ -16,6 +16,17 @@ python '$__tool_directory__/chain_to_bigChain.py'
     in.chain
     '$bigchain_bed'
     '$biglink_bed'
+  ## ⛔ SORTED, BECAUSE KENT SORTS. Measured against the real chainToBigChain v482: on a
+  ## single chain our output is byte-identical, but on several chains it differed — the same
+  ## SET of lines in a different ORDER, because this script streams in chain-file order while
+  ## kent's usage says "Output will be sorted". bedToBigBed REQUIRES sorted input, so without
+  ## this the tool is not a drop-in and the downstream sort step is load-bearing without
+  ## saying so. With the two sorts below the output is byte-identical to kent on both cases.
+  ## ⚠ Sorted by `sort`, NOT in Python. A cs10 pair's all_chain is ~8 GB of chain text, so its
+  ## links do not fit in memory; GNU sort spills to disk. LC_ALL=C pins collation to byte
+  ## order so it cannot drift with the locale.
+  && LC_ALL=C sort -k1,1 -k2,2n -o '$bigchain_bed' '$bigchain_bed'
+  && LC_ALL=C sort -k1,1 -k2,2n -o '$biglink_bed' '$biglink_bed'
     ]]></command>
     <inputs>
         <param argument="chain" type="data" format="chain" label="Chain alignment" help="UCSC pairwise alignment chain file. Chains with a non-'+' target strand are skipped with a warning."/>
@@ -41,6 +52,17 @@ python '$__tool_directory__/chain_to_bigChain.py'
                     <has_n_lines n="3"/>
                 </assert_contents>
             </output>
+        </test>
+        <!-- ⛔ AN ORACLE, NOT A REGRESSION LOCK. The expected files are the output of the REAL
+             kent chainToBigChain v482, generated from this same multi.chain, not values this
+             implementation produced. The other test asserts values derived from this script, which
+             can only catch drift from itself; this one can catch being wrong from the start.
+             Three chains, deliberately NOT in sorted order, which is where the two diverged:
+             identical content, different line order, until the command gained its sort. -->
+        <test expect_num_outputs="2">
+            <param name="chain" value="multi.chain" ftype="chain"/>
+            <output name="bigchain_bed" file="multi.bigChain.expected"/>
+            <output name="biglink_bed" file="multi.bigLink.expected"/>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

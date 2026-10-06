@@ -15,6 +15,14 @@ genePredToBed
     -score=$score
     'input.genePred'
     '$output'
+
+## ⛔ PROVE THE OUTPUT ARRIVED WHOLE. Galaxy has no job-time output validation, so a
+## truncated write is a GREEN job: the file is still tabular, still sniffs as its datatype,
+## and only breaks whatever reads it next. An empty result and a ragged final line are the
+## two shapes a short write takes here, and both are decidable from the file alone.
+## ⚠ Not a row-count comparison against the input: this conversion is not 1:1 and a
+## legitimate drop would then look like a truncation.
+&& awk -F'\t' 'NF != 12 { printf("%s: line %d has %d columns, want %d\n", "genePredToBed", NR, NF, 12) > "/dev/stderr"; bad = 1 } END { if (NR == 0) { printf("%s: no rows written\n", "genePredToBed") > "/dev/stderr"; bad = 1 } exit bad }' '$output'
     ]]></command>
     <inputs>
         <param argument="input" type="data" format="tabular" label="Input genePred" help="Tab-separated genePred table, e.g. from gff3ToGenePred."/>

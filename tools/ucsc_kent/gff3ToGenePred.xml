@@ -16,6 +16,14 @@ gff3ToGenePred
     $allow_minimal_genes
     'input.gff3'
     '$output'
+
+## ⛔ PROVE THE OUTPUT ARRIVED WHOLE. Galaxy has no job-time output validation, so a
+## truncated write is a GREEN job: the file is still tabular, still sniffs as its datatype,
+## and only breaks whatever reads it next. An empty result and a ragged final line are the
+## two shapes a short write takes here, and both are decidable from the file alone.
+## ⚠ Not a row-count comparison against the input: this conversion is not 1:1 and a
+## legitimate drop would then look like a truncation.
+&& awk -F'\t' 'NF != 15 { printf("%s: line %d has %d columns, want %d\n", "gff3ToGenePred", NR, NF, 15) > "/dev/stderr"; bad = 1 } END { if (NR == 0) { printf("%s: no rows written\n", "gff3ToGenePred") > "/dev/stderr"; bad = 1 } exit bad }' '$output'
     ]]></command>
     <inputs>
         <param argument="input" type="data" format="gff3" label="Input GFF3" help="GFF3 gene annotation."/>

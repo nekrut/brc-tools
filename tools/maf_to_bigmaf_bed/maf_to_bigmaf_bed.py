@@ -5,6 +5,7 @@ The 4th field is the full MAF block text with newlines replaced by ';'.
 
 Usage: maf_to_bigmaf_bed.py <ref_acc> <input.maf> <output.bed>
 """
+import re
 import sys
 
 ref_acc, src, dst = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -15,6 +16,23 @@ def species_of(seq_name):
     if len(parts) >= 2 and parts[0].startswith(('GCA_', 'GCF_')):
         return parts[0] + '.' + parts[1]
     return parts[0]
+
+
+_SCORE = re.compile(r"\bscore=(-?[0-9.eE+]+)")
+
+
+def _normalise_a_line(line):
+    """Re-serialise an `a` line's score as %f, which is what kent emits."""
+    if not line.startswith("a "):
+        return line
+
+    def repl(m):
+        try:
+            return f"score={float(m.group(1)):f}"
+        except ValueError:
+            return m.group(0)
+
+    return _SCORE.sub(repl, line, count=1)
 
 
 def emit_block(out, block):
@@ -40,8 +58,17 @@ def emit_block(out, block):
         return False
     # MAF block text: join lines with ';' (UCSC bigMaf convention)
     # Strip trailing newlines, trim leading whitespace per line
-    text_lines = [l.rstrip('\n') for l in block]
-    block_text = ';'.join(text_lines)
+    # ⛔ KENT NORMALISES THE SCORE AND WE DID NOT. Measured against the real mafToBigMaf
+    # v482 on a non-overlapping MAF -- the case it accepts, so the two must agree: every
+    # coordinate and every s-line matched, and the ONLY difference was the `a` line, where
+    # kent re-serialises score as %f ("score=0.000000") while this passed the input text
+    # through ("score=0.0"). The browser parses either, but a bigMaf built here then differs
+    # byte-for-byte from one built by kent, which is exactly what an oracle is for.
+    text_lines = [_normalise_a_line(l.rstrip('\n')) for l in block]
+    # ⛔ A TRAILING ';' TOO, which kent emits and ';'.join does not. Measured: that one
+    # character was the last difference between this and mafToBigMaf v482. The separator and
+    # the TERMINATOR are not the same thing, and bigMaf's block text uses the terminator form.
+    block_text = ''.join(line + ';' for line in text_lines)
     out.write(f"{ref_chrom}\t{ref_start}\t{ref_start + ref_size}\t{block_text}\n")
     return True
 
