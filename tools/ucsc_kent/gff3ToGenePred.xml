@@ -30,6 +30,10 @@ gff3ToGenePred
     <tests>
         <test expect_num_outputs="1">
             <param name="input" value="tiny.gff3" ftype="gff3"/>
+            <param name="use_name" value="false"/>
+            <param name="warn_and_continue" value="false"/>
+            <param name="process_all_gene_children" value="false"/>
+            <param name="allow_minimal_genes" value="false"/>
             <output name="output">
                 <assert_contents>
                     <has_n_columns n="15"/>
@@ -37,6 +41,23 @@ gff3ToGenePred
                     <has_text text="chr1"/>
                 </assert_contents>
             </output>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_num_outputs="1">
+            <param name="input" value="tiny.gff3" ftype="gff3"/>
+            <param name="use_name" value="true"/>
+            <param name="warn_and_continue" value="true"/>
+            <param name="process_all_gene_children" value="true"/>
+            <param name="allow_minimal_genes" value="true"/>
+            <assert_command>
+                <has_text text="-useName"/>
+                <has_text text="-warnAndContinue"/>
+                <has_text text="-processAllGeneChildren"/>
+                <has_text text="-allowMinimalGenes"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

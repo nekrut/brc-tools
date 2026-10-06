@@ -59,7 +59,10 @@ inputs:
     type: data
     doc: >
       Strict BUSTED archive (Phase H, core_v3): tar.gz of <gene_id>.json at the
-      tar root (one per element_identifier). selection_strict source.
+      tar root (one per element_identifier), OR <GENE_ID>/busted.json. build_hub_bb
+      reads both and refuses an archive it can read no gene from -- it used to accept
+      only the second and publish an empty selection track from the first.
+      selection_strict source.
   busted_relaxed:
     type: data
     doc: Relaxed BUSTED archive (Phase H, core_relaxed). selection_relaxed source.

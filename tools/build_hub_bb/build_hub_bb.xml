@@ -56,13 +56,13 @@ bedToBigBed -type=bed12 orthogroup_membership.bed '$sizes' orthogroup_membership
         <param argument="--ref-bed12" type="data" format="bed" label="Reference gene models (BED12)" help="BED12 of reference gene models. Column 4 (name) must match the gene IDs in the ortholog table; a trailing .N isoform suffix is stripped and the first isoform kept."/>
         <param argument="--sizes" type="data" format="tabular,fai,txt" label="Chromosome sizes" help="A .fa.fai index or 2-column (chrom, length) sizes file. Only the first two columns are read."/>
         <param argument="--ref-acc" type="text" value="reference" label="Reference accession label" help="Informational label for the reference assembly (e.g. GCA_900093555.2).">
-            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">^[A-Za-z0-9_.\-]+$</validator>
         </param>
         <param argument="--ref-column" type="text" value="PvP01" label="Reference column name" help="Name of the ortholog-table column that holds reference gene IDs.">
-            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">^[A-Za-z0-9_.\-]+$</validator>
         </param>
         <param argument="--gene-prefix" type="text" value="PVP01_" label="Reference gene-ID prefix" help="Only gene IDs starting with this prefix are taken from the reference column.">
-            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">^[A-Za-z0-9_.\-]+$</validator>
         </param>
         <param argument="--busted-strict" type="data" format="tar.gz,tgz,tar" label="Strict BUSTED archive" help="gzip-compressed tar of HyPhy BUSTED results, laid out as &lt;GENE_ID&gt;/busted.json. p-values are read from the 'test results' block and FDR-corrected across mapped genes."/>
         <conditional name="relaxed">

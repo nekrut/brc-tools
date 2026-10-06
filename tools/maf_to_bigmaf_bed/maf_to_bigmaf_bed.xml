@@ -17,7 +17,7 @@ python '$__tool_directory__/maf_to_bigmaf_bed.py'
     <inputs>
         <param argument="ref_acc" type="text" value="" label="Reference accession" help="Species/assembly accession of the reference row in each MAF block (e.g. GCA_000001.1). The block is anchored on this row; its sequence-name prefix is stripped so the BED chrom matches the chrom-sizes naming.">
             <validator type="empty_field"/>
-            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">[A-Za-z0-9_.\-]+</validator>
+            <validator type="regex" message="Letters, digits, underscore, hyphen, dot only">^[A-Za-z0-9_.\-]+$</validator>
         </param>
         <param name="input_maf" argument="input.maf" type="data" format="maf" label="Input MAF" help="A (preprocessed) multiple alignment file. Must carry a '##maf' header line; only blocks after it are read."/>
     </inputs>

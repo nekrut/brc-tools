@@ -7,14 +7,23 @@
         <requirement type="package" version="@HUBCHECK_VERSION@">ucsc-hubcheck</requirement>
     </requirements>
     <version_command><![CDATA[hubCheck 2>&1 | head -1]]></version_command>
-    <command detect_errors="aggressive"><![CDATA[
+    <command detect_errors="exit_code"><![CDATA[
+## ⛔ NOT "aggressive", AND IT WAS. Aggressive mode scans the job's stdout/stderr for error
+## text -- but both streams are redirected into the report dataset below, so there was
+## nothing left to scan and it silently degraded to exit_code anyway. Declaring it claimed a
+## check that could not run. hubCheck's exit status is meaningful and authoritative here.
+##
+## ⚠ THE REPORT IS THE DIAGNOSIS, so it is copied to stderr as well. Previously a hub defect
+## failed the job and the only copy of the reason sat in a dataset marked error, with the
+## job's stderr empty -- nothing to read in the invocation view. No process substitution:
+## the job script is not guaranteed to run under bash (see faToTwoBit's note).
 hubCheck
     $no_tracks
     #if str($settings_level)
         -settings
     #end if
     '$hub_url'
-    > '$report' 2>&1
+    > '$report' 2>&1 ; rc=\$? ; cat '$report' >&2 ; exit \$rc
     ]]></command>
     <inputs>
         <param argument="hub_url" type="text" label="Hub URL" help="URL (or local path) of the hub.txt to validate.">
@@ -31,6 +40,21 @@ hubCheck
              which is not reproducible as a tiny offline fixture; validate the CLI is callable. -->
         <test expect_failure="true">
             <param name="hub_url" value="does_not_exist_hub.txt"/>
+            <param name="no_tracks" value="false"/>
+            <param name="settings_level" value="false"/>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_failure="true">
+            <param name="hub_url" value="does_not_exist_hub.txt"/>
+            <param name="no_tracks" value="true"/>
+            <param name="settings_level" value="true"/>
+            <assert_command>
+                <has_text text="-noTracks"/>
+                <has_text text="-settings"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

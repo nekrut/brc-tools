@@ -37,26 +37,26 @@ python '$__tool_directory__/build_trackdb.py'
     <inputs>
         <param argument="--assembly" type="text" value="" label="Assembly accession (this genome)" help="Accession of the genome this trackDb is for, e.g. GCA_000002415.2.">
             <validator type="empty_field"/>
-            <validator type="regex" message="Letters, digits, underscore, dot, hyphen only">[A-Za-z0-9_.\-]+</validator>
+            <validator type="regex" message="Letters, digits, underscore, dot, hyphen only">^[A-Za-z0-9_.\-]+$</validator>
         </param>
         <param argument="--strain" type="text" value="" label="Strain name (this genome)" help="Strain label for this genome, e.g. Sal-I.">
             <validator type="empty_field"/>
-            <validator type="regex" message="Letters, digits, space, underscore, dot, hyphen only">[A-Za-z0-9 _.\-]+</validator>
+            <validator type="regex" message="Letters, digits, space, underscore, dot, hyphen only">^[A-Za-z0-9 _.\-]+$</validator>
         </param>
         <param argument="--strain-label" type="text" value="" label="Panel members (ACC=LABEL ...)" help="Space-separated ACC=LABEL pairs for every assembly in the panel. Drives speciesOrder/speciesLabels of the bigMaf and the chain sub-tracks (one per other assembly). A bare ACC uses itself as the label.">
-            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">[A-Za-z0-9 _.=\-]*</validator>
+            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">^[A-Za-z0-9 _.=\-]*$</validator>
         </param>
         <param argument="--anchor" type="text" value="" label="Anchor strains (ACC=LABEL ...)" help="Space-separated ACC=LABEL pairs for the anchor strains that contribute gene projections (annotation sub-tracks).">
-            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">[A-Za-z0-9 _.=\-]*</validator>
+            <validator type="regex" message="Tokens like ACC or ACC=LABEL, space separated">^[A-Za-z0-9 _.=\-]*$</validator>
         </param>
         <param argument="--maf" type="text" value="" label="bigMaf bigDataUrl (optional)" help="bigDataUrl for the standalone bigMaf track. Defaults to {strain}.multiz.maf.bb.">
-            <validator type="regex" message="Path characters only">[A-Za-z0-9 _./\-]*</validator>
+            <validator type="regex" message="Path characters only">^[A-Za-z0-9 _./\-]*$</validator>
         </param>
         <param argument="--chains-dir" type="text" value="chains" label="Chains sub-directory" help="Directory (relative to the assembly dir) holding the bigChain .bb pairs.">
-            <validator type="regex" message="Path characters only">[A-Za-z0-9_./\-]+</validator>
+            <validator type="regex" message="Path characters only">^[A-Za-z0-9_./\-]+$</validator>
         </param>
         <param argument="--group" type="text" value="brc_pangenome" label="Track group name">
-            <validator type="regex" message="Letters, digits, underscore only">[A-Za-z0-9_]+</validator>
+            <validator type="regex" message="Letters, digits, underscore only">^[A-Za-z0-9_]+$</validator>
         </param>
         <param argument="--is-reference" type="boolean" truevalue="1" falsevalue="" checked="false" label="This is the reference assembly" help="When set, also emit the reference-only selection/orthogroup composite (3 sub-tracks)."/>
     </inputs>
