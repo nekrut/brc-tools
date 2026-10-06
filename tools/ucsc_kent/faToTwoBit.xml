@@ -37,12 +37,27 @@ faToTwoBit
     <tests>
         <test expect_num_outputs="1">
             <param name="input" value="test.fa" ftype="fasta"/>
+            <param name="long" value="false"/>
+            <param name="no_mask" value="false"/>
             <output name="output">
                 <assert_contents>
                     <!-- 2bit magic 0x1A412743 -->
                     <has_size min="40"/>
                 </assert_contents>
             </output>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_num_outputs="1">
+            <param name="input" value="test.fa" ftype="fasta"/>
+            <param name="long" value="true"/>
+            <param name="no_mask" value="true"/>
+            <assert_command>
+                <has_text text="-long"/>
+                <has_text text="-noMask"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

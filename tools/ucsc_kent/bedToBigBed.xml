@@ -49,6 +49,7 @@ bedToBigBed
             <param name="chrom_sizes" value="chrom.sizes" ftype="tabular"/>
             <param name="type" value="bed3+1"/>
             <param name="as_file" value="bigMaf.as" ftype="txt"/>
+            <param name="tab" value="true"/>
             <output name="output">
                 <assert_contents>
                     <!-- bigBed magic 0x8789F2EB, little-endian on disk -->
@@ -61,6 +62,20 @@ bedToBigBed
             <assert_command>
                 <has_text text="-type='bed3+1'"/>
                 <has_text text="-tab"/>
+            </assert_command>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_num_outputs="1">
+            <param name="bed" value="test.bed" ftype="bed"/>
+            <param name="chrom_sizes" value="chrom.sizes" ftype="tabular"/>
+            <param name="type" value="bed3+1"/>
+            <param name="as_file" value="bigMaf.as" ftype="txt"/>
+            <param name="tab" value="false"/>
+            <assert_command>
+                <not_has_text text="-tab"/>
             </assert_command>
         </test>
     </tests>

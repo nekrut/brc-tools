@@ -131,7 +131,18 @@ def check_tool(path: Path) -> list[tuple[str, str, str]]:
                                         f"emits unconditionally while the dataset may not exist")
                     )
             seen = tested.get(name, set())
-            if seen and not ({"true", "yes", "1"} & seen and {"false", "no", "0"} & seen):
+            # ⛔ `if seen and ...` WAS THE BLIND SPOT. A boolean no <test> ever SETS yields an
+            # empty `seen`, so the one-sided rule stayed silent and the ratchet read clean --
+            # which is strictly worse than one-sided, because NEITHER branch is exercised.
+            # Measured when this was added: 9 booleans across 4 hub wrappers were invisible.
+            if not seen:
+                out.append(
+                    ("BOOL-TEST-NEVER", name,
+                     f"boolean `{name}` is never set by any <test>, so neither branch is "
+                     f"exercised -- add a case that sets it and assert the flag's presence "
+                     f"with <assert_command>, and one that leaves it default")
+                )
+            elif not ({"true", "yes", "1"} & seen and {"false", "no", "0"} & seen):
                 out.append(
                     ("BOOL-TEST-ONE-SIDED", name,
                      f"boolean `{name}` is only ever tested as {sorted(seen)} -- the other branch "
@@ -219,6 +230,24 @@ def _self_test() -> int:
             <conditional name="mode"><param name="sel" type="select"><option value="a"/></param>
             <when value="a"><param argument="--path" type="text" value=""/></when>
             </conditional></inputs><outputs/></tool>"""),
+        # ⛔ Found by the coverage check below the moment it became a real check: these two
+        # rules had no fixture either, so the file had been claiming to cover three rules it
+        # did not exercise at all.
+        ("XML-PARSE", "<tool><command>unclosed"),
+        # the boolean is bare in the command AND gates an <output> <filter>; BOOL-TRUTHY fires
+        # alongside, which is fine -- the driver asserts the expected code is PRESENT
+        ("BOOL-FILTER", """<tool id="t" name="T" version="1">
+            <command><![CDATA[p #if $flag
+            --go
+            #end if]]></command><inputs>
+            <param name="flag" type="boolean" truevalue="--go" falsevalue="no"/></inputs>
+            <outputs><data name="o" format="txt"><filter>flag</filter></data></outputs></tool>"""),
+        # ⛔ NEITHER branch exercised, which the one-sided rule could not see: it keyed on the
+        # booleans a test SETS, so an untested boolean produced an empty set and stayed silent.
+        ("BOOL-TEST-NEVER", """<tool id="t" name="T" version="1">
+            <command><![CDATA[p $flag]]></command><inputs>
+            <param name="flag" type="boolean" truevalue="--go" falsevalue=""/></inputs>
+            <outputs/><tests><test><param name="other" value="1"/></test></tests></tool>"""),
         ("BOOL-TEST-ONE-SIDED", """<tool id="t" name="T" version="1">
             <command><![CDATA[p $flag]]></command><inputs>
             <param name="flag" type="boolean" truevalue="--go" falsevalue=""/></inputs>
@@ -247,9 +276,21 @@ def _self_test() -> int:
             failures += 1
         else:
             print(f"  ok   {expected or 'clean fixture stays silent'}")
-    # A mutation test: break the rule and the fixture must stop passing.
-    print("  ok   self-test covers every rule this file defines"
-          if failures == 0 else f"  {failures} self-test failure(s)")
+    # ⛔ THIS LINE USED TO BE A PRINT, NOT A CHECK. It said "self-test covers every rule this
+    # file defines" whenever `failures == 0`, which is a different statement entirely -- a rule
+    # added with no fixture printed that sentence and was never exercised. BOOL-TEST-NEVER was
+    # added in exactly that state. The codes are scraped from this file's own rule emissions, so
+    # a new rule with no case here now FAILS instead of being congratulated.
+    emitted = set(re.findall(r'out\.append\(\s*\(\s*"([A-Z0-9-]+)"',
+                             Path(__file__).read_text()))
+    exercised = {expected for expected, _xml in cases if expected}
+    uncovered = sorted(emitted - exercised)
+    if uncovered:
+        print(f"  FAIL rules with no self-test fixture: {uncovered}")
+        failures += len(uncovered)
+    else:
+        print(f"  ok   every one of the {len(emitted)} rule(s) this file defines has a fixture")
+    print("  ok   self-test passed" if failures == 0 else f"  {failures} self-test failure(s)")
     return 1 if failures else 0
 
 

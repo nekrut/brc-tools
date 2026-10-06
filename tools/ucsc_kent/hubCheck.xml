@@ -40,6 +40,21 @@ hubCheck
              which is not reproducible as a tiny offline fixture; validate the CLI is callable. -->
         <test expect_failure="true">
             <param name="hub_url" value="does_not_exist_hub.txt"/>
+            <param name="no_tracks" value="false"/>
+            <param name="settings_level" value="false"/>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_failure="true">
+            <param name="hub_url" value="does_not_exist_hub.txt"/>
+            <param name="no_tracks" value="true"/>
+            <param name="settings_level" value="true"/>
+            <assert_command>
+                <has_text text="-noTracks"/>
+                <has_text text="-settings"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[

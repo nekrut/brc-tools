@@ -27,6 +27,7 @@ genePredToBed
     <tests>
         <test expect_num_outputs="1">
             <param name="input" value="tiny.genepred" ftype="tabular"/>
+            <param name="fill_space" value="false"/>
             <output name="output">
                 <assert_contents>
                     <has_n_columns n="12"/>
@@ -34,6 +35,17 @@ genePredToBed
                     <has_line_matching expression="^chr1\t\d+\t\d+\tmrna1\t.*"/>
                 </assert_contents>
             </output>
+        </test>
+        <!-- ⛔ BOTH SIDES OF EVERY BOOLEAN, SET EXPLICITLY. check_tool_defects' rule reads the
+             booleans a <test> SETS, so leaving one at its default is not the false side: it is
+             no side at all, and the rule used to stay silent for exactly that case. Asserted on
+             the COMMAND, which needs no new fixture and is what the flag affects. -->
+        <test expect_num_outputs="1">
+            <param name="input" value="tiny.genepred" ftype="tabular"/>
+            <param name="fill_space" value="true"/>
+            <assert_command>
+                <has_text text="-fillSpace"/>
+            </assert_command>
         </test>
     </tests>
     <help format="markdown"><![CDATA[
