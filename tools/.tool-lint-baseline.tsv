@@ -81,6 +81,14 @@ tools/ucsc_kent/faToTwoBit.xml	GTR027	1
 tools/ucsc_kent/genePredToBed.xml	GTR027	1
 tools/ucsc_kent/gff3ToGenePred.xml	GTR027	1
 tools/ucsc_kent/hubCheck.xml	GTR027	1
+# ⛔ hubCheck GTR109 is WAIVED DELIBERATELY, and the rule is right in general.
+# GTR109 prefers detect_errors="aggressive" because exit_code fails only on a non-zero exit.
+# hubCheck is a VALIDATOR: its report is copied to stderr so the diagnosis is visible, and a
+# passing report plausibly contains a summary line like "0 errors found". Under aggressive that
+# text would fail a HEALTHY hub. The exit status is the verdict for a validator, so exit_code is
+# the stronger check here, not the weaker one. Previously this file declared aggressive while
+# redirecting both streams into the report dataset, so there was no text to scan at all.
+tools/ucsc_kent/hubCheck.xml	GTR109	1
 tools/wfmash/wfmash.xml	GTR020.2	3
 tools/wfmash/wfmash.xml	GTR027	1
 tools/wfmash/wfmash.xml	GTR102	1

@@ -7,14 +7,23 @@
         <requirement type="package" version="@HUBCHECK_VERSION@">ucsc-hubcheck</requirement>
     </requirements>
     <version_command><![CDATA[hubCheck 2>&1 | head -1]]></version_command>
-    <command detect_errors="aggressive"><![CDATA[
+    <command detect_errors="exit_code"><![CDATA[
+## ⛔ NOT "aggressive", AND IT WAS. Aggressive mode scans the job's stdout/stderr for error
+## text -- but both streams are redirected into the report dataset below, so there was
+## nothing left to scan and it silently degraded to exit_code anyway. Declaring it claimed a
+## check that could not run. hubCheck's exit status is meaningful and authoritative here.
+##
+## ⚠ THE REPORT IS THE DIAGNOSIS, so it is copied to stderr as well. Previously a hub defect
+## failed the job and the only copy of the reason sat in a dataset marked error, with the
+## job's stderr empty -- nothing to read in the invocation view. No process substitution:
+## the job script is not guaranteed to run under bash (see faToTwoBit's note).
 hubCheck
     $no_tracks
     #if str($settings_level)
         -settings
     #end if
     '$hub_url'
-    > '$report' 2>&1
+    > '$report' 2>&1 ; rc=\$? ; cat '$report' >&2 ; exit \$rc
     ]]></command>
     <inputs>
         <param argument="hub_url" type="text" label="Hub URL" help="URL (or local path) of the hub.txt to validate.">
