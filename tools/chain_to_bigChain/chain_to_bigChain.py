@@ -16,11 +16,12 @@ def open_text(p):
     return open(p, "r")
 
 
-def convert(chain_path, big_bed, big_link):
+def convert(chain_path, big_bed, big_link, sizes_path=None):
     # ⛔ INITIALISED, because they used to be set only by a `chain ` line. A file whose first
     # non-blank line is a block line hit `if skip_chain` and raised UnboundLocalError -- a
     # traceback instead of a diagnosis.
     skip_chain = True
+    t_sizes = {}
     tName = None
     chain_id = None
     t_cur = q_cur = 0
@@ -80,6 +81,19 @@ def convert(chain_path, big_bed, big_link):
                 q_cur = qStart
                 t_end, q_end = tEnd, qEnd
                 open_chain = chain_id
+                # ⛔ THE CHAIN FILE CARRIES ITS OWN TARGET SIZES, so bedToBigBed does not need
+                # them supplied. Every header has tName AND tSize, and the chroms that appear
+                # as tName are exactly the chroms the bigChain/bigLink BEDs reference -- so a
+                # sizes file derived here is both sufficient and correct BY CONSTRUCTION, for
+                # whichever assembly this particular chain targets.
+                prev = t_sizes.get(tName)
+                if prev is not None and prev != tSize:
+                    raise SystemExit(
+                        f"error: chain {chain_id} declares tSize={tSize} for {tName}, but an "
+                        f"earlier chain in the same file declared {prev}. One file cannot "
+                        f"describe two assemblies; refusing rather than emitting sizes that "
+                        f"are wrong for half the chains.")
+                t_sizes[tName] = tSize
             else:
                 if skip_chain:
                     continue
@@ -100,9 +114,19 @@ def convert(chain_path, big_bed, big_link):
         # the last chain in the file has no following header to trigger the check
         _close(open_chain, t_cur, q_cur, t_end, q_end)
 
+    if sizes_path is not None:
+        if not t_sizes:
+            raise SystemExit(
+                f"error: no chain header was read from {chain_path!r}, so no target sizes "
+                f"could be derived and the bigBed conversion would have nothing to validate "
+                f"its coordinates against.")
+        with open(sizes_path, "w") as out_sizes:
+            for name in sorted(t_sizes):
+                out_sizes.write(f"{name}\t{t_sizes[name]}\n")
+
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in (4, 5):
         sys.stderr.write("usage: chain_to_bigChain.py in.chain[.gz] out.bigChain.bed out.bigLink.bed\n")
         sys.exit(1)
-    convert(sys.argv[1], sys.argv[2], sys.argv[3])
+    convert(*sys.argv[1:5])
