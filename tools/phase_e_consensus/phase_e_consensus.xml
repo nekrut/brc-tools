@@ -70,6 +70,23 @@ python '$__tool_directory__/phase_e_consensus.py'
                     </element>
                 </collection>
             </param>
+            <!-- ⛔ `gene_beds` IS REQUIRED AND WAS MISSING, SO THIS TEST NEVER RAN. GTR101:
+                 "Test 1: failed to validate test parameters against inputs" — a modern Galaxy
+                 profile refuses the test outright, so it was neither passing nor failing, it was
+                 absent. The input is deliberately NOT optional even though the script defaults it
+                 to None and only warns: without it every projection keeps its reference-derived
+                 id, becomes a second node at a locus that already has one, and inflates
+                 `max_copies`, which the labels key on.
+                 ⚠ The natives carry THEIR OWN ids (B_gene1, not geneA) because that is the whole
+                 point — Liftoff writes the REFERENCE gene's id into the query's GFF, so a
+                 projected id never equals the native id at the same locus. -->
+            <param name="gene_beds">
+                <collection type="list">
+                    <element name="A" value="A.gene.bed" ftype="bed"/>
+                    <element name="B" value="B.gene.bed" ftype="bed"/>
+                    <element name="C" value="C.gene.bed" ftype="bed"/>
+                </collection>
+            </param>
             <param name="rbest" value="rbest_edges.tsv" ftype="tabular"/>
             <param name="graph" value="graph_edges.tsv" ftype="tabular"/>
             <param name="anchors" value="A"/>
@@ -80,6 +97,17 @@ python '$__tool_directory__/phase_e_consensus.py'
                     <has_text text="orthogroup_id&#9;label&#9;n_strains&#9;max_copies&#9;clique&#9;clique_ceiling&#9;density&#9;A&#9;B&#9;C"/>
                     <has_text text="OG000001"/>
                     <has_text text="CORE-1:1"/>
+                    <!-- ⛔ THE ALIASING, ASSERTED. `B_gene1` is a NATIVE id that appears in the
+                         output only if the projection of `geneA` into B was resolved onto it via
+                         the gene_beds input. Without this line the test passes whether or not it
+                         is honoured, which is how a required input went missing unnoticed.
+                         ⚠ Measured: 4 of 4 projections resolve at >=0.5 reciprocal overlap, and
+                         the edge files join NATIVE ids, as a chain alignment between two
+                         assemblies does. With the projected ids in those files instead, the same
+                         run yields FOUR groups: two CORE-1:1 plus two LINEAGE-SPECIFIC, which
+                         is the incoherent-fixture signature, not a tool defect. -->
+                    <has_text text="B_gene1"/>
+                    <has_text text="C_gene2"/>
                     <has_n_columns n="10"/>
                 </assert_contents>
             </output>
