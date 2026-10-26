@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Union
 
 
-ChainHeader = dict[str, int | str]
+# Not `dict[str, int | str]`: a type alias is a plain assignment, so it is
+# evaluated at import time and PEP 604 unions need 3.10 (the module's
+# `from __future__ import annotations` only defers real annotations).
+ChainHeader = dict[str, Union[int, str]]
 ChainBlock = tuple[int, int, int, int, str]
 
 

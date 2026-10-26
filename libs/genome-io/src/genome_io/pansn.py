@@ -1,5 +1,7 @@
 """Helpers for PanSN path names and PGGB graph outputs."""
 
+from __future__ import annotations
+
 from collections import defaultdict
 from pathlib import Path
 from typing import TextIO
