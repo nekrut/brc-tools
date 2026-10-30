@@ -319,10 +319,16 @@ if str(a.containment).lower() in ("true", "1", "yes"):
     # contains the other while a small genome IS largely inside a big one.
     write_newick("max_containment.csv", "max_containment.newick", "1 - max_containment")
 else:
-    # ⚠ OFF BY DEFAULT, AND NOTHING IS WRITTEN WHEN OFF -- deliberately, rather than emitting an
-    # empty CSV. A zero-row matrix is the silent-success shape this project keeps finding: it
-    # arrives as a real dataset, joins cleanly, and describes nothing. The outputs are declared
-    # optional so Galaxy simply does not produce them.
+    # ⚠ OFF BY DEFAULT, AND NOTHING IS WRITTEN WHEN OFF -- deliberately, rather than emitting a
+    # header-only CSV. A zero-row matrix is the silent-success shape this project keeps finding: it
+    # arrives as a real dataset, joins cleanly, and describes nothing.
+    # ⛔ GALAXY STILL CREATES THE FIVE OUTPUTS, AS EMPTY (0-byte) DATASETS IN STATE `ok`. A user-defined
+    # tool cannot omit an output: every declared output is pre-created, and a `from_work_dir` file is
+    # copied in only if it exists (lib/galaxy/jobs/command_factory.py, `if [ -f src ] ... cp`). The
+    # outputs once said `optional: true`, which Galaxy's output handling does not read (checked in
+    # release_26.1); galaxy-tool-util-models 26.1.2 rejects the key outright ("Extra inputs are not
+    # permitted"). An empty dataset is still the honest shape: it cannot be read as a matrix, unlike
+    # a CSV with a header and no rows.
     print("containment: not requested (containment=false); writing no matrix", file=sys.stderr)
 
 # ---- publish the per-strain signatures ----------------------------------------------------------
