@@ -260,7 +260,7 @@ def sourmash_udt() -> str:
     # future reader "fixing" the warning by doubling it would change the regex.
     return HEADER + rf"""class: GalaxyUserTool
 id: brc-sourmash-panel
-version: "0.12.0"
+version: "0.13.0"
 name: sourmash sketch + compare over a panel (BRC UDT)
 description: MinHash signatures for every assembly in a collection and the similarity matrix over them
 container: quay.io/biocontainers/sourmash:4.9.4--hdfd78af_0
@@ -376,9 +376,10 @@ outputs:
   # them -- do the two clusterings agree, and where -- could not be asked of the outputs at all. It
   # is the SAME emitter for both (see write_newick), because two trees built by two copies of the
   # logic are not comparable even when they look it.
-  # ⚠ NOT `optional`, unlike the max-containment pair: similarity.csv is always written, so this
-  # tree always exists. ⚠ AND THE ASYMMETRIC `containment` MATRIX DELIBERATELY GETS NO TREE --
-  # containment(A,B) != containment(B,A), so any clustering of it is an artefact of row order.
+  # ⚠ ALWAYS WRITTEN, unlike the max-containment pair (empty when `containment` is off):
+  # similarity.csv is always written, so this tree always exists. ⚠ AND THE ASYMMETRIC `containment`
+  # MATRIX DELIBERATELY GETS NO TREE -- containment(A,B) != containment(B,A), so any clustering of it
+  # is an artefact of row order.
   - name: similarity_newick
     type: data
     format: newick
@@ -409,7 +410,6 @@ outputs:
   - name: containment_matrix
     type: data
     format: csv
-    optional: true
     from_work_dir: containment.csv
     label: sourmash containment matrix (CSV, asymmetric, size-robust)
   # ⚠ THE SYMMETRIC ONE, AND THE ONLY SIZE-ROBUST MATRIX THAT CAN BE A TREE. Plain containment is
@@ -421,13 +421,11 @@ outputs:
   - name: max_containment
     type: data
     format: csv
-    optional: true
     from_work_dir: max_containment.csv
     label: sourmash max-containment matrix (CSV, symmetric, size-robust)
   - name: max_containment_heatmap
     type: data
     format: png
-    optional: true
     from_work_dir: maxc.matrix.png
     label: max-containment clustered heatmap
   # ⛔ THE TREE AS DATA, BECAUSE `sourmash plot` ONLY EMITS A PICTURE. Its CLI offers PNG or PDF and
@@ -444,13 +442,11 @@ outputs:
   - name: max_containment_newick
     type: data
     format: newick
-    optional: true
     from_work_dir: max_containment.newick
     label: max-containment tree, Newick (average linkage over 1 - max_containment; branch lengths are dissimilarity, NOT evolutionary distance)
   - name: max_containment_dendrogram
     type: data
     format: png
-    optional: true
     from_work_dir: maxc.dendro.png
     label: max-containment dendrogram (the tree to read for a mixed-size panel)
   - name: heatmap
