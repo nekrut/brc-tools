@@ -61,6 +61,22 @@ export NXF_ANSI_LOG=false &&
 ## the durable fix is to pin NXF_VER in the container build instead.
 export NXF_SYNTAX_PARSER=v1 &&
 
+## Keep TOGA2 inside its slots. Two things size themselves to every CPU the
+## host has, not to the job's allocation, wherever no per-job cgroup limits
+## them (measured: 112 threads visible on a Galaxy host running Singularity):
+##   * Nextflow's local executor runs as many tasks at once as the JVM
+##     reports processors. Cap it at the slots; this is where the job's
+##     parallelism belongs.
+##   * every TOGA2 python process (toga2.py and each cesar_exec /
+##     cesar_preprocess task) imports numpy/scipy (OpenBLAS) and sklearn /
+##     xgboost (libgomp), each with a thread pool the size of the host.
+##     `toga2.py test` on a 32-CPU host: 110 threads in toga2.py and 32 in
+##     each task without these; 1 each with them, since Nextflow's tasks
+##     inherit the environment. One thread per process, NOT the slots:
+##     the slots already run that many tasks at once.
+export NXF_OPTS="-XX:ActiveProcessorCount=\${GALAXY_SLOTS:-1}" &&
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 &&
+
 toga2.py run
     --ref_2bit ref.2bit
     --query_2bit query.2bit
