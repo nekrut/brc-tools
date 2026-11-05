@@ -54,6 +54,7 @@ memory again and is true of every masker that feeds this today -- but it would m
 correct-looking input fail, and it would couple this script to an ordering no caller
 declares. Byte-identical output for ANY input order is worth the extra dict.
 """
+import re
 import sys
 
 
@@ -72,6 +73,10 @@ def iter_fasta(path):
                 buf.append(line.strip())
     if name is not None:
         yield name, "".join(buf)
+
+
+#: maximal runs of non-gap bases within an interval
+NON_GAP = re.compile(r"[^N]+")
 
 
 def classify(s):
@@ -139,8 +144,16 @@ def main():
             # propagate straight into the UCSC hub. The invariant it would lean on is created by
             # the same change that would remove it, and this is the only place that would notice
             # if that invariant were ever wrong.
-            nm, sc = classify(s[a:b].upper())
-            rows[slot] = "%s\t%d\t%d\t%s\t%d\t.\n" % (name, a, b, nm, sc)
+            # ⛔ ASSEMBLY GAP IS NOT LOW COMPLEXITY. dustmasker reports every N run as an interval, so
+            # an interval is split at N and each non-gap piece classified on its own; a pure-gap
+            # interval is dropped. Otherwise gap reaches the union mask, `maskfasta -soft` turns it to
+            # `n`, and masking_table counts it as masked: measured on one 888 Mb assembly with 16%
+            # gap, dustmasker covered 100% of its 139.6 Mb of N and the union read 65.65% masked
+            # against 59.14% of its non-gap bases. The other three maskers covered 0% of that gap.
+            seg = s[a:b].upper()
+            rows[slot] = "".join(
+                "%s\t%d\t%d\t%s\t%d\t.\n" % (name, a + m.start(), a + m.end(), *classify(m.group()))
+                for m in NON_GAP.finditer(seg))
 
     # A BED naming a sequence the FASTA does not hold is a MISMATCHED PAIR of inputs, not an
     # interval to classify. Falling back to "" made classify() return ("lc", 0) and this wrote
